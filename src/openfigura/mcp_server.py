@@ -21,11 +21,15 @@ from openfigura.core.task import Task
 
 def build():
     try:
-        from mcp.server.fastmcp import FastMCP
-    except ImportError as exc:  # pragma: no cover
-        raise SystemExit("MCP extra not installed: pip install 'openfigura[mcp]'") from exc
+        from mcp.server.mcpserver import MCPServer as _Server  # mcp >= 2
+    except ImportError:
+        try:
+            from mcp.server.fastmcp import FastMCP as _Server  # mcp 1.x
+        except ImportError as exc:
+            raise SystemExit(
+                "MCP extra not installed: pip install 'openfigura[mcp]'") from exc
 
-    app = FastMCP("openfigura")
+    app = _Server("openfigura")
 
     @app.tool(description="List generation/render backends and probe availability.")
     def figura_backends() -> dict:
