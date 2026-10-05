@@ -1,0 +1,21 @@
+{
+  "name": "tarot-box",
+  "axis": "non-human prop; product-style three-quarter view",
+  "source": "user-generated with GPT Image 2026-10-05; prompts in golden/prompts.md",
+  "expect_input_sha256": "ac05865b1a556337345fc87eb42c4bde9e4c7f9e45f47ed171fe6a58b9d0fac4",
+  "backend": "pixal3d",
+  "params": {
+    "seed": 42,
+    "res": 1024
+  },
+  "facing_deg": 180,
+  "render_samples": 16,
+  "expect": {
+    "min_triangles": 50000
+  },
+  "expect_preflight_warnings": [
+    "no alpha channel"
+  ],
+  "strict_hash": false,
+  "baseline": "pending - no accepted run yet; first full generate must be human-approved"
+}

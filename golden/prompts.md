@@ -68,15 +68,42 @@ multiple people, turnaround sheet, grid, collage, text, watermark,
 cropped feet, dramatic lighting, complex background
 ```
 
-## Deliberately broken inputs (preflight gate tests)
+## 6. `scifi-stride` — complex game character with pose (user-supplied)
 
-Made by degrading case 1 — do not prompt for these:
+```
+Full-body stylized 3D game character of a female warrior in black and
+white sci-fi armor with gold accents, long flowing white hair, horned
+visor helmet, dark cape with torn gold-edged panels, mid-stride walking
+pose facing camera, full body visible, plain white background, soft
+even lighting, no text, no watermark, high detail, 2:3 portrait
+```
 
-| case | construction | expected verdict |
-|---|---|---|
-| `broken-tiny` | resize to 256 px short edge | error: below 512 floor |
-| `broken-sheet` | two copies side by side (aspect > 3) | error: not a single subject |
-| `broken-jpeg` | save at ~30 % quality | warning: compression rings |
+## 7. `crouch-pose` — non-neutral pose + eyes covered (user-supplied)
 
-These three run through `openfigura preflight` in the golden suite and
-must FAIL/WARN as listed — the gate is only trusted if it bites.
+```
+Full-body stylized 3D game character render of a white-bobbed android
+woman in a black-and-white gothic combat outfit with lace cutouts,
+black visor covering the eyes, crouching pose, one hand raised, high
+heel boots, plain white background, soft studio lighting, no text,
+no watermark, 2:3 portrait
+```
+
+## 8. `head-sculpt` — photoreal bust, facial detail ceiling (user-supplied)
+
+```
+Photorealistic 3D head sculpt of a young bald man, three-quarter view,
+intense gray eyes fully visible, detailed skin pores and brows, neutral
+expression, clean white background, soft studio lighting, digital
+sculpture render, no shoulders, no text, 2:3 portrait
+```
+
+Note: 6–8 deliberately break our own A-pose/full-body guidance (stride,
+crouch, visor-over-eyes, bust-only). That is the point — they measure how
+far the pipeline stretches when users ignore the guide, and the results
+should feed back into input-guide wording.
+
+## Making broken fixtures (maintainers)
+
+Run `python3 make_broken.py` from `golden/`. It derives all three from
+committed good cases with exactly one degradation each — see
+`cases/broken-*/case.json` for the expected preflight verdict.

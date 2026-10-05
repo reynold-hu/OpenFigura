@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from openfigura.core import engine, registry
+from openfigura.core import syscheck as _syscheck
 from openfigura.core.task import Task
 
 
@@ -23,6 +24,9 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(func=lambda a: _print({
         bid: {"description": desc, **_probe(bid)}
         for bid, desc in registry.available().items()}))
+
+    p = sub.add_parser("syscheck", help="environment self-check: can this machine generate?")
+    p.set_defaults(func=lambda a: _print(_syscheck.check()))
 
     p = sub.add_parser("new", help="create a task workspace and stage the input image")
     p.add_argument("image")

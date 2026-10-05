@@ -1,0 +1,21 @@
+{
+  "name": "xiaoman-front",
+  "axis": "front-view baseline (character sheet style)",
+  "source": "user-generated with GPT Image 2026-10-05; prompts in golden/prompts.md",
+  "expect_input_sha256": "0e970c8c0c795d202c082b68c9c717424815b0276fe8dbd3037e4b2bc5d39044",
+  "backend": "pixal3d",
+  "params": {
+    "seed": 42,
+    "res": 1024
+  },
+  "facing_deg": 180,
+  "render_samples": 16,
+  "expect": {
+    "min_triangles": 50000
+  },
+  "expect_preflight_warnings": [
+    "no alpha channel"
+  ],
+  "strict_hash": false,
+  "baseline": "pending - no accepted run yet; first full generate must be human-approved"
+}

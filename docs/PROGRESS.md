@@ -3,6 +3,32 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-05 — golden suite populated + environment gate + testing guide
+
+- **8 real inputs committed** under `golden/cases/` (user-generated via
+  GPT Image, sha256 pinned in each `case.json`): 5 planned difficulty
+  axes + 3 user-supplied stretch cases (`scifi-stride`, `crouch-pose`,
+  `head-sculpt`) that deliberately violate A-pose/full-body guidance to
+  measure pipeline stretch.
+- **3 gate fixtures derived mechanically** by `golden/make_broken.py`
+  (stdlib + sips only): tiny 170px→ERROR, 4×strip aspect 3.09→ERROR,
+  25% JPEG→WARNING. All three pass `run_golden --case broken-*`
+  **because the gate bites** — verified output recorded in the run.
+- **`syscheck` verb added** (CLI + `figura_syscheck`): OS/arch/RAM/disk/
+  GPU best-effort probe + backend availability → ready/capable/blocked
+  verdict with verbatim problems. Verified on this host: 17.2 GB RAM
+  detected via `sysctl hw.memsize`, Apple M5 GPU listed, blocked without
+  runtime env vars (correct). Floors documented in testing guide.
+- **`docs/testing-guide.md`**: run shipped suite, evaluation criteria
+  (gate correctness → structural → speed-with-hardware-class → fidelity
+  → reproducibility), build-your-own-cases walkthrough, honest reporting
+  rules. Speed must always be reported as a
+  `wall · host · backend · res` tuple; the 3–8× 4070 estimate is marked
+  unverified on purpose.
+- Preflight roster run on all 11 inputs: 8 good pass with the expected
+  single "no alpha" warning (raw AIGC outputs on white), 3 broken behave
+  as declared. 17/17 tests green.
+
 ## 2026-10-05 — bilingual user guidance vs. maintainer fixtures split
 
 - `docs/input-guide.md`: user-facing, prompt templates 0/A–D in Chinese +

@@ -7,6 +7,30 @@ maintainer accepted as baseline. They answer two questions on every change:
 2. **Does this input class still work?** (the input-quality contract,
    `docs/input-quality.md`, kept honest by real examples)
 
+## Current roster (committed 2026-10-05, user-generated via GPT Image)
+
+| case | axis | status |
+|---|---|---|
+| `xiaoman-front` | front-view baseline (our character-sheet heroine) | awaiting first accepted run |
+| `hoodie-side` | side profile; single-view inference | awaiting |
+| `silver-scarf` | fine silver hair, earrings, scarf fringe; matte edges | awaiting |
+| `dark-knight` | dark armor on light ground; silhouette; face hidden by helmet | awaiting |
+| `tarot-box` | non-human prop; product three-quarter | awaiting |
+| `scifi-stride` | complex game character; flowing hair + cape; stride pose (A-pose deviation on purpose) | awaiting |
+| `crouch-pose` | crouched non-neutral pose + eyes covered by visor; worst-case inference | awaiting |
+| `head-sculpt` | photoreal bust; facial-detail ceiling test; not full body | awaiting |
+| `broken-tiny` | gate fixture: 256px from xiaoman-front → preflight ERROR | active |
+| `broken-sheet` | gate fixture: 4× scifi-stride strip, aspect 3.09 → ERROR | active |
+| `broken-jpeg` | gate fixture: 25% JPEG from silver-scarf → WARNING | active |
+
+Broken fixtures are derived mechanically by `make_broken.py` (stdlib +
+`sips` only; no AIGC for bad inputs — each degradation isolates exactly
+one mechanism). Their case.json sets `expect_preflight`; the runner
+passes them only when the gate bites.
+
+Testing your own machine / building your own cases:
+[`../docs/testing-guide.md`](../docs/testing-guide.md).
+
 ## Layout
 
 ```

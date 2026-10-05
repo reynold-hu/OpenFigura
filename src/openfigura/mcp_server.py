@@ -54,6 +54,13 @@ def build():
         from openfigura.core.preflight import preflight
         return preflight(Path(image_path))
 
+    @app.tool(description="Environment self-check: OS/arch/RAM/disk/GPU probe, "
+              "backend availability, and a tiered verdict (ready/capable/blocked). "
+              "Run once per machine before first generate.")
+    def figura_syscheck() -> dict:
+        from openfigura.core.syscheck import check
+        return check()
+
     @app.tool(description="Generate a textured GLB from the staged image. "
               "Runs preflight first and refuses on hard errors unless force=true. "
               "May take tens of minutes on CPU; report wall time honestly.")

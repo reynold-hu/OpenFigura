@@ -1,0 +1,21 @@
+{
+  "name": "silver-scarf",
+  "axis": "fine silver hair, earrings, scarf fringe; matte-edge stress",
+  "source": "user-generated with GPT Image 2026-10-05; prompts in golden/prompts.md",
+  "expect_input_sha256": "ac8de22315de953d5e495872d697bdd0c690d6e6872ad8841fdc8b37d891ae1c",
+  "backend": "pixal3d",
+  "params": {
+    "seed": 42,
+    "res": 1024
+  },
+  "facing_deg": 180,
+  "render_samples": 16,
+  "expect": {
+    "min_triangles": 50000
+  },
+  "expect_preflight_warnings": [
+    "no alpha channel"
+  ],
+  "strict_hash": false,
+  "baseline": "pending - no accepted run yet; first full generate must be human-approved"
+}

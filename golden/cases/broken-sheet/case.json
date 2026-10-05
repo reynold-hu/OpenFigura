@@ -1,0 +1,8 @@
+{
+  "name": "broken-sheet",
+  "axis": "multi-view strip masquerading as one subject",
+  "derived_from": "scifi-stride/input.png",
+  "expect_preflight": "error",
+  "expect_input_sha256": "2a63025144033c038b084a993a4937fc36be74d370175f6253ff63b32384fc42",
+  "note": "gate test: run_golden must FAIL/WARN here by design; never generate from this"
+}

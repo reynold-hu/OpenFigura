@@ -1,0 +1,8 @@
+{
+  "name": "broken-jpeg",
+  "axis": "compression artifacts become 3D bumps",
+  "derived_from": "silver-scarf/input.png",
+  "expect_preflight": "warn",
+  "expect_input_sha256": "14f955e33708f92dbf3057753c9f2db7ffc55623e49205098b00c1442e8edbec",
+  "note": "gate test: run_golden must FAIL/WARN here by design; never generate from this"
+}

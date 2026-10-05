@@ -30,16 +30,30 @@ def run_case(case_dir: Path, work_root: Path, emit: bool) -> dict:
     case = json.loads((case_dir / "case.json").read_text(encoding="utf-8"))
     report = {"case": case["name"], "steps": {}, "pass": True, "notes": []}
     task = Task.create(work_root, name=case["name"])
-    digest = task.stage_input(case_dir / "input.png")
+    img = case_dir / "input.png"
+    if not img.exists():
+        img = case_dir / "input.jpg"
+    digest = task.stage_input(img)
     report["steps"]["input_sha256"] = digest
     if case.get("expect_input_sha256"):
         ok = digest == case["expect_input_sha256"]
         report["steps"]["input_match"] = ok
         report["pass"] &= ok
 
-    check = preflight(case_dir / "input.png")
-    report["steps"]["preflight"] = {"ok": check["ok"], "warnings": check["warnings"],
+    check = preflight(img)
+    report["steps"]["preflight"] = {"ok": check["ok"], "errors": check["errors"],
+                                    "warnings": check["warnings"],
                                     "expected_warnings": case.get("expect_preflight_warnings", [])}
+    gate = case.get("expect_preflight")
+    if gate == "error":
+        # broken fixture: the case passes only if the gate bites
+        report["pass"] &= not check["ok"]
+        report["notes"].append("gate fixture: preflight must report an error")
+        return report
+    if gate == "warn":
+        report["pass"] &= bool(check["warnings"])
+        report["notes"].append("gate fixture: preflight must warn (generation skipped)")
+        return report
     report["pass"] &= check["ok"]
     if not check["ok"]:
         return report

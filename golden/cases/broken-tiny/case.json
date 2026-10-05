@@ -1,0 +1,8 @@
+{
+  "name": "broken-tiny",
+  "axis": "resolution floor",
+  "derived_from": "xiaoman-front/input.png",
+  "expect_preflight": "error",
+  "expect_input_sha256": "688d45f3c926a01c2e7262bdc3adcb9d4981d9aa0c4ffc162eb6f1c9132fd0bb",
+  "note": "gate test: run_golden must FAIL/WARN here by design; never generate from this"
+}
