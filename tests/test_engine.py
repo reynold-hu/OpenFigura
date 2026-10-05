@@ -57,10 +57,16 @@ registry.register("fake", lambda: FakeBackend(), "test backend")
 registry.register("fake-fail", lambda: FakeBackend(fail=True), "failing test backend")
 
 
+def _png_bytes(w: int = 1024, h: int = 1200) -> bytes:
+    ihdr = struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0)
+    return (b"\x89PNG\r\n\x1a\n" + struct.pack(">I", 13) + b"IHDR" + ihdr
+            + struct.pack(">I", 0) + b"IEND" + struct.pack(">I", 0))
+
+
 def _task(tmp_path: Path) -> Task:
     task = Task.create(tmp_path / "tasks", name="t1")
     img = tmp_path / "ref.png"
-    img.write_bytes(b"\x89PNG fake")
+    img.write_bytes(_png_bytes())
     task.stage_input(img)
     return task
 

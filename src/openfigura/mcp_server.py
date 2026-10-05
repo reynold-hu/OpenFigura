@@ -47,12 +47,21 @@ def build():
         digest = task.stage_input(Path(image_path))
         return {"task_root": str(task.root), "task_id": task.id, "input_sha256": digest}
 
+    @app.tool(description="Deterministic input-quality checks (resolution, alpha, "
+              "aspect, format). Run BEFORE figura_generate; errors mean generation "
+              "would waste a long run. Warnings are advisory.")
+    def figura_preflight(image_path: str) -> dict:
+        from openfigura.core.preflight import preflight
+        return preflight(Path(image_path))
+
     @app.tool(description="Generate a textured GLB from the staged image. "
+              "Runs preflight first and refuses on hard errors unless force=true. "
               "May take tens of minutes on CPU; report wall time honestly.")
     def figura_generate(task_root: str, backend: str = "pixal3d",
-                        seed: int | None = None, res: int | None = None) -> dict:
+                        seed: int | None = None, res: int | None = None,
+                        force: bool = False) -> dict:
         params = {k: v for k, v in {"seed": seed, "res": res}.items() if v is not None}
-        return engine.generate(Task.open(Path(task_root)), backend, params)
+        return engine.generate(Task.open(Path(task_root)), backend, params, force=force)
 
     @app.tool(description="Render neutral multi-view frames (front/side/back/3-4) "
               "with headless Blender. Use facing=180 if the model front points +Y.")

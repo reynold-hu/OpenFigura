@@ -27,6 +27,15 @@ that its records can be trusted; the rules below exist to keep it that way.
    AGPL-3.0-only with DCO sign-off (`git commit -s`). No hosted-service
    telemetry, ever — privacy is the product promise.
 
+## Input quality is checked, not assumed
+
+Before any generation, run preflight (`figura_preflight` / `openfigura
+preflight`) and read `docs/input-quality.md`. Never force past errors;
+never feed a multi-view sheet to a single-view backend; fix or flag matte
+damage (eyes/ears/piping) instead of shipping it into a 27-minute run.
+Golden cases in `golden/` are the regression memory — baselines are
+promoted only by humans, never by the runner.
+
 ## Engineering notes (learned the expensive way)
 
 - Blender headless drops unknown env vars in its subprocess Python: pass

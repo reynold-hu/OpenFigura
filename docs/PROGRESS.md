@@ -3,6 +3,24 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-05 — input contract + golden-case harness
+
+- **Preflight landed as a gate, not prose**: `core/preflight.py` runs
+  stdlib PNG/JPEG header checks; `engine.generate` refuses on errors and
+  records every check in the ledger; CLI (`openfigura preflight`) and MCP
+  (`figura_preflight`) expose it. Rules in `docs/input-quality.md`
+  (≥512px hard floor, ≥1024px recommended, sheet-aspect warning, PNG-over-
+  JPEG, matte-damage lessons from the 2026-10-05 trial).
+- **Golden-case format + runner** (`golden/README.md`,
+  `scripts/run_golden.py`): input+case.json committed, baselines promoted
+  only by humans, `--emit-candidates` for review, strict-hash optional
+  because same-seed reproducibility is machine-dependent. First real case
+  awaits user-supplied images.
+- 15/15 tests green (7 new preflight tests on synthetic stdlib-built
+  images; engine tests updated to stage valid PNGs, which is exactly the
+  gate doing its job — the old fake `b"\x89PNG fake"` input now refuses
+  to generate).
+
 ## 2026-10-05 — v0.1 tool layer lands
 
 - **MCP server verified over real stdio**: spawned `openfigura-mcp`,

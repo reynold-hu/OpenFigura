@@ -35,7 +35,14 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--backend", default="pixal3d")
     p.add_argument("--seed", type=int, default=None)
     p.add_argument("--res", type=int, default=None)
+    p.add_argument("--force", action="store_true",
+                   help="proceed even if preflight reports errors (records the override)")
     p.set_defaults(func=_cmd_generate)
+
+    p = sub.add_parser("preflight", help="input-quality checks, no generation")
+    p.add_argument("image")
+    from openfigura.core.preflight import preflight as _pf
+    p.set_defaults(func=lambda a: _print(_pf(Path(a.image))))
 
     p = sub.add_parser("render", help="GLB -> neutral multi-view frames")
     p.add_argument("task")
@@ -78,7 +85,7 @@ def _cmd_new(args) -> None:
 
 def _cmd_generate(args) -> None:
     params = {k: v for k, v in {"seed": args.seed, "res": args.res}.items() if v is not None}
-    _print(engine.generate(Task.open(Path(args.task)), args.backend, params))
+    _print(engine.generate(Task.open(Path(args.task)), args.backend, params, force=args.force))
 
 
 def _cmd_render(args) -> None:

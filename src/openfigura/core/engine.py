@@ -15,16 +15,23 @@ from pathlib import Path
 
 from openfigura.core import registry
 from openfigura.core.inspect import inspect_glb
+from openfigura.core.preflight import preflight
 from openfigura.core.task import Task, sha256_file
 
 
-def generate(task: Task, backend_id: str, params: dict | None = None) -> dict:
+def generate(task: Task, backend_id: str, params: dict | None = None,
+             force: bool = False) -> dict:
     inputs = list((task.root / "input").glob("*"))
     if not inputs:
         raise ValueError("no staged input; copy a reference image first")
     image = next((p for p in inputs if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}), None)
     if image is None:
         raise ValueError("input folder has no readable image")
+    check = preflight(task.root / "input" / image.name)
+    task.record("preflight", check)
+    if not check["ok"] and not force:
+        raise RuntimeError("input preflight failed: " + "; ".join(check["errors"])
+                           + " (fix the input; force only with good reason)")
     backend = registry.get(backend_id)
     caps = backend.capabilities()
     if not caps.available:
