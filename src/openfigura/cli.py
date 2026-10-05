@@ -1,0 +1,94 @@
+"""OpenFigura CLI: scripts and CI use the same verbs as the MCP server."""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+from openfigura.core import engine, registry
+from openfigura.core.task import Task
+
+
+def _print(obj) -> None:
+    print(json.dumps(obj, indent=2, ensure_ascii=False))
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="openfigura",
+                                     description="local 3D asset production for agents")
+    sub = parser.add_subparsers(dest="cmd", required=True)
+
+    p = sub.add_parser("backends", help="list registered backends and probe status")
+    p.set_defaults(func=lambda a: _print({
+        bid: {"description": desc, **_probe(bid)}
+        for bid, desc in registry.available().items()}))
+
+    p = sub.add_parser("new", help="create a task workspace and stage the input image")
+    p.add_argument("image")
+    p.add_argument("-o", "--out", default="tasks")
+    p.add_argument("--name", default=None)
+    p.set_defaults(func=_cmd_new)
+
+    p = sub.add_parser("generate", help="image -> textured GLB")
+    p.add_argument("task")
+    p.add_argument("--backend", default="pixal3d")
+    p.add_argument("--seed", type=int, default=None)
+    p.add_argument("--res", type=int, default=None)
+    p.set_defaults(func=_cmd_generate)
+
+    p = sub.add_parser("render", help="GLB -> neutral multi-view frames")
+    p.add_argument("task")
+    p.add_argument("--views", nargs="*", default=None)
+    p.add_argument("--samples", type=int, default=32)
+    p.add_argument("--facing", type=int, default=0, choices=[0, 90, 180, 270],
+                   help="which way the model front points (deg, +Y-left convention)")
+    p.set_defaults(func=_cmd_render)
+
+    p = sub.add_parser("inspect", help="GLB structural report")
+    p.add_argument("task")
+    p.set_defaults(func=lambda a: _print(engine.inspect(Task.open(Path(a.task)))))
+
+    p = sub.add_parser("export", help="copy verified artifacts to a delivery folder")
+    p.add_argument("task")
+    p.add_argument("--dest", required=True)
+    p.add_argument("--format", default="glb", choices=["glb"])
+    p.set_defaults(func=_cmd_export)
+
+    args = parser.parse_args(argv)
+    try:
+        args.func(args)
+        return 0
+    except (RuntimeError, FileNotFoundError, ValueError) as exc:
+        print(f"OPENFIGURA ERROR: {exc}", file=sys.stderr)
+        return 1
+
+
+def _probe(bid: str) -> dict:
+    caps = registry.probe(bid)
+    return {"available": caps.available, "hardware": caps.hardware,
+            "reason": caps.reason or None, "notes": caps.notes or None}
+
+
+def _cmd_new(args) -> None:
+    task = Task.create(Path(args.out), name=args.name)
+    digest = task.stage_input(Path(args.image))
+    _print({"task_id": task.id, "root": str(task.root), "input_sha256": digest})
+
+
+def _cmd_generate(args) -> None:
+    params = {k: v for k, v in {"seed": args.seed, "res": args.res}.items() if v is not None}
+    _print(engine.generate(Task.open(Path(args.task)), args.backend, params))
+
+
+def _cmd_render(args) -> None:
+    _print(engine.render(Task.open(Path(args.task)), views=args.views,
+                         samples=args.samples, facing_deg=args.facing))
+
+
+def _cmd_export(args) -> None:
+    _print(engine.export(Task.open(Path(args.task)), Path(args.dest), fmt=args.format))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
