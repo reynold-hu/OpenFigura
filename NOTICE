@@ -1,0 +1,16 @@
+OpenFigura
+Copyright 2026 Reynold Hu
+
+This product includes software developed as part of the OpenFigura project
+(https://github.com/reynold-hu/OpenFigura).
+
+Attribution: if you redistribute modified versions of this code, keep the
+copyright notice and this NOTICE in derivative works, and state clearly what
+you changed. The "OpenFigura" name and logo are NOT licensed for use by
+derivative projects — see TRADEMARK.md.
+
+Third-party components are not covered by this project's license. Generation
+backends, model weights and tools invoked at runtime (for example
+pixal3d.cpp, TRELLIS.2, DINOv3-derived weights, Blender) carry their own
+licenses; OpenFigura records which ones were actually used in each task's
+provenance ledger but grants you no rights in them.

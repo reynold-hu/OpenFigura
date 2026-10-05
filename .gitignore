@@ -218,3 +218,17 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- OpenFigura project rules ---
+# Task workspaces: generated GLBs, renders and ledgers are evidence, not source.
+tasks/
+*.glb
+*.blend1
+# Model weights / runtime binaries are fetched, never committed.
+models*/
+runtime/
+*.gguf
+*.onnx
+# Local agent client config with machine-specific paths.
+opencode.json
+.claude/

@@ -73,5 +73,7 @@ re-run from that file, it is a bug.
 
 ## License
 
-Apache-2.0. Backends and model weights carry their own licenses; the
-provenance ledger records what was actually used.
+AGPL-3.0-only — code only. **Assets you generate are yours** (output
+exemption, Blender-style); backends and model weights carry their own
+licenses, which every task's provenance ledger records. See
+[`LICENSES.md`](LICENSES.md) and [`TRADEMARK.md`](TRADEMARK.md).
