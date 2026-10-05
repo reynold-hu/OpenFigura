@@ -3,6 +3,18 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-05 — bilingual user guidance vs. maintainer fixtures split
+
+- `docs/input-guide.md`: user-facing, prompt templates 0/A–D in Chinese +
+  English (master template with one bracket to fill; model-family advice
+  for 豆包/即梦/通义/可灵 vs GPT Image/Midjourney/Grok), bilingual
+  finishing steps and failure gallery.
+- `golden/prompts.md`: the 5 difficulty-spread test fixtures + 3
+  deliberately broken variants with expected preflight verdicts —
+  explicitly labeled maintainer suite, separate from user guidance.
+- Logo landed (`assets/`, user-designed), README header + `llms.txt`
+  agent index added.
+
 ## 2026-10-05 — input contract + golden-case harness
 
 - **Preflight landed as a gate, not prose**: `core/preflight.py` runs
