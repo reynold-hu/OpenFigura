@@ -1,0 +1,36 @@
+# OpenFigura
+
+> Local, agent-driven 3D asset production: image -> textured GLB ->
+> neutral multi-view verification -> provenance-documented delivery.
+> AGPL-3.0 code; generated assets belong to you. No cloud uploads, ever.
+
+## Start here
+
+- [Usage manual (agents & humans)](docs/usage.md): install, backend env
+  vars, the six-step workflow, MCP registration for opencode/Codex/Claude,
+  rules of engagement, troubleshooting.
+- [Input quality contract](docs/input-quality.md): what makes a reference
+  image usable; enforced by `openfigura preflight` / `figura_preflight`.
+- [Design](docs/design.md): layering (LLM schedules, models generate,
+  Blender processes), task workspace, provenance ledger, backend protocol.
+- [Product brief](docs/product.md): positioning, falsifiable success
+  criteria, business-model stance.
+- [Roadmap](ROADMAP.md) and [Progress (verified facts only)](docs/PROGRESS.md).
+
+## Key facts for agents
+
+- MCP server `openfigura-mcp` exposes: figura_backends, figura_preflight,
+  figura_new_task, figura_generate, figura_render, figura_inspect,
+  figura_export.
+- Run `figura_preflight` before `figura_generate`; generation takes
+  minutes to ~30 minutes depending on hardware; set timeouts accordingly.
+- Pixal3D-generated models face +Y: render with facing=180 for front view.
+- `visual_approval` in provenance ledgers is set by humans, never by agents.
+- Backends are discovered via OPENFIGURA_PIXAL_RUNTIME /
+  OPENFIGURA_PIXAL_MODELS / PATH; missing backends report unavailable.
+
+## Licensing
+
+- Code: AGPL-3.0-only (see LICENSE and LICENSES.md).
+- Generated assets: not derivative works; yours.
+- Name/logo: trademark policy in TRADEMARK.md; forks rename.

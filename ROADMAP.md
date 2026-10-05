@@ -38,6 +38,16 @@ evidence:
 - [ ] asset catalog format: batch tasks, cache by (input sha, backend,
       params), CI-friendly
 - [ ] progress streaming for long generations (MCP notifications)
+- [ ] cross-platform backend discovery: CUDA builds on Windows (RTX 4070
+      class: 8 GB VRAM, Q8 path expected viable at res 1024), Linux CI;
+      ledger records host class because same-seed parity across machines
+      is not guaranteed
+
+## v0.4 — a face on the tool
+
+- [ ] localhost web UI (React): task browser, render gallery, ledger
+      viewer, one-click re-run. Read-only over the same engine — the UI
+      is another frontend, never a second implementation.
 
 ## Explicit non-goals
 

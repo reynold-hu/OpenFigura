@@ -1,9 +1,15 @@
-# OpenFigura
+<p align="center">
+  <img src="assets/logo-wordmark.png" alt="OpenFigura" width="520"/>
+</p>
 
 **OpenFigura is a local, agent-driven 3D asset production framework.**
 Drop in a reference image and a plain-language brief; get back a textured
 GLB, a Blender-checkable scene, multi-view renders, and a provenance record
 that says exactly how every artifact was made.
+
+> **Agent users:** the manual is [`docs/usage.md`](docs/usage.md) — or
+> register the MCP server (`openfigura-mcp`) and let `figura_*` tools
+> self-describe.
 
 It is a *replacement for the paid "upload your art to someone's cloud"
 workflow* — Tripo, Meshy and friends — not for any specific tool. The
@@ -40,6 +46,8 @@ interface; a CLI with identical commands exists for scripts and CI, and an
 optional self-hosted agent loop may come later — all three share one core.
 
 ## Quick start
+
+Full manual for agents and humans: [`docs/usage.md`](docs/usage.md).
 
 ```sh
 python3 -m venv .venv && source .venv/bin/activate
