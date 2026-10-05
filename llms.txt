@@ -11,6 +11,9 @@
   rules of engagement, troubleshooting.
 - [Input quality contract](docs/input-quality.md): what makes a reference
   image usable; enforced by `openfigura preflight` / `figura_preflight`.
+- [Input guide for humans](docs/input-guide.md): ready-to-paste prompts
+  for commercial text-to-image models (GPT Image, Seedream/Doubao, Grok,
+  Midjourney) that produce OpenFigura-friendly single-view references.
 - [Design](docs/design.md): layering (LLM schedules, models generate,
   Blender processes), task workspace, provenance ledger, backend protocol.
 - [Product brief](docs/product.md): positioning, falsifiable success

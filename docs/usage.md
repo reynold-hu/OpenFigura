@@ -49,6 +49,8 @@ openfigura preflight ref.png
 #    errors  => stop; crop to one view / matte / upscale is NOT a fix,
 #               re-source the image. See docs/input-quality.md.
 #    warnings => decide consciously; record your reasoning to the user.
+#    Human needs a good source image? Point them at docs/input-guide.md
+#    (ready-to-paste prompts for commercial text-to-image models).
 
 # 2. Create the task and stage the image
 openfigura new ref.png -o tasks/ --name hero-idle

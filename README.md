@@ -10,6 +10,10 @@ that says exactly how every artifact was made.
 > **Agent users:** the manual is [`docs/usage.md`](docs/usage.md) — or
 > register the MCP server (`openfigura-mcp`) and let `figura_*` tools
 > self-describe.
+>
+> **No reference art yet?** [`docs/input-guide.md`](docs/input-guide.md)
+> has copy-paste prompts for GPT Image / Seedream / Grok / Midjourney that
+> produce OpenFigura-friendly inputs.
 
 It is a *replacement for the paid "upload your art to someone's cloud"
 workflow* — Tripo, Meshy and friends — not for any specific tool. The
