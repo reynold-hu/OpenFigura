@@ -3,6 +3,21 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-06 — Windows result pack quality / mesh / GPU audit
+
+- Review only; production source unchanged. `docs/2026-10-06-quality-mesh-gpu-audit.md`
+  distinguishes this local `86ec07a` tree from unprovided Windows changes.
+- All 11 supplied GLBs match manifest hashes/sizes; all 8 local golden inputs match
+  Windows provenance hashes. The afternoon accepted reference is a different image.
+- Same-scene Blender re-renders (material, clay, base-color emission) and measured
+  mesh/UV reports: `/Users/reynoldhu/Desktop/Local/Opensource/openfigura-quality-audit-2026-10-06/`.
+  Windows eye defects persist across render modes; no quality fix claimed.
+- Pure diagnostic reproductions: `gpu`/`tex_res` parameters silently omitted by
+  local command builder; duplicate Task.create(name) clears previous entries.
+  Current Cycles renderer does not explicitly configure GPU compute.
+- Local `.venv/bin/python -m pytest tests -q`: 17/17 pass. Windows pack's 22-test
+  claim and jobs/quality implementation remain unverified without that source.
+
 ## 2026-10-05 — golden suite populated + environment gate + testing guide
 
 - **8 real inputs committed** under `golden/cases/` (user-generated via
