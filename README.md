@@ -40,6 +40,33 @@ reference image + brief
              Claude…)
 ```
 
+## vs. commercial platforms
+
+What "平替" (alternative) honestly means here: same *category* of capability,
+different *architecture* of trust. Category-level differences, from public
+documentation of each service as of 2026-10:
+
+| | OpenFigura | Tripo AI | Meshy AI | Hi3D |
+|---|---|---|---|---|
+| where generation runs | **your machine** | their cloud | their cloud | their cloud |
+| your reference art leaves your PC | never | yes (upload) | yes (upload) | yes (upload) |
+| pricing | free (AGPL); you pay electricity | credits/subscription | credits/subscription | credits/subscription |
+| reproducibility | seed + ledger → byte-identical GLB on same host | varies; server-side pipeline opaque | varies | varies |
+| audit trail | provenance.json: every command, hash, exit code | platform history | platform history | platform history |
+| agent integration | MCP + CLI, tool contracts in this repo | API keys, network required | API keys, network required | API keys, network required |
+| output topology/rigging | explicit pipeline (v0.2), retopo/rig are visible steps | automated, opaque | automated, opaque | automated, opaque |
+
+**What we do not claim:** that generation quality matches or beats these
+services. The backends we wrap (Pixal3D, TRELLIS.2) are open peers of the
+models behind commercial sites, but quality depends on inputs, resolution
+and luck-of-the-seed — and we refuse to claim a comparison we haven't run.
+The golden suite ([`docs/testing-guide.md`](docs/testing-guide.md)) exists
+precisely so same-input comparisons become measurable, not rhetorical.
+
+*Tripo, Meshy and Hi3D are trademarks of their respective owners. This
+project is not affiliated with or endorsed by any of them; the table
+describes our architecture versus their publicly documented one.*
+
 ## Why not just an agent?
 
 Agents (Codex, opencode, Claude Code, `pi`) already schedule tool calls
