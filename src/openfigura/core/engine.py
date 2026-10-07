@@ -237,6 +237,8 @@ def rig(task: Task, calibration: Path, skin_method: str = 'automatic',
         raise ValueError('head_rigid_min_z must be finite')
     clip = data.get('clip')
     if clip:
+        if 'contact_checks' not in data:
+            raise ValueError('animated rig requires explicit contact_checks regions')
         if not isinstance(clip.get('frames'), int) or not 1 <= clip['frames'] <= 10000:
             raise ValueError('clip frames must be an integer in 1..10000')
         if not isinstance(clip.get('fps',24), int) or not 1 <= clip.get('fps',24) <= 240:
@@ -245,6 +247,9 @@ def rig(task: Task, calibration: Path, skin_method: str = 'automatic',
             for frame, rotation in keys:
                 if not isinstance(frame,int) or not 1 <= frame <= clip['frames'] or len(rotation)!=3 or not all(math.isfinite(x) for x in rotation):
                     raise ValueError(f'invalid keyframe for {control}')
+    if 'contact_checks' in data:
+        from openfigura.backends.contact import validate_config
+        validate_config(data['contact_checks'])
     backend = registry.get('rigify')
     caps = backend.capabilities()
     if not caps.available:
@@ -261,6 +266,8 @@ def rig(task: Task, calibration: Path, skin_method: str = 'automatic',
         evidence.update(result)
         if not result.get('produced') or not output.is_file():
             raise RuntimeError('rigging failed; see ledger: '+result.get('stderr_tail',''))
+        if 'contact_checks' in data and result.get('contact_validation',{}).get('status') != 'pass':
+            raise RuntimeError('requested contact validation did not pass')
         report = inspect_glb(output)
         if not report['ok'] or not report['has_skinning']:
             raise RuntimeError('rigging output failed structural/skin inspection: '+str(report['problems']))

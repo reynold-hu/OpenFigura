@@ -96,3 +96,15 @@ def test_rig_refuses_structurally_broken_output(fixture,monkeypatch):
     monkeypatch.setattr(registry,'get',lambda bid:Broken())
     with pytest.raises(RuntimeError):engine.rig(task,calib)
     assert Task.open(task.root).entries[-1]['status']=='fail'
+
+def test_rig_rejects_unchecked_contact_result(fixture):
+    task,calib=fixture;data=json.loads(calib.read_text())
+    data['contact_checks']={'pairs':[{'a':['DEF-hand.L'],'b':['DEF-spine']}],'margin':.002}
+    calib.write_text(json.dumps(data))
+    with pytest.raises(RuntimeError,match='contact'):engine.rig(task,calib,'capsule')
+
+def test_animated_rig_requires_contact_configuration(fixture):
+    task,calib=fixture;data=json.loads(calib.read_text())
+    data['clip']={'frames':30,'keyframes':{}}
+    calib.write_text(json.dumps(data))
+    with pytest.raises(ValueError,match='contact_checks'):engine.rig(task,calib,'capsule')

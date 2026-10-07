@@ -33,7 +33,9 @@ class RigifyBackend:
         output.with_suffix('.rig-stderr.log').write_text(result.stderr_tail)
         report=output.with_suffix('.rig-report.json')
         produced=result.ok and output.is_file() and report.is_file() and 'OPENFIGURA_RIG_DONE' in result.stdout_tail
-        return {**(json.loads(report.read_text()) if produced else {}),**result.ledger(),
+        contact_report=output.with_suffix('.contact-report.json')
+        contact_evidence={'contact_validation':json.loads(contact_report.read_text())} if contact_report.is_file() else {}
+        return {**(json.loads(report.read_text()) if produced else {}),**contact_evidence,**result.ledger(),
                 'produced':produced,'skin_method':skin_method}
 
 registry.register('rigify',RigifyBackend,'experimental calibrated basic-human Rigify binding, no silent fallback')

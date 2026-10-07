@@ -3,6 +3,23 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-07 — correction: rejected hand penetration, regional export gate
+
+- User rejected the original motion for hand/garment penetration. The earlier
+  playback proof is not accepted animation quality. Reproduction found crossings
+  at frames 8–23, peak 2520 triangle pairs, frame15 1448.
+- Added calibrated regional BVH intersection and vertex-clearance checks at every
+  integer frame; animated rig exports require regions. Failed/empty checks block
+  export, no silent unchecked adapter result. Old fixture now reproduces failure.
+- Corrected only upper-arm midpoint Z rotation (−0.5→+0.5 radians). Both native rig
+  and reimported GLB passed 30 frames × 2 configured hand/body pairs; minimum vertex
+  distances 0.02694814 and 0.02701126 world units. Not a cloth solver or global
+  collision guarantee; transition triangles and continuous-time checks excluded.
+- Source unchanged. Actual 15 sampled Cycles frames, side view, before/after GIF:
+  `~/Desktop/openfigura-contact-fix-2026-10-07/`. Report/reproducible commands in
+  `docs/2026-10-07-contact-correction.md`. **55 tests passed**. New fixture
+  `examples/calibration/xiaoman-contact-v2.json`; visual approval still pending.
+
 ## 2026-10-07 — experimental calibrated Rigify + real motion proof
 
 - Added shared `rig` / `figura_rig` with explicit basic-human bone calibration,

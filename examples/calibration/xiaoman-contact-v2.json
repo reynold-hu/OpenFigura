@@ -1,6 +1,6 @@
 {
   "units": "Blender world coordinates Z-up",
-  "method": "Manually fitted to accepted 2026-10-05 chibi; not a generic human fit; historical rejected intersecting clip, use xiaoman-contact-v2.json",
+  "method": "Manually fitted to accepted 2026-10-05 chibi; not a generic human fit",
   "bounds": [
     [
       -0.21957746148109436,
@@ -365,7 +365,7 @@
   },
   "head_rigid_min_z": 0.07294541954994194,
   "clip": {
-    "name": "CalibrationWave",
+    "name": "OutwardGesture",
     "frames": 30,
     "fps": 24,
     "keyframes": {
@@ -383,7 +383,7 @@
           [
             0.4,
             0,
-            -0.5
+            0.5
           ]
         ],
         [

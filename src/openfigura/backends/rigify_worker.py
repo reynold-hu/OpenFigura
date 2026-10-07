@@ -100,9 +100,22 @@ if clip:
         for frame, rotation in keyframes:
             bone.rotation_euler=rotation
             bone.keyframe_insert('rotation_euler',frame=frame)
+output=Path(cfg['output'])
+contact_validation={'status':'unavailable','reason':'no explicit contact regions configured'}
+if 'contact_checks' in calibration:
+    import runpy
+    contact=runpy.run_path(str(Path(__file__).with_name('contact.py')))
+    contact_validation=contact['evaluate'](meshes,scene,calibration['contact_checks'],clip['frames'] if clip else 1)
+    try:
+        contact['require_clear'](contact_validation['rows'],contact_validation['margin'])
+        contact_validation['status']='pass'
+    except ValueError as exc:
+        contact_validation.update(status='fail',error=str(exc))
+        output.with_suffix('.contact-report.json').write_text(json.dumps(contact_validation,indent=2))
+        raise
+    output.with_suffix('.contact-report.json').write_text(json.dumps(contact_validation,indent=2))
 scene.frame_set(1)
 bpy.context.view_layer.update()
-output=Path(cfg['output'])
 bpy.ops.wm.save_as_mainfile(filepath=str(output.with_suffix('.blend')))
 # Operators may ignore hidden widget objects; deselect explicitly to prevent export leakage.
 for obj in bpy.context.scene.objects:
@@ -113,7 +126,7 @@ rig.select_set(True)
 bpy.context.view_layer.objects.active=rig
 bpy.ops.export_scene.gltf(use_selection=True,filepath=str(output),export_format='GLB',
     export_skins=True,export_animations=bool(clip),export_def_bones=True,export_frame_range=True)
-report={'skin_method':method,'weighted_vertices':weighted,'vertices':total,
+report={'contact_validation':contact_validation,'skin_method':method,'weighted_vertices':weighted,'vertices':total,
     'triangle_count':sum(len(o.data.polygons) for o in meshes),
     'rig_bones':len(rig.data.bones),'deform_bones':sum(b.use_deform for b in rig.data.bones),
     'finger_bones':False,'calibration':'explicit world coordinates Z-up',

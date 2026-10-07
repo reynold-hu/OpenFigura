@@ -25,7 +25,7 @@ missing/extra template bones. Optional `model_sha256` pins a fixture to its sour
 wrong-model application is refused. Already-skinned input and existing candidates
 are refused; create a fresh task instead of overwriting evidence.
 
-`examples/calibration/xiaoman-basic-v1.json` is fitted **only** to the accepted chibi
+`examples/calibration/xiaoman-contact-v2.json` is fitted **only** to the accepted chibi
 GLB with SHA `f0c2798f676cd611782f746d8807816d283f06d84397fa04eae4ab443448bd57`.
 It is not appropriate for scifi-stride, realistic adult proportions or another
 character. Fitting/calibration must precede binding; OpenFigura does not guess it.
@@ -67,3 +67,23 @@ joints, one 30-frame clip and a real Godot playback, all labelled experimental.
 Rigify is Blender's externally installed open-source component; no Rigify source or
 neural rigging weights are vendored. UniRig / Make-It-Animatable remain researched
 neural alternatives requiring a separately validated environment and weights.
+
+## Contact gate (2026-10-07 correction)
+
+Animated exports require `contact_checks` in the same calibration used by CLI/MCP.
+Example: `{ "margin": 0.002, "pairs": [{"a": ["DEF-hand.L"],
+"b": ["DEF-spine", "DEF-spine.001", "DEF-spine.002"]}] }`. List all intended
+regions; this illustrative torso list is not complete for every model.
+The worker evaluates all integer clip frames, checks surface triangle intersection
+and all A-region vertices against B-region surface distance, and refuses export
+on failure. Empty regions fail. Reports are retained in `.contact-report.json`.
+Static rigs without a configuration report contact unavailable.
+
+This is a regional surface gate, not collision physics or automatic pose repair.
+Dominant weights define membership; transition triangles are excluded. It cannot
+prove containment-free closed volumes, continuous-time separation, full-body self
+collision or cloth dynamics. Each new motion still requires visual inspection.
+
+The old `xiaoman-basic-v1.json` clip was rejected for hand penetration; it now
+includes contact checks and fails export. Use `xiaoman-contact-v2.json` for the
+corrected outward gesture. See [actual before/after evidence](2026-10-07-contact-correction.md).
