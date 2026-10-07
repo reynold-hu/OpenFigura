@@ -70,22 +70,33 @@ def build():
         params = {k: v for k, v in {"seed": seed, "res": res}.items() if v is not None}
         return engine.generate(Task.open(Path(task_root)), backend, params, force=force)
 
+    @app.tool(description="Project calibrated RGBA reference pixels onto BaseColor. "
+              "Preserves original model; produces model-refined.glb and a trust map. "
+              "Does not fix geometry or recover physically correct albedo.")
+    def figura_refine_texture(task_root: str, views_dir: str,
+                              roi_mask: str | None = None,
+                              strength: float = 1.0) -> dict:
+        return engine.refine_texture(Task.open(Path(task_root)), Path(views_dir),
+                                     Path(roi_mask) if roi_mask else None, strength)
+
     @app.tool(description="Render neutral multi-view frames (front/side/back/3-4) "
               "with headless Blender. Use facing=180 if the model front points +Y.")
     def figura_render(task_root: str, views: list[str] | None = None,
-                      samples: int = 32, facing: int = 0) -> dict:
+                      samples: int = 32, facing: int = 0,
+                      artifact: str = "model.glb") -> dict:
         return engine.render(Task.open(Path(task_root)), views=views,
-                             samples=samples, facing_deg=facing)
+                             samples=samples, facing_deg=facing, artifact=artifact)
 
     @app.tool(description="Structural GLB integrity report: meshes, triangles, "
               "attributes, PBR texture references.")
-    def figura_inspect(task_root: str) -> dict:
-        return engine.inspect(Task.open(Path(task_root)))
+    def figura_inspect(task_root: str, artifact: str = "model.glb") -> dict:
+        return engine.inspect(Task.open(Path(task_root)), artifact=artifact)
 
     @app.tool(description="Export verified artifacts + provenance to a delivery "
               "folder. Refuses if inspection reported problems.")
-    def figura_export(task_root: str, dest: str, format: str = "glb") -> dict:
-        return engine.export(Task.open(Path(task_root)), Path(dest), fmt=format)
+    def figura_export(task_root: str, dest: str, format: str = "glb",
+                      artifact: str = "model.glb") -> dict:
+        return engine.export(Task.open(Path(task_root)), Path(dest), fmt=format, artifact=artifact)
 
     return app
 

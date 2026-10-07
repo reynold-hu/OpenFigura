@@ -1,0 +1,37 @@
+{
+  "PartCrafter": {
+    "repo": "https://github.com/wgsxm/PartCrafter.git",
+    "checkout": "/Users/reynoldhu/Desktop/Local/Opensource/PartCrafter",
+    "commit": "3d773bf02fad51c7ab31a5615573fec93b287b30",
+    "license_sha256": "ae8c80719a5c916e5fd99fd3da99f8cf74be1589e9e4a11d5754898967a54e1f",
+    "scope": "source checkout only; neural weights not installed"
+  },
+  "Hi3DGen": {
+    "repo": "https://github.com/bytedance/Hi3DGen.git",
+    "checkout": "/Users/reynoldhu/Desktop/Local/Opensource/Hi3DGen",
+    "commit": "2b12d057e82bdeb751edfe7fab82632f7df2c7ba",
+    "license_sha256": "6617520b6f85871e5cc9d9ead8e8283c5322bf38ddfaac5b2438d01ebeadb82e",
+    "scope": "source checkout only; neural weights not installed"
+  },
+  "DetailGen3D": {
+    "repo": "https://github.com/VAST-AI-Research/DetailGen3D.git",
+    "checkout": "/Users/reynoldhu/Desktop/Local/Opensource/DetailGen3D",
+    "commit": "acdf05e1677c9aa7e656efddf4973e6b02ef1c24",
+    "license_sha256": "3821738486e91e083c3f16c24909f6044c71489c7506c81e6585307090bdc50a",
+    "scope": "source checkout only; neural weights not installed"
+  },
+  "Hunyuan3D-2.1": {
+    "repo": "https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1.git",
+    "checkout": "/Users/reynoldhu/Desktop/Local/Opensource/Hunyuan3D-2.1",
+    "commit": "82920d643c0dc2f7bfd7255f45f62d386edfe60c",
+    "license_sha256": "b79ac5e11ce063b6c6570dbe9686a45a03ba08bd248aa6aa82fb342a23a81c0c",
+    "scope": "source checkout only; neural weights not installed"
+  },
+  "image-to-3dlab": {
+    "repo": "https://github.com/Bingeljell/image-to-3dlab.git",
+    "checkout": "/Users/reynoldhu/Desktop/Local/Opensource/image-to-3dlab",
+    "commit": "10e007b1998c5ffed0b09e16d4218c05a1803afb",
+    "license_sha256": "c95bae1d1ce0235ecccd3560b772ec1efb97f348a79f0fbe0a634f0c2ccefe2c",
+    "scope": "source checkout only; neural weights not installed"
+  }
+}

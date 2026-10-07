@@ -116,3 +116,12 @@ AGPL-3.0-only — code only. **Assets you generate are yours** (output
 exemption, Blender-style); backends and model weights carry their own
 licenses, which every task's provenance ledger records. See
 [`LICENSES.md`](LICENSES.md) and [`TRADEMARK.md`](TRADEMARK.md).
+
+### Calibrated texture refinement
+
+`openfigura refine-texture` and `figura_refine_texture` preserve a model's
+geometry and recover visible source-image detail into a separate candidate.
+Optional CPU dependency extra: `openfigura[detail]`. See
+[workflow and limits](docs/texture-refinement.md) and
+[source integration / animation path](docs/2026-10-07-upstream-integration-rigging.md).
+This does not repair finger geometry or add a skeleton.

@@ -3,6 +3,37 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-07 — source checkouts and calibrated texture refinement integrated
+
+- First batch committed/pushed as `32a71d6` (auto-matte + detail research),
+  22 tests passed before push. GitHub reported owner bypass of protected-main
+  PR/scanning rules; no rules changed.
+- All five requested upstreams cloned under `~/Desktop/Local/Opensource/`.
+  Exact revisions/license-file hashes in `docs/upstream-source-manifest.json`;
+  selected code findings and rigging options in
+  `docs/2026-10-07-upstream-integration-rigging.md`. Neural setup scripts/weights
+  not installed. The project venv received only the `detail` extra (numpy/Pillow).
+- Integrated attributed Apache-2.0 image-to-3dlab projection, unchanged vendor
+  source plus OpenFigura validation/ROI/strength wrapper. Engine verb mirrored
+  by `refine-texture` and `figura_refine_texture`; separate candidate preserves
+  original geometry. Render/inspect/export select candidates via `artifact`.
+  Documentation: `docs/texture-refinement.md`.
+- Generation records hashes of native raw PLY, BaseColor and SV camera/images
+  when present, preserving evidence for pre/postprocess detail investigations.
+- Real scifi core flow: refinement **8.54s**, candidate SHA
+  `ca2d5ee7b63f051a15db32f93e7ecd353ea1df79a3c1ccc4c3a39d89a1a900fc`,
+  identical to prior isolated ROI-texture trial; inspection, four Blender renders
+  (**24.61s**) and export succeeded. Installed CLI also reproduced that hash.
+  Evidence: `~/Desktop/openfigura-integration-2026-10-07/`.
+- Verification: **33 tests passed** with optional numeric projection/occlusion
+  tests; bare core previously **31 passed / 2 skipped**. MCP stdio initialize +
+  tools/list exposes refinement and candidate artifact schema. Wheel build passed
+  and includes third-party LICENSE/NOTICE. Updated setuptools floor and removed
+  obsolete license classifier to resolve the actual packaging failure.
+- No finger geometry repair, neural geometry backend, rigging/skinning/animation
+  implementation or new visual approval claimed. The rejected raw-wire candidate
+  was not integrated as a production feature.
+
 ## 2026-10-07 — scifi-stride detail investigation; local improvement, no accepted asset
 
 - User rejected the eight-case Mac run as unusable. Its `11/11` result is

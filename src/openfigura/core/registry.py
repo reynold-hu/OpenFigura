@@ -54,7 +54,7 @@ def probe(backend_id: str) -> Capabilities:
 
 def _bootstrap() -> None:
     """Register built-in backends lazily so import errors stay per-backend."""
-    from openfigura.backends import pixal3d, blender  # noqa: F401
+    from openfigura.backends import pixal3d, blender, photo_paint  # noqa: F401
 
 
 _bootstrap()

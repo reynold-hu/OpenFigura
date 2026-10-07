@@ -2,7 +2,7 @@
 
 ## OpenFigura code: AGPL-3.0-only
 
-Everything in `src/`, `tests/`, and the project's own documentation is
+OpenFigura-authored code in `src/`, `tests/`, and the project's own documentation is
 AGPL-3.0-only (see `LICENSE`). AGPL — not GPL — was chosen deliberately:
 the failure mode we are protecting against is someone wrapping this repo
 as a closed hosted service and selling it, which is exactly the business
@@ -43,3 +43,12 @@ DCO sign-off (`git commit -s`), no CLA. Copyright stays with each
 contributor; because the project is AGPL, no one — including future
 maintainers — can take a contribution private. That is the trade we make
 to keep the community larger than any single fork.
+
+## Attributed third-party source
+
+`src/openfigura/_vendor/photo_paint.py` remains Apache-2.0, copyright 2026
+Bingeljell and image-to-3dlab contributors. It is vendored unchanged from
+commit `10e007b1998c5ffed0b09e16d4218c05a1803afb`. LICENSE/NOTICE ship
+with the Python package; source provenance is in `third_party/image-to-3dlab/`.
+The OpenFigura adapter remains AGPL-3.0-only. Other surveyed neural pipelines
+are not vendored, installed or represented as working backends.

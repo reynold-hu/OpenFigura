@@ -43,6 +43,15 @@ def main(argv: list[str] | None = None) -> int:
                    help="proceed even if preflight reports errors (records the override)")
     p.set_defaults(func=_cmd_generate)
 
+    p = sub.add_parser("refine-texture", help="project calibrated reference pixels to a new GLB candidate")
+    p.add_argument("task")
+    p.add_argument("--views-dir", required=True)
+    p.add_argument("--roi-mask", default=None)
+    p.add_argument("--strength", type=float, default=1.0)
+    p.set_defaults(func=lambda a: _print(engine.refine_texture(
+        Task.open(Path(a.task)), Path(a.views_dir),
+        Path(a.roi_mask) if a.roi_mask else None, a.strength)))
+
     p = sub.add_parser("preflight", help="input-quality checks, no generation")
     p.add_argument("image")
     from openfigura.core.preflight import preflight as _pf
@@ -50,6 +59,7 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("render", help="GLB -> neutral multi-view frames")
     p.add_argument("task")
+    p.add_argument("--artifact", default="model.glb")
     p.add_argument("--views", nargs="*", default=None)
     p.add_argument("--samples", type=int, default=32)
     p.add_argument("--facing", type=int, default=0, choices=[0, 90, 180, 270],
@@ -58,10 +68,12 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("inspect", help="GLB structural report")
     p.add_argument("task")
-    p.set_defaults(func=lambda a: _print(engine.inspect(Task.open(Path(a.task)))))
+    p.add_argument("--artifact", default="model.glb")
+    p.set_defaults(func=lambda a: _print(engine.inspect(Task.open(Path(a.task)), artifact=a.artifact)))
 
     p = sub.add_parser("export", help="copy verified artifacts to a delivery folder")
     p.add_argument("task")
+    p.add_argument("--artifact", default="model.glb")
     p.add_argument("--dest", required=True)
     p.add_argument("--format", default="glb", choices=["glb"])
     p.set_defaults(func=_cmd_export)
@@ -94,11 +106,11 @@ def _cmd_generate(args) -> None:
 
 def _cmd_render(args) -> None:
     _print(engine.render(Task.open(Path(args.task)), views=args.views,
-                         samples=args.samples, facing_deg=args.facing))
+                         samples=args.samples, facing_deg=args.facing, artifact=args.artifact))
 
 
 def _cmd_export(args) -> None:
-    _print(engine.export(Task.open(Path(args.task)), Path(args.dest), fmt=args.format))
+    _print(engine.export(Task.open(Path(args.task)), Path(args.dest), fmt=args.format, artifact=args.artifact))
 
 
 if __name__ == "__main__":
