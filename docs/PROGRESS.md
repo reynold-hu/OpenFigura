@@ -3,6 +3,37 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-07 — experimental calibrated Rigify + real motion proof
+
+- Added shared `rig` / `figura_rig` with explicit basic-human bone calibration,
+  independent GLB/Blend candidates, source/calibration hashes and no silent skinning
+  fallback. Optional calibrated FK keys export clips. No finger repair, finger
+  chains, neural joint fitting or production-skinning claim.
+- Original accepted chibi SHA remained unchanged. Core capsule candidate kept
+  **972,414 triangles**, assigned **725,981 vertices**, exported **35 deform joints**
+  and a **30-frame CalibrationWave** clip. Native operation **7.06s**, output SHA
+  `11c9c64df5cf0deb57dd47030efed611049bd6961526712f669956d47f4a5499`.
+  Evidence: `~/Desktop/openfigura-rig-trial-2026-10-07/core-rig/`.
+- Automatic Bone Heat failed on raw and welded/decimated prototypes; the actual
+  default core method also failed with **0/725,981 weighted vertices**, exit 1,
+  and no GLB/fallback. `automatic-skin-check/provenance.json` and artifact log tails.
+  Decimation damaged static appearance, so no simplification was integrated.
+- Reimported exported GLB and measured max vertex displacement **0.20876** world
+  units at frame15 (height **0.88679**). Fifteen actual Cycles pose frames and a
+  side check, MP4/GIF. Separate Godot preview played the exported clip and recorded
+  **31 actual frames**, 480x640/24fps, Apple M5 compatibility renderer. No changes
+  to the Tarotist 2D game. Report: `docs/2026-10-07-rig-motion-proof.md`.
+- Renderer now supports selected pose frames with frame-1 camera bounds and
+  excludes hidden importer bone widgets (including invisible-collection Icosphere).
+  Added Python-exit-code handling. Inspection reports skin/joint/clip metadata.
+- **45 tests passed**, including fake rig failure/source-preservation checks,
+  calibration mismatch, pose forwarding and hidden-widget regressions. MCP stdio
+  discovery exposes `figura_rig`; wheel includes worker and third-party notices.
+  Native CLI pose rendering verified. `docs/calibrated-rigging.md` documents limits;
+  `examples/calibration/xiaoman-basic-v1.json` is source-hash-pinned, not generic.
+- Candidate remains **experimental / visual approval pending**. Capsule weights
+  can cause contact/cloth/joint issues; gesture proof is not a validated walk cycle.
+
 ## 2026-10-07 — source checkouts and calibrated texture refinement integrated
 
 - First batch committed/pushed as `32a71d6` (auto-matte + detail research),

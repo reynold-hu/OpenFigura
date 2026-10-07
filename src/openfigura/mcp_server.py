@@ -70,6 +70,15 @@ def build():
         params = {k: v for k, v in {"seed": seed, "res": res}.items() if v is not None}
         return engine.generate(Task.open(Path(task_root)), backend, params, force=force)
 
+    @app.tool(description="Experimental basic-human Rigify binding from explicit bone calibration. "
+              "Preserves original and emits model-rigged.glb/.blend. "
+              "Automatic skinning fails explicitly; capsule is an opt-in approximate method. "
+              "No finger repair or finger chains.")
+    def figura_rig(task_root: str, calibration: str,
+                   skin_method: str = "automatic", artifact: str = "model.glb") -> dict:
+        return engine.rig(Task.open(Path(task_root)), Path(calibration),
+                          skin_method=skin_method, artifact=artifact)
+
     @app.tool(description="Project calibrated RGBA reference pixels onto BaseColor. "
               "Preserves original model; produces model-refined.glb and a trust map. "
               "Does not fix geometry or recover physically correct albedo.")
@@ -83,9 +92,9 @@ def build():
               "with headless Blender. Use facing=180 if the model front points +Y.")
     def figura_render(task_root: str, views: list[str] | None = None,
                       samples: int = 32, facing: int = 0,
-                      artifact: str = "model.glb") -> dict:
+                      artifact: str = "model.glb", frame: int = 1) -> dict:
         return engine.render(Task.open(Path(task_root)), views=views,
-                             samples=samples, facing_deg=facing, artifact=artifact)
+                             samples=samples, facing_deg=facing, artifact=artifact, frame=frame)
 
     @app.tool(description="Structural GLB integrity report: meshes, triangles, "
               "attributes, PBR texture references.")

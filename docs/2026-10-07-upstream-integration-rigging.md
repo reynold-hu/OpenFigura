@@ -73,3 +73,14 @@ weight leakage, collapse and original appearance. Bone counts or a valid GLB alo
 are not animation acceptance. The present raised-hand scifi pose is a difficult
 first rigging fixture; use a clean A/T-pose character for initial integration,
 then return to it as a stretch test.
+
+## Continuation: calibrated Rigify proof implemented
+
+After this source-review phase, an experimental calibrated basic-human adapter
+was added. It requires explicit bone coordinates; it does not infer a pose or
+repair hand geometry. Native Bone Heat failed on the selected chibi (zero weighted
+vertices); the capsule method is opt-in and labelled approximate. A decimated
+candidate lost appearance and was abandoned; original high-poly geometry was kept
+for the actual motion proof. Core/CLI/MCP, optional FK clips and pose-frame renders
+now share the tool contract. See `calibrated-rigging.md` and the newer PROGRESS entry.
+The four surveyed neural models remain undeployed.

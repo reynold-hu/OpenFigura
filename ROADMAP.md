@@ -20,8 +20,10 @@ evidence:
 
 - [ ] `retopo` — Quadriflow quad remesh + triangle target (Blender backend)
 - [ ] `bake` — normal/texture transfer high→low poly
-- [ ] `rig` — Search-Rig / human meta-rig fitting, per-backend facing &
-      up-axis conventions recorded in provenance
+- [x] Experimental calibrated `rig` — explicit basic-human Rigify bone data,
+      automatic skinning failure and opt-in approximate weights; real chibi GLB
+      animation reimport and Godot proof. No general autorig/finger claim.
+- [ ] Neural/manual joint fitting and validated production skinning
 - [ ] `skin-check` — weight visualization + deformation render at fixed
       pose set; automatic report of suspected bad regions (eyes, fingers,
       shoulders)

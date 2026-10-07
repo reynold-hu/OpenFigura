@@ -91,3 +91,14 @@ ledger has a `visual_approval` field that only humans set.
 
 Agent loop, hosted service, cloud upload, training our own model,
 competitive claims without same-input comparisons.
+
+## Experimental refinement and calibrated binding
+
+`engine.refine_texture` preserves a static source and emits `model-refined.glb`;
+`engine.rig` preserves its source and emits `model-rigged.glb/.blend` using explicit
+calibration. CLI and MCP mirror both operations. Renderer `frame` selection uses
+frame-1 camera bounds and ignores hidden bone display meshes. Inspection reports
+skins, deform joint counts and animation names; those fields are structural, not
+deformation acceptance. Rigify basic-human binding has no finger chains. Capsule
+weights are explicitly selected and remain an approximation, never a fallback
+reported as successful Bone Heat. See calibrated-rigging.md for contracts.

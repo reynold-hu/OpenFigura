@@ -1,4 +1,4 @@
-"""Engine: the four stable verbs every frontend (CLI, MCP, future agent) shares.
+"""Engine: local asset operations shared by CLI and MCP frontends.
 
     generate  reference image -> textured GLB via a registered backend
     render    GLB -> neutral multi-view frames
@@ -77,7 +77,9 @@ def _model(task: Task, artifact: str) -> Path:
 
 
 def render(task: Task, views: list[str] | None = None, samples: int = 32,
-           facing_deg: int = 0, artifact: str = "model.glb") -> dict:
+           facing_deg: int = 0, artifact: str = "model.glb", frame: int = 1) -> dict:
+    if not isinstance(frame, int) or frame < 1:
+        raise ValueError('frame must be a positive integer')
     glb = _model(task, artifact)
     if not glb.is_file():
         raise FileNotFoundError("run generate first")
@@ -86,9 +88,12 @@ def render(task: Task, views: list[str] | None = None, samples: int = 32,
     if not caps.available:
         raise RuntimeError(f"render backend unavailable: {caps.reason}")
     render_dir = task.root / "render" if artifact == "model.glb" else task.root / "render" / glb.stem
+    if frame != 1:
+        render_dir = render_dir / f"frame-{frame}"
     ledger = backend.render_views(glb, render_dir, views=views,
-                                  samples=samples, facing_deg=facing_deg)
+                                  samples=samples, facing_deg=facing_deg, frame=frame)
     ledger["status"] = "pass" if ledger["exit_code"] == 0 and ledger["frames"] else "fail"
+    ledger["frame"] = frame
     task.record("render", ledger)
     return ledger
 
@@ -198,4 +203,72 @@ def refine_texture(task: Task, views_dir: Path, roi_mask: Path | None = None,
         task.record('refine_texture', evidence)
         raise
     task.record('refine_texture', evidence)
+    return evidence
+
+
+def rig(task: Task, calibration: Path, skin_method: str = 'automatic',
+        artifact: str = 'model.glb') -> dict:
+    """Experimental calibrated Rigify binding. Never silently fall back in skinning."""
+    import math
+    if skin_method not in {'automatic', 'capsule'}:
+        raise ValueError('skin_method must be automatic or capsule')
+    model = _model(task, artifact)
+    if not model.is_file():
+        raise FileNotFoundError(model)
+    if inspect_glb(model)['has_skinning']:
+        raise ValueError('model already has skinning; rebinding is not supported')
+    output = task.artifact('model-rigged.glb')
+    if output.exists() or output.with_suffix('.blend').exists():
+        raise FileExistsError('rig candidate already exists; use a new task')
+    data = json.loads(Path(calibration).read_text(encoding='utf-8'))
+    if data.get('model_sha256') and data['model_sha256'] != sha256_file(model):
+        raise ValueError('calibration was fitted to a different model')
+    bones = data.get('bones')
+    if not isinstance(bones, dict) or not bones:
+        raise ValueError('calibration needs explicit bone coordinates')
+    for name, bone in bones.items():
+        for end in ('head', 'tail'):
+            point = bone.get(end)
+            if not isinstance(point, list) or len(point) != 3 or not all(isinstance(x, (int,float)) and math.isfinite(x) for x in point):
+                raise ValueError(f'nonfinite or invalid bone {name}/{end}')
+        if sum((a-b)**2 for a,b in zip(bone['head'], bone['tail'])) < 1e-12:
+            raise ValueError(f'zero-length bone {name}')
+    if 'head_rigid_min_z' in data and not (isinstance(data['head_rigid_min_z'], (int,float)) and math.isfinite(data['head_rigid_min_z'])):
+        raise ValueError('head_rigid_min_z must be finite')
+    clip = data.get('clip')
+    if clip:
+        if not isinstance(clip.get('frames'), int) or not 1 <= clip['frames'] <= 10000:
+            raise ValueError('clip frames must be an integer in 1..10000')
+        if not isinstance(clip.get('fps',24), int) or not 1 <= clip.get('fps',24) <= 240:
+            raise ValueError('clip fps must be in 1..240')
+        for control, keys in clip.get('keyframes', {}).items():
+            for frame, rotation in keys:
+                if not isinstance(frame,int) or not 1 <= frame <= clip['frames'] or len(rotation)!=3 or not all(math.isfinite(x) for x in rotation):
+                    raise ValueError(f'invalid keyframe for {control}')
+    backend = registry.get('rigify')
+    caps = backend.capabilities()
+    if not caps.available:
+        raise RuntimeError('Rigify unavailable: '+caps.reason)
+    staged = task.root / 'input' / 'rig-calibration.json'
+    if staged.exists():
+        raise FileExistsError('calibration evidence already exists; use a new task')
+    shutil.copy2(calibration, staged)
+    evidence = {'backend':'rigify','source_artifact':artifact,'input_sha256':sha256_file(model),
+                'calibration_sha256':sha256_file(staged),'skin_method':skin_method,
+                'artifact':str(output.relative_to(task.root))}
+    try:
+        result = backend.rig(model, staged, output, skin_method)
+        evidence.update(result)
+        if not result.get('produced') or not output.is_file():
+            raise RuntimeError('rigging failed; see ledger: '+result.get('stderr_tail',''))
+        report = inspect_glb(output)
+        if not report['ok'] or not report['has_skinning']:
+            raise RuntimeError('rigging output failed structural/skin inspection: '+str(report['problems']))
+        evidence.update(status='pass',output_sha256=sha256_file(output),
+                        joint_count=report['joint_count'],animation_clips=report['animation_clips'])
+    except Exception as exc:
+        evidence.update(status='fail',error=str(exc))
+        task.record('rig', evidence)
+        raise
+    task.record('rig', evidence)
     return evidence

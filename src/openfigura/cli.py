@@ -43,6 +43,14 @@ def main(argv: list[str] | None = None) -> int:
                    help="proceed even if preflight reports errors (records the override)")
     p.set_defaults(func=_cmd_generate)
 
+    p = sub.add_parser("rig", help="experimental calibrated Rigify binding")
+    p.add_argument("task")
+    p.add_argument("--calibration", required=True)
+    p.add_argument("--skin-method", choices=["automatic", "capsule"], default="automatic")
+    p.add_argument("--artifact", default="model.glb")
+    p.set_defaults(func=lambda a: _print(engine.rig(Task.open(Path(a.task)),
+        Path(a.calibration), skin_method=a.skin_method, artifact=a.artifact)))
+
     p = sub.add_parser("refine-texture", help="project calibrated reference pixels to a new GLB candidate")
     p.add_argument("task")
     p.add_argument("--views-dir", required=True)
@@ -62,6 +70,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--artifact", default="model.glb")
     p.add_argument("--views", nargs="*", default=None)
     p.add_argument("--samples", type=int, default=32)
+    p.add_argument("--frame", type=int, default=1)
     p.add_argument("--facing", type=int, default=0, choices=[0, 90, 180, 270],
                    help="which way the model front points (deg, +Y-left convention)")
     p.set_defaults(func=_cmd_render)
@@ -106,7 +115,7 @@ def _cmd_generate(args) -> None:
 
 def _cmd_render(args) -> None:
     _print(engine.render(Task.open(Path(args.task)), views=args.views,
-                         samples=args.samples, facing_deg=args.facing, artifact=args.artifact))
+                         samples=args.samples, facing_deg=args.facing, artifact=args.artifact, frame=args.frame))
 
 
 def _cmd_export(args) -> None:

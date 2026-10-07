@@ -8,7 +8,7 @@
 
 ## 0. What this tool is
 
-Four deterministic verbs over local 3D generators:
+The base workflow has four deterministic verbs over local 3D generators:
 `generate` (image → textured GLB), `render` (GLB → neutral multi-view
 frames), `inspect` (GLB → structural report), `export` (verified artifacts
 + ledger → delivery folder). You (the agent) supply intent, retries and
@@ -142,3 +142,12 @@ set your tool timeout accordingly.
 - Input contract: [`input-quality.md`](input-quality.md)
 - Regression suite: [`../golden/README.md`](../golden/README.md)
 - Working *on* the repo: [`../AGENTS.md`](../AGENTS.md)
+
+## Texture refinement and experimental rigging
+
+- `refine-texture` / `figura_refine_texture`: calibrated source RGB projection;
+  see [texture workflow](texture-refinement.md).
+- `rig` / `figura_rig`: experimental basic-human Rigify from explicit bone
+  calibration; see [calibration, skin methods and limitations](calibrated-rigging.md).
+- Render/inspect/export accept `artifact` to select a separate candidate. Render
+  accepts `frame` for pose checks. Human visual approval remains separate.

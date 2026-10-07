@@ -125,3 +125,11 @@ Optional CPU dependency extra: `openfigura[detail]`. See
 [workflow and limits](docs/texture-refinement.md) and
 [source integration / animation path](docs/2026-10-07-upstream-integration-rigging.md).
 This does not repair finger geometry or add a skeleton.
+
+### Experimental calibrated rigging
+
+`openfigura rig` / `figura_rig` bind a static character using Blender Rigify and
+explicit bone calibration. Optional FK keyframes produce an animated GLB;
+`render --frame` checks real poses. Automatic skinning failure is explicit,
+with an opt-in approximate capsule method for motion proofs. No finger repair
+or game-ready deformation claim. See [workflow and limits](docs/calibrated-rigging.md).

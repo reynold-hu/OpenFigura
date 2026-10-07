@@ -7,6 +7,7 @@ neutral: quality claims must survive plain studio lights, not beautification.
 from __future__ import annotations
 
 import json
+import inspect as inspect_module
 import os
 import subprocess
 import tempfile
@@ -25,18 +26,24 @@ VIEWS = {  # name: view direction (camera sits at center + dir * distance)
     "back": (0.0, 1.0, 0.0),
 }
 
-_SCRIPT = '''
+def renderable_meshes(objects):
+    """Hidden imported bone widgets must not determine the asset camera bounds."""
+    return [obj for obj in objects if obj.type == 'MESH' and not obj.hide_render
+            and getattr(obj, 'visible_get', lambda: True)()]
+
+
+_SCRIPT = inspect_module.getsource(renderable_meshes) + '''
 import bpy, json, math, sys
 from mathutils import Vector, Matrix
 cfg = json.loads(open(sys.argv[-1], encoding="utf-8").read())
 rot = math.radians(cfg.get("facing_deg", 0))
 bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete()
 bpy.ops.import_scene.gltf(filepath=cfg["glb"])
+bpy.context.scene.frame_set(1)
+bpy.context.view_layer.update()
 deps = bpy.context.evaluated_depsgraph_get()
 mins = Vector((1e9, 1e9, 1e9)); maxs = Vector((-1e9, -1e9, -1e9)); found = False
-for obj in bpy.context.scene.objects:
-    if obj.type != 'MESH':
-        continue
+for obj in renderable_meshes(bpy.context.scene.objects):
     ev = obj.evaluated_get(deps)
     for c in ev.bound_box:
         w = ev.matrix_world @ Vector(c)
@@ -60,6 +67,8 @@ for nm, off, pw, sz in [('Key',(-3,-4,5),420,4), ('Fill',(3,-2,3),240,3), ('Rim'
     o.location = center + Vector(off) * maxdim * 1.5; aim(o, center)
 camd = bpy.data.cameras.new('Cam'); cam = bpy.data.objects.new('Cam', camd)
 scene.collection.objects.link(cam); scene.camera = cam; camd.type = 'ORTHO'
+scene.frame_set(cfg.get("frame", 1))
+bpy.context.view_layer.update()
 for view, direction in cfg["views"].items():
     dirv = Vector(direction); dirv.rotate(Matrix.Rotation(rot, 3, 'Z'))
     dirv.normalize()
@@ -92,24 +101,24 @@ class BlenderBackend:
         return Capabilities(True, hardware="cpu-or-metal", notes={"binary": b})
 
     def render_views(self, glb: Path, out_dir: Path, views: list[str] | None = None,
-                     samples: int = 32, facing_deg: int = 0) -> dict:
+                     samples: int = 32, facing_deg: int = 0, frame: int = 1) -> dict:
         binary = self.binary()
         if binary is None:
             raise RuntimeError("blender unavailable; run capabilities() first")
         out_dir.mkdir(parents=True, exist_ok=True)
         chosen = {k: VIEWS[k] for k in (views or VIEWS)}
         cfg = {"glb": str(Path(glb).resolve()), "out_dir": str(Path(out_dir).resolve()),
-               "samples": samples, "facing_deg": facing_deg,
+               "samples": samples, "facing_deg": facing_deg, "frame": frame,
                "views": {k: list(v) for k, v in chosen.items()}}
         cfg_path = None
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
             json.dump(cfg, f)
             cfg_path = f.name
         start = time.monotonic()
-        proc = subprocess.run([binary, "-b", "--factory-startup", "--python-expr",
+        proc = subprocess.run([binary, "-b", "--factory-startup", "--python-exit-code", "1", "--python-expr",
                                _SCRIPT, "--", cfg_path],
                               capture_output=True, text=True, timeout=3600)
-        result = base.CommandResult(argv=[binary, "-b", "--factory-startup",
+        result = base.CommandResult(argv=[binary, "-b", "--factory-startup", "--python-exit-code", "1",
                                           "--python-expr", "<render script>"],
                                     exit_code=proc.returncode,
                                     wall_seconds=round(time.monotonic() - start, 2),

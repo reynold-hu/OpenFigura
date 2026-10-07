@@ -23,7 +23,7 @@
 ## Key facts for agents
 
 - MCP server `openfigura-mcp` exposes: figura_backends, figura_preflight,
-  figura_new_task, figura_generate, figura_render, figura_inspect,
+  figura_new_task, figura_generate, figura_refine_texture, figura_rig, figura_render, figura_inspect,
   figura_export.
 - Run `figura_preflight` before `figura_generate`; generation takes
   minutes to ~30 minutes depending on hardware; set timeouts accordingly.
@@ -37,3 +37,10 @@
 - Code: AGPL-3.0-only (see LICENSE and LICENSES.md).
 - Generated assets: not derivative works; yours.
 - Name/logo: trademark policy in TRADEMARK.md; forks rename.
+
+## Optional refinement and calibrated rigging
+
+- [Source texture refinement](docs/texture-refinement.md): optional CPU detail extra,
+  separate candidate and camera/ROI evidence; does not repair geometry.
+- [Experimental calibrated Rigify](docs/calibrated-rigging.md): explicit bone data,
+  no silent skinning fallback, no finger chains. Render selected pose frames.

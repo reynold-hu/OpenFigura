@@ -71,6 +71,10 @@ def inspect_glb(path: Path) -> dict:
         "materials_with_pbr": len(pbr),
         "base_color_textures": [tex_ref(m, "baseColorTexture") for m in materials],
         "metal_rough_textures": [tex_ref(m, "metallicRoughnessTexture") for m in materials],
+        "skins": len(gltf.get("skins", [])),
+        "joint_count": sum(len(s.get("joints", [])) for s in gltf.get("skins", [])),
+        "animation_clips": [a.get("name", f"clip{i}") for i, a in enumerate(gltf.get("animations", []))],
+        "has_skinning": bool(gltf.get("skins")) and {"JOINTS_0", "WEIGHTS_0"}.issubset(attrs),
         "has_normals": "NORMAL" in attrs,
         "has_uv": any(a.startswith("TEXCOORD") for a in attrs),
     }
