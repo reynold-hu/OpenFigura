@@ -38,6 +38,12 @@ openfigura backends            # honest probe; "unavailable" is a valid answer
 | `OPENFIGURA_PIXAL_MODELS` | directory of verified weights | `~/tools/pixal/models-sv` |
 | `blender` | must be on PATH or `/Applications/Blender.app` | brew/apt/installer |
 
+The runtime ships per-OS builds (Metal on macOS, CUDA on Windows/Linux);
+the env-var interface is identical. If your `OPENFIGURA_PIXAL_MODELS`
+contains `birefnet.gguf`, `generate` auto-mattes inputs that lack a real
+alpha channel with BiRefNet before the SV flow (threshold fallback without
+it, which damages specular highlights).
+
 `openfigura backends` reports what was found and why anything wasn't.
 Do not proceed past `available: false` by editing code — fix discovery.
 
@@ -59,6 +65,10 @@ openfigura new ref.png -o tasks/ --name hero-idle
 # 3. Generate (LONG: minutes to ~30 min depending on hardware; use a
 #    generous timeout, never kill-and-fake)
 openfigura generate tasks/hero-idle --backend pixal3d --seed 42
+#    If the input has no real alpha matte, the backend's preprocess step
+#    runs first (BiRefNet cutout -> artifacts/matte_cutout.png), recorded
+#    as its own `preprocess` ledger entry; the cutout is what generates.
+#    Pass `matte: off` via params only if the input is already matted.
 
 # 4. Structural truth
 openfigura inspect tasks/hero-idle        # ok:false => do not export

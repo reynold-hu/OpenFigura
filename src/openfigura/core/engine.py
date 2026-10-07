@@ -36,11 +36,27 @@ def generate(task: Task, backend_id: str, params: dict | None = None,
     caps = backend.capabilities()
     if not caps.available:
         raise RuntimeError(f"backend {backend_id!r} unavailable: {caps.reason}")
+    params = params or {}
+    gen_input = task.root / "input" / image.name
+    prepare = getattr(backend, "prepare_input", None)
+    if callable(prepare):
+        prep = prepare(gen_input, task.artifact("matte.glb"), params)
+        if prep is not None:
+            prep["input_sha256"] = sha256_file(gen_input)
+            prep["status"] = "pass" if prep.get("produced") else "fail"
+            if prep.get("produced"):
+                prep["output_sha256"] = sha256_file(Path(prep["output"]))
+            task.record("preprocess", prep)
+            if not prep.get("produced"):
+                raise RuntimeError(f"{backend_id} preprocessing exited "
+                                   f"{prep.get('exit_code')}; see ledger")
+            gen_input = Path(prep["output"])
     out = task.artifact("model.glb")
-    ledger = backend.generate(task.root / "input" / image.name, out, params or {})
+    ledger = backend.generate(gen_input, out, params)
     if not ledger.get("produced"):
         task.record("generate", {**ledger, "status": "fail"})
         raise RuntimeError(f"{backend_id} exited {ledger['exit_code']}; see ledger")
+    ledger["input_sha256"] = sha256_file(gen_input)
     ledger["output_sha256"] = sha256_file(out)
     ledger["status"] = "pass"
     task.record("generate", ledger)

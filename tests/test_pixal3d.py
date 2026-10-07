@@ -4,6 +4,7 @@ No runtime binary is required; env vars point at temp fakes.
 from __future__ import annotations
 
 import os
+import struct
 import sys
 from pathlib import Path
 
@@ -79,5 +80,58 @@ def test_params_override_defaults(tmp_path):
         argv = b.build_command(tmp_path / "in.png", tmp_path / "out.glb",
                                {"res": 512, "require_gpu": False, "seed": 7})
         assert "512" in argv and "7" in argv and "--require-gpu" not in argv
+    finally:
+        _restore(old)
+
+
+def _png(path: Path, color_type: int) -> None:
+    """Header-only PNG good enough for the stdlib header checks."""
+    path.write_bytes(b"\x89PNG\r\n\x1a\n" + struct.pack(">I", 13) + b"IHDR"
+                     + struct.pack(">IIBBBBB", 64, 64, 8, color_type, 0, 0, 0)
+                     + struct.pack(">I", 0) + b"IEND" + struct.pack(">I", 0))
+
+
+def test_matte_command_shape(tmp_path):
+    md, old = _backend_with_env(tmp_path)
+    try:
+        (md / "birefnet.gguf").write_bytes(b"fake")
+        b = Pixal3DBackend()
+        argv = b.build_matte_command(tmp_path / "in.png", tmp_path / "matte.glb", {})
+        assert argv[1:] == [str(tmp_path / "in.png"), str(tmp_path / "matte.glb"),
+                            "--models", str(md), "--bg-removal", "birefnet",
+                            "--bg-only", "--require-gpu"]
+        assert b.matte_mode() == "birefnet"
+    finally:
+        _restore(old)
+
+
+def test_matte_mode_falls_back_to_threshold(tmp_path):
+    md, old = _backend_with_env(tmp_path)
+    try:
+        b = Pixal3DBackend()
+        assert b.matte_mode() == "threshold"
+        argv = b.build_matte_command(tmp_path / "in.png", tmp_path / "matte.glb", {})
+        assert "threshold" in argv
+    finally:
+        _restore(old)
+
+
+def test_prepare_input_mattes_only_when_needed(tmp_path):
+    md, old = _backend_with_env(tmp_path)
+    try:
+        rt = tmp_path / "trellis-cli"
+        rt.write_text('#!/bin/sh\nprintf x > "${2%.glb}_cutout.png"\nexit 0\n')
+        rt.chmod(0o755)
+        b = Pixal3DBackend()
+        raw = tmp_path / "raw.png"
+        _png(raw, color_type=2)
+        prep = b.prepare_input(raw, tmp_path / "matte.glb", {})
+        assert prep is not None and prep["produced"]
+        assert Path(prep["output"]).name == "matte_cutout.png"
+        assert (tmp_path / "matte_cutout.png").is_file()
+        alpha = tmp_path / "alpha.png"
+        _png(alpha, color_type=6)
+        assert b.prepare_input(alpha, tmp_path / "matte2.glb", {}) is None
+        assert b.prepare_input(raw, tmp_path / "matte3.glb", {"matte": "off"}) is None
     finally:
         _restore(old)

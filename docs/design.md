@@ -63,6 +63,13 @@ Design rules, learned the expensive way (2026-10-05 trials):
 - **Discovery via env, never paths baked in**: `OPENFIGURA_PIXAL_RUNTIME`,
   `OPENFIGURA_PIXAL_MODELS`. Missing binary is a *reported state*, not a
   crash.
+- **Backend-declared preprocessing is a pipeline stage, not a hidden
+  side effect.** If a backend exposes `prepare_input`, the engine runs it
+  before generation and records a separate `preprocess` ledger entry
+  (command, exit, hashes). Pixal3D uses it for the SV flow's mandatory
+  alpha matte (`--bg-only`, BiRefNet when present); the OS-specific part
+  (Metal/CUDA build, device choice) stays inside the runtime, so the
+  adapter remains OS-agnostic and only reports `platform` in capabilities.
 - **Generators have conventions; record them.** Pixal3D output faces +Y
   (our default front camera saw its back). `facing_deg` is an explicit
   render parameter and lands in the ledger. New backends must declare

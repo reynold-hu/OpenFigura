@@ -3,6 +3,65 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-07 — scifi-stride detail investigation; local improvement, no accepted asset
+
+- User rejected the eight-case Mac run as unusable. Its `11/11` result is
+  pipeline/structure success, not visual acceptance; no baseline promoted.
+- Research and isolated trials: `~/Desktop/openfigura-scifi-detail-2026-10-07/`;
+  report: `docs/2026-10-07-scifi-detail-research.md`. Production source untouched.
+- Pinned runtime source confirms long-edge-1024 preprocessing, 512/1024
+  conditioning, and a 1024 floor that can exceed the requested token budget.
+  Cropped-head trial produced **16,250 HR tokens despite max_tokens=8192**;
+  stopped after **1116.99s** to prioritize observed postprocess detail loss.
+  `roi-generation/provenance.json` records `cancelled`, exit -15. No ROI mesh
+  was produced; no crop-quality claim.
+- Executed Apache-2.0 `image-to-3dlab` photo projection (commit
+  `10e007b1998c5ffed0b09e16d4218c05a1803afb`), retaining LICENSE/NOTICE.
+  Whole-view projection introduced seams and painted missing wire onto cloth;
+  manually gated helmet/torso ROIs are the conservative candidate. **4.70s**
+  projection, **958,816 triangles**. Non-BaseColor buffer views and unpainted
+  texels verified identical. `roi-texture/provenance.json`, `verification.json`.
+- Raw PLY has **4,337,116 triangles**; final GLB has **958,816**. Same-camera
+  clay renders show loss of portions of the thin wire across postprocessing;
+  which individual remesh/simplify/component-clean stage causes it is not
+  isolated. PLY/GLB axis conversion checked against `mesh_glb.cpp`.
+- Retaining **52,266** source-supported raw thin faces yields **1,011,082**
+  triangles, with existing body buffers preserved. Four-view renders expose
+  broken/floating fragments: raw prediction is also defective. Diagnostic
+  only, not a usable repaired asset. `detail-retained/provenance.json`.
+- Each candidate has six real Blender renders (four views plus head/torso),
+  structural inspection and verified GLB hashes. Local texture detail improves
+  by reviewer observation; geometry/material fidelity still fails the intended
+  finished-asset standard. Human visual approval remains pending.
+
+## 2026-10-07 — macOS golden suite 11/11; auto-matte preprocessing added
+
+- **First complete local run of the shipped suite** (`scripts/run_golden.py
+  --emit-candidates`, 2026-10-06 21:39 → 10-07 01:36): `GOLDEN: 11 cases,
+  0 failed` — 3 gate fixtures + 8 real generations, each `inspect ok:true`,
+  947k–989k triangles, 4 neutral renders (all `pass/4`). Host: Apple M5/16GB,
+  Metal `trellis-cli` v0.10.1-desktop-alpha, weights `raven38/pixal3d-sv-q8_0-v1`
+  + `birefnet.gguf`. Generation 187.9 min total (696–2562 s/case, avg 23.5 min),
+  matte 134–238 s/case. Evidence (run log, per-case provenance/inspect/renders/
+  GLBs/cutouts): `~/Desktop/openfigura-golden-run-2026-10-06/`.
+  No baselines promoted; `visual_approval` untouched (human-only field).
+- **Raw inputs were hard-blocked before the fix**: the SV flow refuses
+  non-alpha input (`input image has no real alpha matte`); the blocked first
+  attempt (3 gates pass, crouch-pose exit 1) is preserved in the same evidence
+  dir as `blocked-raw-input-attempt.log`.
+- **New: backend-declared preprocess stage.** `core/engine.generate` runs an
+  optional `backend.prepare_input` before generation and records a separate
+  `preprocess` ledger entry (command, exit, wall, input/output sha256).
+  `pixal3d.prepare_input` auto-mattes no-alpha inputs via the runtime's own
+  `--bg-only` (BiRefNet when `birefnet.gguf` is present, threshold fallback)
+  and generates from `artifacts/matte_cutout.png`; `matte: "off"` skips it.
+  Device/OS differences stay inside the runtime; the adapter only reports
+  `capabilities().notes.platform`. Docs: usage.md §2–3, design.md backend
+  protocol. `.venv/bin/python -m pytest tests -q`: **22/22**.
+- Not verified/claimed: visual fidelity (human review pending), a Windows
+  rerun of the new stage, device selection (`gpu`/`tex_res` forwarding remains
+  the prior audit gap), baseline promotion, cross-run hash reproducibility.
+
 ## 2026-10-06 — Windows result pack quality / mesh / GPU audit
 
 - Review only; production source unchanged. `docs/2026-10-06-quality-mesh-gpu-audit.md`
