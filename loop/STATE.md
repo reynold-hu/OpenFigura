@@ -45,11 +45,13 @@ job入口：generation-job.json、generated-followup.json、generated-motion.jso
 scifi-uv-trial/bake-1024为有效继承UV的后续候选；旧first job勿误用。
 `generated-low-motion.json`的唯一低模试验已结束：947,962→75,835面，1024三图
 烘焙和MIA52关节通过，retarget被第4帧2mm间隙闸拒绝；原图/高模未改。
-新增真实static render显示全身黑裂纹/斑点，root已看图确认劣化：烘焙“技术pass”
-不等于可用材质。下一步先做normal/AO/albedo分离渲染消融，定位黑斑来源。
+新增真实static render显示全身黑裂纹/斑点，root已看图确认劣化。分贴图消融已做，
+新批次`.local/runs/2026-10-09-xiaoman-map-ablation/`：原高模H平滑，优化后A
+未烘焙已裂，完全无贴图clay I仍裂。因此先审计optimize几何/custom normals/
+shading，不把烘焙或UV当已证明根因。C/E等图证明Cycles原occlusion组不连Surface。
 不要重跑相同MIA或同动作参数，先查看failed contact诊断与region/skin定义。
 
-优先：新小满烘焙黑斑来源消融 → 分区/蒙皮审核与动作闸 → 全链文件与Blender帧
+优先：新小满降面前后几何/法线审计与修复 → 分区/蒙皮审核与动作闸 → 全链文件与Blender帧
 → Studio矩阵逐项独立开发。重定向失败不能靠重复同算法搜索或降低阈值掩盖。
 低模和贴图必须联合保留细节，不能拿低分辨率截图证明精细。
 

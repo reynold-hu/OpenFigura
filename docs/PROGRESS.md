@@ -585,3 +585,21 @@ Work continues on branch `codex/3d-loop` (worktree
   Next independent diagnosis is map-isolated render ablation, not repeating
   the already failed retarget. Summary in the relocated review batch's
   `generated-low-motion-summary.json`; human approval remains pending.
+
+### Map-isolated render ablation: refine the degradation attribution
+
+- New fixed-root batch `.local/runs/2026-10-09-xiaoman-map-ablation/` is
+  catalogued locally. Read-only sourceGLBs, same camera/CPU Cycles/samples8/
+  seed1, variantsA–J with actual node-switch records. Original947k highH
+  is smooth; optimized75k no-bakeA already cracked. ConstantclayI with all
+  image connections removed still cracked; albedo-onlyC and no-metal/
+  roughJ also cracked. Root viewed actualA/C/F/H/I/J PNGs.
+- This rules out newly bakednormal/AO as the sole origin, and narrows the
+  first degradation to optimization geometry/customnormals/shading. It
+  does not yet distinguish holes, duplicate surfaces or normals. Original
+  bad pupil/pocket appearance is a separate high-model issue.
+- Standard importedglTF occlusiongroup has no CyclesSurface route: C andE
+  equal; explicit diagnosticAO multiplyG darkens defects. Do not confuse
+  that preview with ordinary BlenderAO shading. Next fix must start with
+  the optimize-stage geometry/normal audit, not repeated same-map baking.
+  Reports/node records/PNG stay in ignored batch; visual approval pending.
