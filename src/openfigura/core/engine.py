@@ -608,6 +608,69 @@ def animate(task: Task, prompt: str, backend: str = 'unimate', repetitions: int 
     return evidence
 
 
+def transfer_rig(task: Task, source: str, artifact: str = 'model.glb',
+                 params: dict | None = None) -> dict:
+    """Copy skeleton and skin weights from a rigged GLB onto a matching static GLB.
+
+    The transfer worker refuses non-overlap rest poses rather than guessing,
+    and this verb refuses to deliver anything whose joint count diverges from
+    the source or whose inputs were touched.
+    """
+    backend = registry.get('blender-rig-transfer')
+    caps = backend.capabilities()
+    if not caps.available:
+        raise RuntimeError('rig transfer unavailable: ' + caps.reason)
+    target = _model(task, artifact)
+    src = _model(task, source)
+    if target == src:
+        raise ValueError('target and source artifacts must differ')
+    if not target.is_file():
+        raise FileNotFoundError(f'target artifact {artifact} missing')
+    if not src.is_file():
+        raise FileNotFoundError(f'source artifact {source} missing')
+    target_report = inspect_glb(target)
+    if not target_report['ok'] or target_report['has_skinning']:
+        raise ValueError('target must be a clean static GLB without skinning')
+    source_report = inspect_glb(src)
+    if not source_report['has_skinning']:
+        raise ValueError('source must carry a skeleton and skin weights')
+    out = task.artifact(f'{target.stem}-transferred.glb')
+    if out.exists() or out.with_suffix('.rig-transfer-report.json').exists():
+        raise FileExistsError('transfer candidate exists; use a new task')
+    evidence = {'backend': backend.id, 'target_artifact': artifact, 'source_artifact': source,
+                'target_sha256': sha256_file(target), 'source_sha256': sha256_file(src),
+                'params': dict(params or {}), 'artifact': str(out.relative_to(task.root)),
+                'visual_approval': 'pending'}
+    try:
+        result = backend.transfer(target, src, out, params or {})
+        evidence.update(result)
+        if result['exit_code'] != 0 or not out.is_file():
+            raise RuntimeError(f"rig transfer exited {result['exit_code']}: "
+                               + (result.get('stderr_tail') or '')[-500:])
+        if not result.get('report'):
+            raise RuntimeError('rig transfer produced no machine-readable report')
+        report = inspect_glb(out)
+        if not report['ok'] or not report['has_skinning']:
+            raise RuntimeError('transferred GLB failed structural/skin inspection: '
+                               + str(report['problems']))
+        if report['joint_count'] != source_report['joint_count']:
+            raise RuntimeError(f"transferred joint count {report['joint_count']} does not "
+                               f"match source {source_report['joint_count']}")
+        if report['animation_clips']:
+            raise RuntimeError('transfer must not fabricate animation clips')
+        if sha256_file(target) != evidence['target_sha256'] or sha256_file(src) != evidence['source_sha256']:
+            raise RuntimeError('transfer backend modified an input artifact')
+        evidence.update(status='pass', output_sha256=sha256_file(out),
+                        joint_count=report['joint_count'],
+                        vertices_without_weights=result['report'].get('vertices_without_weights'))
+    except Exception as exc:
+        evidence.update(status='fail', error=str(exc))
+        task.record('transfer_rig', evidence)
+        raise
+    task.record('transfer_rig', evidence)
+    return evidence
+
+
 def mesh(task: Task, operation: str, params: dict | None = None,
          artifact: str = 'model.glb') -> dict:
     """Static-mesh processing in an isolated Blender process (original tools).
@@ -821,6 +884,20 @@ def _outputs_animate(sandbox, params, result):
     return refs
 
 
+def _run_transfer_rig(sandbox, staged, params):
+    source = params.get('source')
+    if not isinstance(source, str) or not source.strip():
+        raise ValueError("params['source'] must name a rigged GLB artifact")
+    return transfer_rig(sandbox, source, artifact=params.get('artifact', 'model.glb'),
+                        params=dict(_dict_param(params, 'params')))
+
+
+def _outputs_transfer_rig(sandbox, params, result):
+    stem = f"{Path(params.get('artifact', 'model.glb')).stem}-transferred"
+    return [_pair(sandbox, f'artifacts/{stem}.glb', 'model'),
+            _pair(sandbox, f'artifacts/{stem}.rig-transfer-report.json', 'report')]
+
+
 def _backend_for(step: str, params: dict) -> str:
     if step in {'generate', 'autorig', 'animate'}:
         value = params.get('backend') if step != 'animate' else params.get('backend', 'unimate')
@@ -828,7 +905,7 @@ def _backend_for(step: str, params: dict) -> str:
             raise ValueError("params['backend'] must be a backend id")
         return value
     return {'rig': 'rigify', 'mesh': 'blender-mesh-tools', 'retarget': 'native-motion',
-            'render': 'blender', 'export': 'export-snapshot',
+            'render': 'blender', 'export': 'export-snapshot', 'transfer_rig': 'blender-rig-transfer',
             'inspect': 'stdlib-inspect'}[step]
 
 
@@ -844,6 +921,8 @@ _EXEC_STEPS = {
     'animate': {'allowed': {'prompt', 'backend', 'repetitions', 'cfg_scale', 'seed', 'artifact',
                              'annotation', 'accept_nc_license'},
                 'run': _run_animate, 'outputs': _outputs_animate},
+    'transfer_rig': {'allowed': {'source', 'artifact', 'params'}, 'run': _run_transfer_rig,
+                     'outputs': _outputs_transfer_rig},
 }
 
 

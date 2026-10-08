@@ -149,6 +149,16 @@ def build():
                       artifact: str = "model.glb") -> dict:
         return engine.export(Task.open(Path(task_root)), Path(dest), fmt=format, artifact=artifact)
 
+    @app.tool(description="Skeleton and skin-weight transfer from a rigged GLB onto a "
+              "matching static GLB of the same character (isolated Blender; rest-pose "
+              "nearest-surface barycentric blend, top-N influences). Refuses non-overlap "
+              "poses and never touches inputs; output is model-<stem>-transferred.glb plus "
+              "a machine report. Weights are not deformation-tested: posed review required.")
+    def figura_transfer_rig(task_root: str, source: str, artifact: str = "model.glb",
+                            params: dict | None = None) -> dict:
+        return engine.transfer_rig(Task.open(Path(task_root)), source, artifact=artifact,
+                                   params=params)
+
     @app.tool(description="Static mesh operation in an isolated Blender process: "
               "segment | optimize (decimate) | retopo (QuadriFlow) | collision (convex hulls) | uv "
               "(smart project). Preserves the source, emits <stem>-<operation>.glb plus a machine "

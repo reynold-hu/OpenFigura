@@ -455,6 +455,25 @@ Work continues on branch `codex/3d-loop` (worktree
   embedded), plus OBJ/STL/USD all exit 0 with warnings
   (`~/Desktop/openfigura-3d-loop-2026-10-08/delivery-{fbx,obj,stl,usd}/`,
   logs 20). Suite: **211 passed**.
+- **L04 first half landed: skeleton + skin transfer (`transfer_rig`)**, an
+  original rest-pose nearest-triangle barycentric implementation (≤4
+  influences, renormalised; no upstream code copied). Backend
+  `blender-rig-transfer`, engine verb, executor step, CLI `transfer-rig`,
+  MCP `figura_transfer_rig`. Verb invariants enforced in code: target must
+  be static, output joint count must equal the source's, no fabricated
+  animation clips, inputs hash-unchanged, overlapping-rest-pose guard
+  refuses misaligned scales before writing anything. **Real run**: the MIA
+  52-joint rig (bound to the 95,881-tri decimated mesh) transferred onto
+  the original 905,193-vertex scifi high-poly — 0 unweighted vertices,
+  median surface distance 0.0003, p95 0.0013 (log 22; Blender 5.2's
+  `VertexGroup.add` now takes scalar weights only — first attempt failed
+  fast, honest fail stage preserved). Deformation probe
+  (`deformation-probe.json`): rotating `mixamorig:LeftLeg` 45° moves
+  153,885/907,309 vertices (17%), max displacement 0.192 units — the
+  "foreign" movers are foot-side chain and shared-weight thigh vertices,
+  i.e. expected multi-influence skin behaviour, not leakage. Suite:
+  **228 passed**. L04's other half (normal/AO bake high→low) is NOT yet
+  implemented.
 - Git hygiene side-quest, same evening: `~/.gitconfig` email typo
   (`reynonlds…`) corrected to `reynoldsworking@gmail.com`; all local
   branches filter-rewritten (author, committer **and Signed-off-by

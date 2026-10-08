@@ -93,6 +93,16 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(func=lambda a: _print(engine.autorig(Task.open(Path(a.task)),
         backend=a.backend,device=a.device,seed=a.seed,query_chunk=a.query_chunk,artifact=a.artifact)))
 
+    p = sub.add_parser("transfer-rig", help="copy skeleton + skin weights from a rigged GLB "
+                       "onto a matching static GLB of the same character (isolated Blender)")
+    p.add_argument("task")
+    p.add_argument("--source", required=True, help="rigged source GLB filename in artifacts")
+    p.add_argument("--target", default="model.glb", help="static target GLB filename in artifacts")
+    p.add_argument("--params", default="{}", help="JSON object: max_influences, refuse_distance_ratio")
+    p.set_defaults(func=lambda a: _print(engine.transfer_rig(
+        Task.open(Path(a.task)), a.source, artifact=a.target,
+        params=json.loads(_json_arg(a.params)))))
+
     p = sub.add_parser("rig", help="experimental calibrated Rigify binding")
     p.add_argument("task")
     p.add_argument("--calibration", required=True)

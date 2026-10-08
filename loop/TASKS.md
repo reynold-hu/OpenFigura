@@ -3,7 +3,7 @@
 - [x] L01 Studio 固定版本完整功能矩阵：docs/2026-10-08-studio-parity-matrix.md（95 工具清点，附证据行号）。
 - [x] L02 真实执行器：engine.execute 沙箱阶段化运行；180 测试通过；真实证据见 PROGRESS 2026-10-08 晚间条目。
 - [x] L03 静态网格工具：已注册并 CLI/MCP 镜像；真实通过 optimize（6.75s）、collision（0.87s）、uv（1.12s）、retopo（voxel 水密管线，QuadriFlow 如实降级并写明）；segment 如实失败（8,090 组件）。证据 `~/Desktop/openfigura-3d-loop-2026-10-08/logs/`。
-- [ ] L04 原始高模→低模的材质／normal／AO烘焙与蒙皮转移。当前全部 absent；transfer_rig 是最高优先。
+- [~] L04：蒙皮/骨架转移 `transfer_rig` 已落地并真实验证（scifi 90.5万顶点 0 未加权、形变探针 17% 局域移动）；**normal/AO 烘焙仍 absent**，是下一个 Mac 可做大块。
 - [ ] L05 神经生成／材质后端能力与硬件调度：可用则执行，不可用则给出真实原因。
 - [~] L06 自动骨架／解剖约束：scifi 低模经 MIA CPU 自动骨架**通过**（52 关节，12.75s，无手工坐标，fit/skin/原图哈希三重校验；证据 13-autorig-scifi.json）。小满仍无通过项。
 - [ ] L07 动作接触：scifi 重定向被接触闸持续拒绝。修正循环升级为深度自适应＋
