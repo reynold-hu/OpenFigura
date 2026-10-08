@@ -155,6 +155,22 @@ def build():
                     artifact: str = "model.glb") -> dict:
         return engine.mesh(Task.open(Path(task_root)), operation, params, artifact=artifact)
 
+    @app.tool(description="Text-to-motion on a rigged GLB via an external generator "
+              "(backend 'unimate': UniMate, MIT code but CC BY-NC 4.0 weights — every call "
+              "must pass accept_nc_license=True explicitly and the acceptance is ledgered). "
+              "The generator never self-certifies: every clip is re-imported and must pass "
+              "the same regional contact gate the retarget verb uses; only a gated clip is "
+              "delivered as model-motion.glb, all failures are quarantined with reports. "
+              "Upstream stops for joint-label/facing review until you pass annotation=.")
+    def figura_animate(task_root: str, prompt: str, backend: str = "unimate",
+                       repetitions: int = 3, cfg_scale: float = 3.0, seed: int = 42,
+                       artifact: str = "model-autorig.glb", annotation: str | None = None,
+                       accept_nc_license: bool = False) -> dict:
+        return engine.animate(Task.open(Path(task_root)), prompt, backend=backend,
+                              repetitions=repetitions, cfg_scale=cfg_scale, seed=seed,
+                              artifact=artifact, annotation=annotation,
+                              accept_nc_license=accept_nc_license)
+
     @app.tool(description="Execute one engine verb under a durable workflow stage: "
               "inputs are hash-verified task-local asset references, the verb runs in a private "
               "sandbox, and a pass names the exact output bytes it produced. Identical verified "

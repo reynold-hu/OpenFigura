@@ -466,6 +466,112 @@ def retarget(task: Task, animation: Path, artifact: str = 'model-autorig.glb',
     task.record('retarget',evidence);return evidence
 
 
+def _quarantine_files(task: Task, files: list[Path]) -> list[str]:
+    """Move rejected tool-owned candidates out of deliverable paths, preserving them."""
+    present = [p for p in files if p.is_file()]
+    if not present:
+        return []
+    folder = task.root / 'artifacts' / 'rejected' / uuid.uuid4().hex
+    folder.mkdir(parents=True, exist_ok=False)
+    moved = []
+    for path in present:
+        dest = folder / path.name
+        shutil.move(str(path), str(dest))
+        moved.append(str(dest.relative_to(task.root)))
+    return moved
+
+
+def animate(task: Task, prompt: str, backend: str = 'unimate', repetitions: int = 3,
+            cfg_scale: float = 3.0, seed: int = 42, artifact: str = 'model-autorig.glb',
+            annotation: str | None = None, accept_nc_license: bool = False) -> dict:
+    """Text-to-motion via an external generator; the contact gate decides pass.
+
+    The backend never self-certifies: every generated clip is re-imported and
+    run through the same regional contact evaluator the retarget gate uses.
+    Only a gated clip is delivered, and licence acceptance is explicit per
+    call because UniMate's released checkpoints are CC BY-NC 4.0.
+    """
+    import math
+    if not isinstance(prompt, str) or not prompt.strip():
+        raise ValueError('prompt must be a nonempty string')
+    if type(repetitions) is not int or not 1 <= repetitions <= 8:
+        raise ValueError('repetitions must be an integer in 1..8')
+    if isinstance(cfg_scale, bool) or not isinstance(cfg_scale, (int, float)) \
+            or not math.isfinite(cfg_scale) or not 0 <= cfg_scale <= 12:
+        raise ValueError('cfg_scale must be finite in 0..12')
+    if type(seed) is not int or not 0 <= seed < 2**32:
+        raise ValueError('seed must be an unsigned 32-bit integer')
+    if annotation is not None and not isinstance(annotation, str):
+        raise ValueError('annotation must be a path string or null')
+    model = _model(task, artifact)
+    if not model.is_file():
+        raise FileNotFoundError(model)
+    report = inspect_glb(model)
+    if not report['ok'] or not report['has_skinning']:
+        raise ValueError('animate needs a valid skinned GLB; run autorig or rig first')
+    solver = registry.get(backend)
+    caps = solver.capabilities()
+    if not caps.available:
+        raise RuntimeError(f'backend {backend!r} unavailable: {caps.reason}')
+    if backend == 'unimate' and not accept_nc_license:
+        task.record('animate', {'status': 'blocked', 'backend': backend,
+                                'reason': 'CC BY-NC 4.0 checkpoint licence not accepted'})
+        raise RuntimeError('unimate released checkpoints are CC BY-NC 4.0 (non-commercial); '
+                           'pass accept_nc_license=True explicitly to opt in — the acceptance '
+                           'is recorded in the ledger')
+    preflight = getattr(solver, 'preflight_rig', None)
+    if callable(preflight):
+        check = preflight(model)
+        task.record('motion-preflight', check)
+        if not check['ok']:
+            raise RuntimeError('rig preflight failed: ' + '; '.join(check['problems']))
+    out = task.artifact('model-motion.glb')
+    if out.exists() or out.with_suffix('.blend').exists():
+        raise FileExistsError('motion candidate exists; use a fresh task')
+    workdir = task.root / 'motion' / f'{backend}-run'
+    if workdir.exists():
+        raise FileExistsError('motion work directory exists; use a fresh task')
+    gate = registry.get('blender-motion-gate')
+    evidence = {'backend': backend, 'source_artifact': artifact, 'input_sha256': sha256_file(model),
+                'prompt': prompt, 'repetitions': repetitions, 'cfg_scale': cfg_scale, 'seed': seed,
+                'weights_license_accepted': bool(accept_nc_license),
+                'artifact': str(out.relative_to(task.root)), 'visual_approval': 'pending'}
+    try:
+        motion = solver.generate_motion(model, workdir, prompt, repetitions, cfg_scale, seed,
+                                        annotation)
+        evidence['motion'] = {key: value for key, value in motion.items() if key != 'clips'}
+        if motion.get('status') == 'awaiting_review':
+            raise RuntimeError('backend stopped for joint-label/facing review ('
+                               + str(motion.get('review', '')) + '); rerun with annotation=<file>')
+        clips = [Path(p) for p in motion.get('clips') or []]
+        if not motion.get('produced') or not clips:
+            raise RuntimeError('motion backend produced no animated GLBs')
+        verdicts = []
+        delivered = None
+        for clip in clips:
+            gate_report = workdir / f'gate-{clip.stem}.json'
+            result = gate.gate(clip, gate_report)
+            status = (result.get('report') or {}).get('status', 'unavailable')
+            verdicts.append({'clip': str(clip.relative_to(task.root)), 'status': status,
+                             'exit_code': result['exit_code'],
+                             'report': str(gate_report.relative_to(task.root))})
+            if status == 'pass' and delivered is None:
+                shutil.copy2(clip, out)
+                delivered = clip
+        evidence['gate'] = verdicts
+        if delivered is None:
+            rejected = _quarantine_files(task, clips)
+            raise RuntimeError(f'no generated clip passed the contact gate; quarantined: {rejected}')
+        evidence.update(status='pass', output_sha256=sha256_file(out),
+                        delivered_clip=str(delivered.relative_to(task.root)))
+    except Exception as exc:
+        evidence.update(status='fail', error=str(exc))
+        task.record('animate', evidence)
+        raise
+    task.record('animate', evidence)
+    return evidence
+
+
 def mesh(task: Task, operation: str, params: dict | None = None,
          artifact: str = 'model.glb') -> dict:
     """Static-mesh processing in an isolated Blender process (original tools).
@@ -661,9 +767,27 @@ def _outputs_mesh(sandbox, params, result):
             _pair(sandbox, f'artifacts/{stem}.mesh-report.json', 'report')]
 
 
+def _run_animate(sandbox, staged, params):
+    prompt = params.get('prompt')
+    if not isinstance(prompt, str) or not prompt.strip():
+        raise ValueError("params['prompt'] is required")
+    return animate(sandbox, prompt, backend=params.get('backend', 'unimate'),
+                   repetitions=params.get('repetitions', 3), cfg_scale=params.get('cfg_scale', 3.0),
+                   seed=params.get('seed', 42), artifact=params.get('artifact', 'model-autorig.glb'),
+                   annotation=params.get('annotation'),
+                   accept_nc_license=bool(params.get('accept_nc_license', False)))
+
+
+def _outputs_animate(sandbox, params, result):
+    refs = [_pair(sandbox, 'artifacts/model-motion.glb', 'model')]
+    refs += [(str(p.relative_to(sandbox.root)), 'report')
+             for p in sorted((sandbox.root / 'motion').rglob('gate-*.json'))]
+    return refs
+
+
 def _backend_for(step: str, params: dict) -> str:
-    if step in {'generate', 'autorig'}:
-        value = params.get('backend')
+    if step in {'generate', 'autorig', 'animate'}:
+        value = params.get('backend') if step != 'animate' else params.get('backend', 'unimate')
         if not isinstance(value, str) or not value.strip():
             raise ValueError("params['backend'] must be a backend id")
         return value
@@ -681,6 +805,9 @@ _EXEC_STEPS = {
     'retarget': {'allowed': {'animation', 'artifact', 'frames', 'fps'}, 'run': _run_retarget, 'outputs': _outputs_retarget},
     'export': {'allowed': {'fmt', 'artifact'}, 'run': _run_export, 'outputs': _outputs_export},
     'mesh': {'allowed': {'operation', 'params', 'artifact'}, 'run': _run_mesh, 'outputs': _outputs_mesh},
+    'animate': {'allowed': {'prompt', 'backend', 'repetitions', 'cfg_scale', 'seed', 'artifact',
+                             'annotation', 'accept_nc_license'},
+                'run': _run_animate, 'outputs': _outputs_animate},
 }
 
 

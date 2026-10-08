@@ -15,7 +15,8 @@ CHUNK_JSON = 0x4E4F534A
 CHUNK_BIN = 0x004E4942
 
 
-def inspect_glb(path: Path) -> dict:
+def gltf_document(path: Path) -> dict:
+    """Parse a GLB container and return its JSON chunk (stdlib only)."""
     data = Path(path).read_bytes()
     if len(data) < 12:
         raise ValueError("file too small to be a GLB")
@@ -24,17 +25,29 @@ def inspect_glb(path: Path) -> dict:
         raise ValueError(f"bad GLB magic 0x{magic:08x}")
     off = 12
     gltf = None
-    bin_size = 0
     while off + 8 <= len(data):
         clen, ctype = struct.unpack_from("<II", data, off)
         payload = data[off + 8: off + 8 + clen]
         if ctype == CHUNK_JSON:
             gltf = json.loads(payload.decode("utf-8"))
-        elif ctype == CHUNK_BIN:
-            bin_size = clen
         off += 8 + clen
     if gltf is None:
         raise ValueError("no JSON chunk found")
+    return gltf
+
+
+def inspect_glb(path: Path) -> dict:
+    gltf = gltf_document(path)
+    data = Path(path).read_bytes()
+    version = struct.unpack_from("<I", data, 4)[0]
+    length = struct.unpack_from("<I", data, 8)[0]
+    off = 12
+    bin_size = 0
+    while off + 8 <= len(data):
+        clen, ctype = struct.unpack_from("<II", data, off)
+        if ctype == CHUNK_BIN:
+            bin_size = clen
+        off += 8 + clen
 
     meshes = gltf.get("meshes", [])
     primitives = [p for m in meshes for p in m.get("primitives", [])]

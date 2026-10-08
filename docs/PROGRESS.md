@@ -425,6 +425,24 @@ Work continues on branch `codex/3d-loop` (worktree
   `docs/2026-10-08-unimate-review.md`; licence posture note added to
   `LICENSES.md`; integration entered as loop task L13 (blocked on user's
   NC-weights decision + a CUDA node).
+- **UniMate adapter + standalone motion gate landed** (L13 code side):
+  `backends/unimate.py` (capabilities probe reports verbatim missing
+  runtime/checkpoint on this Mac — see `openfigura backends`),
+  `preflight_rig()` enforces the upstream ingest invariants offline from the
+  GLB JSON (joint budget ≤71, single root, duplicate-name collapse, skin
+  present), `engine.animate()` requires `accept_nc_license=True` per call
+  (CC BY-NC 4.0, recorded in the ledger) and NEVER ships a generator-
+  certified result: every clip is re-imported and must pass
+  `backends/motion_gate.py` before delivery; failing clips are quarantined.
+  The gate worker is backend-independent — it drives the same
+  `contact.evaluate`/`require_clear` as retarget. Mirrored in CLI
+  (`openfigura animate`) and MCP (`figura_animate`) and the executor step
+  table. Suite: **204 passed**, including two real-Blender gate verdicts on
+  existing evidence: the bunny `model-animated.glb` PASSes
+  (250 checked rows, min clearance 0.0053 ≥ margin 0.002) and the scifi
+  rest-pose `model-autorig.glb` FAILS the same gate on sub-margin clearance
+  — the standalone gate reproduces the verdicts the in-loop checker made,
+  with no shared process state.
 - Git hygiene side-quest, same evening: `~/.gitconfig` email typo
   (`reynonlds…`) corrected to `reynoldsworking@gmail.com`; all local
   branches filter-rewritten (author, committer **and Signed-off-by

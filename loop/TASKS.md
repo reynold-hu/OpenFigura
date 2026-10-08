@@ -14,9 +14,10 @@
 - [ ] L10 Studio其它功能按矩阵实现：项目／资产／编辑／工作台／Comfy工作流／接口。
 - [ ] L11 全部适配器的许可证、API／计算依赖和回归样例、包资源检查。
 - [ ] L12 最终验收：每项目标文件／命令／实际画面／限制；不足项保留未完成。
-- [ ] L13 UniMate 后端接入（调研完成 docs/2026-10-08-unimate-review.md）：需
-  ①用户确认 CC BY-NC 权重可否作为可选后端 ②CUDA 节点 ③重复骨名/facing 预检
-  ④以现有接触闸作为 N 样本验收器，对照今晚 retarget 深穿插负结果。
+- [~] L13 UniMate 后端：代码侧完成——adapter/预检(≤71骨/单根/重名/蒙皮)/
+  animate 动词(逐次 NC 许可确认+账本)/独立 motion-gate(CLI+MCP+execute 三镜像)；
+  真实 Blender 正反证据入测试(204 passed)。待：CUDA 节点接上后跑
+  scifi "An object walks forward." ×3 全闸验证，对照 retarget 深穿插负结果。
 - [ ] L14 CUDA 速度基准矩阵（口径见 docs/product.md「Speed stance」）：GPU 节点
   到位后第一时间跑 backend(pixal3d/TRELLIS/Hunyuan2.1/UniMate) × 显存档位 ×
   固定 seed，各阶段 wall time 由账本记录并发布；对外宣传引用速度数字必须以本

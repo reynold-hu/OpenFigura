@@ -31,6 +31,11 @@
   **无重定向步骤**，代码 MIT／权重 CC BY-NC；它不处理碰撞，我们的接触闸
   恰好是其缺失的验收器（N 样本→全检→只交付干净）。详见
   docs/2026-10-08-unimate-review.md；接入列 L13，需 Windows GPU 与 NC 许可确认。
+- 用户拍板（22:5x）：NC 权重按"逐调用显式 accept + 账本记录"接入，功能全做。
+  adapter／`animate` 动词／独立 gate（blender-motion-gate）／CLI+MCP+执行器
+  镜像已落地；真实门证据双向（bunny pass 250 行、scifi 静置 fail 间隙不足）。
+  本机 `unimate` 如实报 unavailable。剩：GPU 节点实跑 + rig_preprocess 的
+  conda 环境安装（等连接方式）。
 - Studio parity 矩阵已落地：95 个 MCP 工具，21 项 reproduced/partial，
   63 项 absent，11 项 policy-gate（云 API／门控权重）。见
   `docs/2026-10-08-studio-parity-matrix.md`。

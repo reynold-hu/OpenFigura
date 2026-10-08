@@ -130,6 +130,24 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--artifact", default="model.glb")
     p.set_defaults(func=lambda a: _print(engine.inspect(Task.open(Path(a.task)), artifact=a.artifact)))
 
+    p = sub.add_parser("animate", help="text-to-motion via an external generator "
+                       "(unimate); every clip must pass the regional contact gate before delivery")
+    p.add_argument("task")
+    p.add_argument("--prompt", required=True)
+    p.add_argument("--backend", default="unimate")
+    p.add_argument("--repetitions", type=int, default=3)
+    p.add_argument("--cfg-scale", type=float, default=3.0)
+    p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--artifact", default="model-autorig.glb")
+    p.add_argument("--annotation", default=None,
+                   help="reviewed joint-label/facing JSON from rig_preprocess")
+    p.add_argument("--accept-nc-license", action="store_true",
+                   help="opt in to CC BY-NC 4.0 checkpoints for this call (recorded)")
+    p.set_defaults(func=lambda a: _print(engine.animate(
+        Task.open(Path(a.task)), a.prompt, backend=a.backend, repetitions=a.repetitions,
+        cfg_scale=a.cfg_scale, seed=a.seed, artifact=a.artifact, annotation=a.annotation,
+        accept_nc_license=a.accept_nc_license)))
+
     p = sub.add_parser("mesh", help="static mesh op in isolated Blender "
                        "(segment/optimize/retopo/collision/uv)")
     p.add_argument("task")
