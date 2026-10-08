@@ -90,7 +90,8 @@ def main():
     images, metrics = {}, {}
     for map_name in params['maps']:
         img = bpy.data.images.new('Baked-'+map_name, width=params['resolution'], height=params['resolution'], alpha=True)
-        img.colorspace_settings.name = 'Non-Color'; img.generated_color = (0, 0, 0, 0)
+        img.colorspace_settings.name = 'sRGB' if map_name == 'albedo' else 'Non-Color'
+        img.generated_color = (0, 0, 0, 0)
         for mat in materials:
             nodes = mat.node_tree.nodes
             for node in nodes: node.select = False
@@ -98,7 +99,10 @@ def main():
         bpy.ops.object.select_all(action='DESELECT')
         for obj in high: obj.select_set(True)
         target.select_set(True); bpy.context.view_layer.objects.active = target
-        bpy.ops.object.bake(type='NORMAL' if map_name == 'normal' else 'AO')
+        if map_name == 'albedo':
+            bpy.ops.object.bake(type='DIFFUSE', pass_filter={'COLOR'})
+        else:
+            bpy.ops.object.bake(type='NORMAL' if map_name == 'normal' else 'AO')
         metrics[map_name] = image_metrics(img)
         if not metrics[map_name]['covered_pixels']: raise ValueError('bake has no covered pixels')
         img.filepath_raw = cfg['textures'][map_name]; img.file_format = 'PNG'; img.save()
@@ -106,6 +110,9 @@ def main():
     for mat in materials:
         nodes, links = mat.node_tree.nodes, mat.node_tree.links
         shader = next(n for n in nodes if n.type == 'BSDF_PRINCIPLED')
+        if 'albedo' in images:
+            tex = nodes.new('ShaderNodeTexImage'); tex.image = images['albedo']
+            links.new(tex.outputs['Color'], shader.inputs['Base Color'])
         if 'normal' in images:
             tex = nodes.new('ShaderNodeTexImage'); tex.image = images['normal']
             normal = nodes.new('ShaderNodeNormalMap')
@@ -124,8 +131,9 @@ def main():
     bpy.ops.export_scene.gltf(filepath=cfg['output'], export_format='GLB', use_selection=True, export_animations=False)
     doc = glb_json(cfg['output'])
     for name in params['maps']:
-        key = 'normalTexture' if name == 'normal' else 'occlusionTexture'
-        if not all(key in mat for mat in doc.get('materials', [])) or not doc.get('materials'):
+        key = {'normal': 'normalTexture', 'ao': 'occlusionTexture', 'albedo': 'baseColorTexture'}[name]
+        attached = [mat.get('pbrMetallicRoughness', {}) if name == 'albedo' else mat for mat in doc.get('materials', [])]
+        if not attached or not all(key in mat for mat in attached):
             raise ValueError(f'GLB did not attach {key} to every material')
     if not doc.get('images') or not all('bufferView' in img for img in doc['images']):
         raise ValueError('GLB textures are not embedded')

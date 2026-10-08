@@ -85,3 +85,18 @@ def test_unavailable_binary_reports_reason(tmp_path):
         assert not backend().capabilities().available
         with pytest.raises(RuntimeError, match='unavailable'):
             backend().bake(high, low, tmp_path/'out.glb', {})
+
+
+def test_optional_albedo_map_is_accepted(tmp_path):
+    high, low = tmp_path/'high.glb', tmp_path/'low.glb'
+    high.touch(); low.touch()
+    def run(argv, **kwargs):
+        cfg = json.loads(Path(argv[-1]).read_text())
+        assert cfg['params']['maps'] == ['albedo']
+        assert set(cfg['textures']) == {'albedo'}
+        for path in [cfg['output'], cfg['blend'], *cfg['textures'].values()]: Path(path).touch()
+        Path(cfg['report']).write_text(json.dumps({'visual_approval': 'pending'}))
+        return SimpleNamespace(returncode=0, stdout='', stderr='')
+    with patch.object(type(backend()), 'binary', return_value='blender'), patch('subprocess.run', side_effect=run):
+        result = backend().bake(high, low, tmp_path/'out.glb', {'maps': ['albedo']})
+    assert result['produced']

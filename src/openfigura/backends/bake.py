@@ -9,7 +9,6 @@ import tempfile
 import time
 
 from openfigura.backends import base
-from openfigura.core.registry import Capabilities
 
 
 class BakeBackend:
@@ -17,13 +16,16 @@ class BakeBackend:
     kind = 'postprocess'
 
     def binary(self):
+        # Bootstrap registry before Blender, whose module registers itself.
+        from openfigura.core import registry  # noqa: F401
         from openfigura.backends.blender import BlenderBackend
         return BlenderBackend().binary()
 
     def capabilities(self):
+        from openfigura.core.registry import Capabilities
         binary = self.binary()
         return Capabilities(bool(binary), reason='' if binary else 'blender not found',
-            hardware='cpu', notes={'binary': binary, 'maps': ['normal', 'ao'],
+            hardware='cpu', notes={'binary': binary, 'maps': ['normal', 'ao', 'albedo'],
             'limits': 'CPU Cycles; static GLBs with existing target UVs only; explicit world-unit rays; visual approval remains human.'})
 
     def bake(self, high: Path, low: Path, output: Path, params: dict) -> dict:
@@ -43,8 +45,8 @@ class BakeBackend:
         n = settings['resolution']
         if n & (n-1): raise ValueError('resolution must be a power of two')
         maps = settings['maps']
-        if not isinstance(maps, list) or not maps or any(m not in ('normal', 'ao') for m in maps) or len(set(maps)) != len(maps):
-            raise ValueError('maps must be a nonempty unique list of normal/ao')
+        if not isinstance(maps, list) or not maps or any(m not in ('normal', 'ao', 'albedo') for m in maps) or len(set(maps)) != len(maps):
+            raise ValueError('maps must be a nonempty unique list of normal/ao/albedo')
         for key in ('cage_extrusion', 'ray_distance'):
             value = settings[key]
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not 0 <= value <= 10:
