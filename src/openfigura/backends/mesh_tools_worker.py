@@ -18,6 +18,11 @@ def activate(obj):
     bpy.context.view_layer.objects.active = obj
 
 
+def bounding_box(obj):
+    corners = list(obj.bound_box)
+    return tuple(max(c[i] for c in corners) - min(c[i] for c in corners) for i in range(3))
+
+
 def stats(objects):
     for obj in objects:
         obj.data.calc_loop_triangles()
@@ -97,7 +102,7 @@ def main(cfg):
         details = {'ratio_requested': params['ratio'], 'uv_changed': True,
                    'warning': 'Material slots retained; decimation may distort UVs and texture appearance. Visual review required.'}
     elif operation == 'retopo':
-        deviations = []
+        deviations = []; modes = []
         for obj in objects:
             activate(obj)
             bm = bmesh.new(); bm.from_mesh(obj.data)
@@ -105,17 +110,24 @@ def main(cfg):
             bm.to_mesh(obj.data); bm.free()
             obj.data.calc_loop_triangles()
             tree = BVHTree.FromPolygons([v.co.copy() for v in obj.data.vertices], [tuple(t.vertices) for t in obj.data.loop_triangles], all_triangles=True)
-            result = bpy.ops.object.quadriflow_remesh(target_faces=params['target_faces'], use_mesh_symmetry=False, use_preserve_sharp=False, use_preserve_boundary=True)
-            if 'FINISHED' not in result:
-                raise RuntimeError('QuadriFlow did not finish')
+            # QuadriFlow needs a closed manifold: generated meshes are not.
+            # Voxel remesh first (guaranteed watertight), then quad pass.
+            size = params.get('voxel_size') or max(0.001, max(bounding_box(obj)) / 200.0)
+            modifier = obj.modifiers.new('OpenFiguraVoxel', 'REMESH'); modifier.mode = 'VOXEL'; modifier.voxel_size = size
+            bpy.ops.object.modifier_apply(modifier=modifier.name)
+            quad = bpy.ops.object.quadriflow_remesh(target_faces=params['target_faces'], use_mesh_symmetry=False, use_preserve_sharp=False, use_preserve_boundary=True)
+            modes.append({'object': obj.name, 'voxel_size': size,
+                          'quadriflow': 'finished' if 'FINISHED' in quad else 'cancelled, kept watertight triangulated output'})
             for vertex in obj.data.vertices:
                 nearest = tree.find_nearest(vertex.co)
                 if nearest and nearest[0] is not None:
                     deviations.append(nearest[3])
-        details = {'target_faces_per_object': params['target_faces'], 'preprocessing': 'coincident vertices welded at 1e-6 object-local units before remeshing', 'uv_changed': True, 'requires_rebake': True,
+        details = {'target_faces_per_object': params['target_faces'],
+                   'pipeline': 'weld 1e-6 -> voxel remesh (watertight shell) -> QuadriFlow when it accepts the result',
+                   'per_object': modes, 'uv_changed': True, 'requires_rebake': True,
                    'deviation': {'method': 'new vertices to nearest source triangle, object-local units; one-way sample, not Hausdorff',
                                  'max': max(deviations, default=0), 'mean': sum(deviations)/len(deviations) if deviations else 0},
-                   'warning': 'QuadriFlow replaces topology and UVs. Original texture appearance is not preserved; baking unsupported.'}
+                   'warning': 'Topology and UVs are replaced. Voxel remesh seals concavities and adds shell thickness; texture appearance is not preserved; baking unsupported.'}
     elif operation == 'collision':
         hulls = []
         for obj in objects:

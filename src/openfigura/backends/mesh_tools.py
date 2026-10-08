@@ -45,6 +45,11 @@ class MeshToolsBackend:
             if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
                 raise ValueError(f'{key} must be a positive integer')
             params[key] = value
+        if operation == 'retopo' and 'voxel_size' in params:
+            value = params['voxel_size']
+            if value is not None and (isinstance(value, bool) or not isinstance(value, (int, float))
+                                      or not math.isfinite(value) or not 0 < value <= 1):
+                raise ValueError('voxel_size must be null or a finite number in (0, 1]')
         binary = self.binary()
         if not binary:
             raise RuntimeError('blender unavailable')

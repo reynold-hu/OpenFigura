@@ -12,7 +12,7 @@ def test_missing_binary_truthful(monkeypatch):
     assert not MeshToolsBackend().capabilities().available
 
 
-@pytest.mark.parametrize('operation,params', [('bake', {}), ('optimize', {}), ('optimize', {'ratio': 0}), ('optimize', {'ratio': True}), ('retopo', {'target_faces': 1.5}), ('retopo', {'target_faces': True}), ('segment', {'max_parts': 0})])
+@pytest.mark.parametrize('operation,params', [('bake', {}), ('optimize', {}), ('optimize', {'ratio': 0}), ('optimize', {'ratio': True}), ('retopo', {'target_faces': 1.5}), ('retopo', {'target_faces': True}), ('segment', {'max_parts': 0}), ('retopo', {'target_faces': 5000, 'voxel_size': 0}), ('retopo', {'target_faces': 5000, 'voxel_size': float('nan')}), ('retopo', {'target_faces': 5000, 'voxel_size': 'small'})])
 def test_invalid_request_before_subprocess(tmp_path, monkeypatch, operation, params):
     source = tmp_path / 'source.glb'
     source.write_bytes(b'fixture')

@@ -378,3 +378,18 @@ Work continues on branch `codex/3d-loop` (worktree
   procedural VFX/building/tree systems, cloud mesh APIs, editor UI. Matrix
   with per-feature status in `docs/2026-10-08-studio-parity-matrix.md`;
   nothing is marked reproduced without an OpenFigura command proving it.
+- **Retopo hardening**: QuadriFlow returns CANCELLED on a generated
+  (non-manifold) mesh — confirmed by a standalone probe (107,831 boundary
+  edges survive holes_fill; still cancelled). The worker now welds, runs a
+  Blender Voxel remesh (watertight shell) and only then attempts QuadriFlow,
+  reporting per-object whether quading finished or the triangulated watertight
+  result was kept. Real retry on the 95,881-tri model: pass in 1.64 s,
+  240,052 watertight tris, one-way deviation max 0.0059 (log 12). 183 unit
+  tests pass. `voxel_size` is validated before any subprocess.
+- **Same-task main chain** (`mesh-chain`): `autorig` on the decimated scifi
+  mesh passed MIA CPU — 52 joints, no manual coordinates, fit/skin/original-
+  hash gates all enforced (log 13). The following `retarget` against the
+  Mixamo clip **failed the contact gate** (insufficient clearance at frame 1
+  on the left-hand chain; log 14), so no colliding animated model was
+  delivered — the non-collision gate works but full-body non-intersection is
+  still not achieved. `uv`/`collision` real runs also pass (logs 04, 10).
