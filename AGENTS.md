@@ -51,6 +51,12 @@ promoted only by humans, never by the runner.
 
 ## Workflow
 
+Local test evidence belongs under the primary checkout's `.local/runs/<batch>/`,
+including when code runs from a worktree. Keep the catalog at `.local/catalog.json`;
+never scatter new result folders on Desktop. The whole `.local/` tree is gitignored.
+Historical ledgers keep their original hashes and command paths; relocation mappings
+live in the catalog. User-owned references and external runtimes stay separate.
+
 ```sh
 source .venv/bin/activate          # python3.14, brew on this machine
 pip install -e ".[dev]"

@@ -16,7 +16,7 @@
   后续gate失败残留交付物、transfer未赋权、OBJ/USD丢sidecars。
   增加组合缓存身份（生成器+gate，export+格式转换器），独立复审已进行。
 - 新增CPU normal/AO/可选albedo高低模烘焙，CLI/MCP/execute镜像，真实
-  球体与MCP/executor/OBJ/USD依赖证明在桌面。scifi三贴图字节产出但仅
+  球体与MCP/executor/OBJ/USD依赖证明在本地批次目录。scifi三贴图字节产出但仅
   首轮0.2867% AO/albedo alpha有效，实看黑底散点；UV岛39,501个，面积仅
   0.00574% atlas。已修auto保留有效继承UV；真实1024重烘焙alpha含margin
   约92.44%，前后真实帧恢复护甲/金线/肤色，美术接受仍pending。
@@ -31,7 +31,10 @@
 - Studio95工具矩阵仍有大量absent，烘焙/transfer/格式只是部分能力补齐。
 
 完整审查、命令和验收入口：`docs/2026-10-09-handoff-review.md`。
-产物根：`/Users/reynoldhu/Desktop/openfigura-review-2026-10-09/`。
+产物根：`/Users/reynoldhu/Desktop/OpenFigura/.local/runs/openfigura-review-2026-10-09/`。
+用户10月9日要求统一治理：桌面10个旧批次已迁入主仓库`.local/runs/`，
+`.local/catalog.json`及manifests有旧→新映射/逐文件hash。历史证据不改写。
+以后全部产物留主仓库`.local`（gitignore），worktree也复用此固定根。
 
 ## 夜间接续
 
@@ -42,9 +45,11 @@ job入口：generation-job.json、generated-followup.json、generated-motion.jso
 scifi-uv-trial/bake-1024为有效继承UV的后续候选；旧first job勿误用。
 `generated-low-motion.json`的唯一低模试验已结束：947,962→75,835面，1024三图
 烘焙和MIA52关节通过，retarget被第4帧2mm间隙闸拒绝；原图/高模未改。
+新增真实static render显示全身黑裂纹/斑点，root已看图确认劣化：烘焙“技术pass”
+不等于可用材质。下一步先做normal/AO/albedo分离渲染消融，定位黑斑来源。
 不要重跑相同MIA或同动作参数，先查看failed contact诊断与region/skin定义。
 
-优先：第4帧失败量化及分区/蒙皮审核与动作闸 → 全链文件与Blender帧
+优先：新小满烘焙黑斑来源消融 → 分区/蒙皮审核与动作闸 → 全链文件与Blender帧
 → Studio矩阵逐项独立开发。重定向失败不能靠重复同算法搜索或降低阈值掩盖。
 低模和贴图必须联合保留细节，不能拿低分辨率截图证明精细。
 

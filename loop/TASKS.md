@@ -26,4 +26,4 @@
 ## 本轮执行信息
 
 开发分支 codex/3d-loop，起点8127434；用户未跟踪golden和研究文件保持独立。
-TDD默认单元测试不依赖Blender/CUDA；真实Blender与算法测试另存桌面证据目录。
+TDD默认单元测试不依赖Blender/CUDA；真实Blender与算法测试存主仓库`.local/runs/<批次>/`，gitignore并更新catalog。旧桌面路径按catalog映射读取。

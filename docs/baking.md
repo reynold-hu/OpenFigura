@@ -31,4 +31,4 @@ UV工具默认`mode=auto`：技术合格已有图集保留，否则尝试展开�
 `mode=unwrap`或`mode=repack`，间距由`margin_pixels`及`resolution`指定；
 默认2px/1024。只保留原图集可选`mode=preserve`，不合格会拒绝，不偷偷重画。
 质量检查限单个[0,1]图集，面积5%下限是拒绝极稀疏结果的启发式，不证明无重叠。
-scifi继承UV修复对照见handoff-review与桌面scifi-uv-trial；用户视觉接受仍待确认。
+scifi继承UV修复对照见handoff-review与`.local/runs/openfigura-review-2026-10-09/scifi-uv-trial/`；用户视觉接受仍待确认。

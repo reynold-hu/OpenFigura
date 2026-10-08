@@ -220,6 +220,8 @@ __marimo__/
 .streamlit/secrets.toml
 
 # --- OpenFigura project rules ---
+# Local evidence catalog, runs, renders and diagnostic candidates.
+/.local/
 # Task workspaces: generated GLBs, renders and ledgers are evidence, not source.
 tasks/
 *.glb

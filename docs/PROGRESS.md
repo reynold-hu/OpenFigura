@@ -563,3 +563,25 @@ Work continues on branch `codex/3d-loop` (worktree
   timeout, but it is not an accepted collision-free animation. Existing
   generated facial errors remain. Trial commands/logs/report are in the
   desktop evidence root; no repeated correction grid or relaxed margin.
+
+### User-requested local artifact governance (2026-10-09)
+
+- Moved10 desktop `openfigura-*` evidence batches to the primary checkout's
+  `.local/runs/<original-batch-name>/`, with no permanent deletion. Before
+  and after each atomic move, SHA256/size/symlink targets for1,919 files
+  matched. `.local/catalog.json` lists original/new paths and verified
+  status; `.local/manifests/` retains full per-batch inventories. Migration
+  command `/Users/reynoldhu/Desktop/OpenFigura/.venv/bin/python /Users/reynoldhu/Desktop/OpenFigura/.local/migrate_evidence.py`
+  exited0 (`MIGRATION_COMPLETE`). External runtimes, weights, user golden
+  files and the OpenFigura checkout were not moved.
+- `.local/` is gitignored; AGENTS/CONTRACT/currentSTATE now require all
+  future tests to share this fixed root even from worktrees. Historical
+  PROGRESS and evidence hash contents stay unchanged: use catalog relocation
+  mapping for old absolute paths. Restoration instructions in
+  `docs/local-artifacts.md`; no desktop aliases left behind.
+- Additional visual correction: newly baked low Xiaoman static front frame
+  shows severe black cracks/speckles. Root inspected that actual frame;
+  the technical bake pass is **visually degraded**, not delivery-quality.
+  Next independent diagnosis is map-isolated render ablation, not repeating
+  the already failed retarget. Summary in the relocated review batch's
+  `generated-low-motion-summary.json`; human approval remains pending.

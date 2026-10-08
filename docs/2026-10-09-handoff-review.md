@@ -29,7 +29,9 @@ PNG 和报告。目标必须是已有 UV 的单个静态网格，骨架前执行
 覆盖统计是 alpha 加 margin，**不是射线命中覆盖率**，非恒定图也不是画质验收。
 
 真实命令脚本与产物根目录均为：
-`/Users/reynoldhu/Desktop/openfigura-review-2026-10-09/`。
+`/Users/reynoldhu/Desktop/OpenFigura/.local/runs/openfigura-review-2026-10-09/`。
+桌面旧批次已迁入仓库本地目录并逐文件hash验证；历史报告/命令绝对路径保持
+原记录，按`.local/catalog.json`映射访问，不改写证据hash。
 
 | 证据 | 实际结果 |
 |---|---|
@@ -73,6 +75,8 @@ profile 在 `$HOME/.config/openfigura/pixal3d.json`，机器路径不提交进 G
 31帧重定向在第4帧未过2mm接触间隙而被拒绝，保留失败账本；约58秒结束。
 原高模hash不变，低模速度问题已改善，但**不碰撞模型仍未交付**。
 此重烘焙继承白眼/错误口袋，不能宣称修复输入到精细脸部质量。
+补充真实静态rig render显示严重全身黑裂纹/斑点，相比原生成明显劣化，root
+已亲自看帧；技术产出不得作为视觉通过。待做分贴图消融定位。
 
 ## 视觉与接触负结果
 
