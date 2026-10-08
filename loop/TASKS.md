@@ -25,5 +25,9 @@
 
 ## 本轮执行信息
 
+- [~] 降面可靠性：默认exact seam weld、拓扑不回归与rawGLB有限数值闸已实现；
+  真实sphere/plane/共享instance及NaN反例已验证。小满因新增58重复面拒绝。
+  下一步独立repair再复验，不能把裂纹消失的诊断PNG当完整通过。
+
 开发分支 codex/3d-loop，起点8127434；用户未跟踪golden和研究文件保持独立。
 TDD默认单元测试不依赖Blender/CUDA；真实Blender与算法测试存主仓库`.local/runs/<批次>/`，gitignore并更新catalog。旧桌面路径按catalog映射读取。

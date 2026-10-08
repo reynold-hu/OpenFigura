@@ -634,3 +634,28 @@ Work continues on branch `codex/3d-loop` (worktree
   and creates58duplicatefaces after Decimate. Strict production topology
   checks being implemented must reject that regression, not silently
   remove defects or relax safety. Original eye/pocket issues remain.
+
+### Safe optimize implementation and independent review
+
+- 已实现默认精确合并、严格 Boolean `weld_seams`、original/prepared/result
+  拓扑计数及存活面位置/全部 UV/材质/绕序签名检查。干净封闭输入不能被预处理
+  破坏；降面后边界、非流形、退化或重复面计数增加即拒绝，残留缺陷明确报告。
+- 真实生产证据 `.local/runs/2026-10-09-optimize-tool-verify/`：带纹理闭合球体
+  528→264 面，四类缺陷均0；开放平面保留4条边界。小满默认重复面0→58拒绝，
+  关闭合并则边界0→84,873拒绝，均未发布GLB、输入hash未变。
+- 复审后补了共享网格复制、RuntimeError诊断及有限数值检查。实际Blender会
+  将原始NaN洗成普通数值，反证留档。因此导入前检查嵌入GLB的POSITION/
+  TEXCOORD浮点base及sparse值和bounds/stride/alignment；压缩、外部/多buffer、
+  非法容器明确拒绝。这是有限数值预检，不是完整glTF格式校验。
+- `.local/runs/2026-10-09-optimize-review-verify/completion-summary.json`：
+  共享球体实例真实通过；POSITION/UV NaN/Inf四例拒绝，无GLB，标准JSON诊断，
+  五个输入hash不变。catalog通过锁追加，不改旧manifest。独立最终复审无剩余
+  blocker，37项针对测试和额外签名检查通过；实现者全量331项通过，28.67秒。
+  root提交前新一轮全量 **331 passed in 29.09s**，命令仍为worktree中
+  `PYTHONPATH=src /Users/reynoldhu/Desktop/OpenFigura/.venv/bin/python -m pytest tests -q`。
+- 仍无合格人物交付：诊断焊接渲染改善裂纹，但正规拓扑repair、脸部细节和
+  接触动作未完成。下一步独立repair，明确UV/部件改变后再验降面、渲染、蒙皮
+  与动作，不改碰撞阈值。
+- 只读研究了本地3DGenStudio repair服务与CommunityLicense，没有复制代码或
+  执行上游脚本。其通用路线区分保留UV和重建式修复，并报告前后计数。
+  我们的修复必须按几何位置报告缺陷，不能仅拆顶点ID就声称重叠边已变流形。

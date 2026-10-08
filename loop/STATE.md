@@ -51,11 +51,16 @@ scifi-uv-trial/bake-1024为有效继承UV的后续候选；旧first job勿误用
 shading，不把烘焙或UV当已证明根因。C/E等图证明Cycles原occlusion组不连Surface。
 消融summary及geometry统计已完成：1e-6世界位置聚类后，边界边high0→optimized
 84,873，baked相同；优化后重复面0，OPAQUE alpha1。明确几何缝/孔在optimize
-出现，法线可能加重。下一步在独立副本研究缝处分裂顶点的连通性恢复再降面，
-保留UV loop属性，实测边界/轮廓/渲染再决定是否生产接入；不可直接焊原模型。
+出现，法线可能加重。连通性恢复/降面已用独立副本验证；原模型不焊接、不改写。
+本轮已做exact weld诊断：裂纹明显消失，边界84,873→422；但Decimate引入
+58重复面，仍2,502非流形边。安全optimize已接入默认精确合并、前后计数/存活面
+UV签名核验、导入前有限数值检查和共享实例隔离。正式源小满被duplicate回归闸
+拒绝，没有生产GLB；球体/开放平面等真实正例通过。见docs/mesh-optimization.md。
+产物批次：2026-10-09-weld-optimize、optimize-tool-verify、optimize-review-verify。
 不要重跑相同MIA或同动作参数，先查看failed contact诊断与region/skin定义。
 
-优先：新小满降面前后几何/法线审计与修复 → 分区/蒙皮审核与动作闸 → 全链文件与Blender帧
+优先：正规非流形/重复面repair（保留UV/明确删除/填面与部件风险）→安全降面复验
+→分区/蒙皮审核与动作闸→全链文件与Blender帧
 → Studio矩阵逐项独立开发。重定向失败不能靠重复同算法搜索或降低阈值掩盖。
 低模和贴图必须联合保留细节，不能拿低分辨率截图证明精细。
 

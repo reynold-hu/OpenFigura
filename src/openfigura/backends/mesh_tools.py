@@ -25,7 +25,8 @@ class MeshToolsBackend:
         binary = self.binary()
         return Capabilities(bool(binary), reason='' if binary else 'blender not found',
                             hardware='cpu', notes={'binary': binary, 'operations': ['segment', 'optimize', 'retopo', 'collision', 'uv'],
-                            'limits': 'Static meshes only; segmentation is topology, not semantic parts. Retopology requires texture rebaking; bake unsupported.'})
+                            'optimize_numeric_preflight': 'Embedded GLB float POSITION/TEXCOORD accessors only (including sparse encoded values); compressed/external buffers and duplicate/unknown container chunks refused. This is not complete glTF validation.',
+                            'limits': 'Static meshes only; segmentation is topology, not semantic parts. Retopology changes UV and requires separate blender-bake; optimize reports residual defects and rejects topology regressions.'})
 
     def process(self, model: Path, output: Path, operation: str, params: dict) -> dict:
         model, output = Path(model).resolve(), Path(output).resolve()
@@ -49,6 +50,9 @@ class MeshToolsBackend:
                     or not math.isfinite(margin) or not 0 <= margin <= 32):
                 raise ValueError('uv margin_pixels must be finite in [0, 32]')
         if operation == 'optimize':
+            params = {'weld_seams': True, **params}
+            if not isinstance(params['weld_seams'], bool):
+                raise ValueError('weld_seams must be a boolean')
             ratio = params.get('ratio')
             if isinstance(ratio, bool) or not isinstance(ratio, (int, float)) or not math.isfinite(ratio) or not 0 < ratio <= 1:
                 raise ValueError('ratio must be explicitly specified in (0, 1]')
