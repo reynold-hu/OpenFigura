@@ -20,6 +20,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .contracts import AssetRef
+from .style import StyleSpec
+
 
 def sha256_file(path: Path) -> str:
     h = hashlib.sha256()
@@ -70,6 +73,19 @@ class Task:
     def record(self, step: str, data: dict[str, Any]) -> None:
         self.entries.append({"step": step, "utc": time.time(), **data})
         self._flush()
+
+    def record_style(self, spec: StyleSpec) -> None:
+        """Record declared style requirements, without a quality verdict."""
+        if not isinstance(spec, StyleSpec):
+            raise TypeError('spec must be a StyleSpec')
+        self.record('style', {'style_spec': spec.to_dict()})
+
+    def record_asset(self, ref: AssetRef) -> None:
+        """Only append an asset whose task-local bytes match its reference."""
+        if not isinstance(ref, AssetRef):
+            raise TypeError('ref must be an AssetRef')
+        ref.verify(self.root)
+        self.record('asset', {'asset': ref.to_dict()})
 
     def artifact(self, name: str) -> Path:
         return self.root / "artifacts" / name
