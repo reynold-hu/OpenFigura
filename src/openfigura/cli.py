@@ -20,6 +20,37 @@ def main(argv: list[str] | None = None) -> int:
                                      description="local 3D asset production for agents")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
+    p = sub.add_parser('set-style', help='validate and record a project pixel style spec')
+    p.add_argument('task')
+    p.add_argument('--spec', required=True)
+    p.set_defaults(func=lambda a: _print(engine.set_style(
+        Task.open(Path(a.task)), json.loads(Path(a.spec).read_text(encoding='utf-8')))))
+
+    p = sub.add_parser('project-style', help='read the latest validated pixel style spec')
+    p.add_argument('task')
+    p.set_defaults(func=lambda a: _print(engine.project_style(Task.open(Path(a.task)))))
+
+    p = sub.add_parser('workflow-submit', help='persist a stage request; does not execute a backend')
+    p.add_argument('task')
+    p.add_argument('--spec', required=True)
+    p.set_defaults(func=lambda a: _print(engine.workflow_submit(
+        Task.open(Path(a.task)), json.loads(Path(a.spec).read_text(encoding='utf-8')))))
+
+    p = sub.add_parser('workflow-status', help='read persistent workflow state')
+    p.add_argument('task')
+    p.add_argument('--stage', default=None)
+    p.set_defaults(func=lambda a: _print(engine.workflow_status(Task.open(Path(a.task)), a.stage)))
+
+    p = sub.add_parser('workflow-cancel', help='cancel a queued stage request')
+    p.add_argument('task')
+    p.add_argument('stage_id')
+    p.set_defaults(func=lambda a: _print(engine.workflow_cancel(Task.open(Path(a.task)), a.stage_id)))
+
+    p = sub.add_parser('workflow-resume', help='create a new attempt from a terminal failed stage')
+    p.add_argument('task')
+    p.add_argument('stage_id')
+    p.set_defaults(func=lambda a: _print(engine.workflow_resume(Task.open(Path(a.task)), a.stage_id)))
+
     p = sub.add_parser("backends", help="list registered backends and probe status")
     p.set_defaults(func=lambda a: _print({
         bid: {"description": desc, **_probe(bid)}

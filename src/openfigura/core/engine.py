@@ -20,6 +20,54 @@ from openfigura.core.preflight import preflight
 from openfigura.core.task import Task, sha256_file
 
 
+def set_style(task: Task, spec: dict) -> dict:
+    """Validate project-wide pixel parameters; preserve every revision."""
+    from openfigura.core.style import StyleSpec
+    validated = StyleSpec.from_dict(spec)
+    task.record_style(validated)
+    return {'status': 'pass', 'style_spec': validated.to_dict(),
+            'visual_approval': 'pending'}
+
+
+def project_style(task: Task) -> dict:
+    from openfigura.core.style import StyleSpec
+    for entry in reversed(task.entries):
+        if entry['step'] == 'style':
+            return {'status': 'pass',
+                    'style_spec': StyleSpec.from_dict(entry['style_spec']).to_dict(),
+                    'visual_approval': 'pending'}
+    return {'status': 'unset', 'style_spec': None}
+
+
+def workflow_submit(task: Task, request: dict) -> dict:
+    """Persist a request; an execution worker is a separate future component."""
+    from openfigura.core.contracts import AssetRef
+    from openfigura.core.workflow import Workflow
+    expected = {'step', 'inputs', 'params', 'backend', 'backend_version'}
+    if not isinstance(request, dict) or set(request) != expected:
+        raise ValueError('workflow request fields must match the schema exactly')
+    if not isinstance(request['inputs'], list):
+        raise ValueError('inputs must be a list of asset references')
+    return Workflow(task.root).submit(
+        request['step'], [AssetRef.from_dict(item) for item in request['inputs']],
+        request['params'], request['backend'], request['backend_version'])
+
+
+def workflow_status(task: Task, stage_id: str | None = None) -> dict:
+    from openfigura.core.workflow import Workflow
+    return Workflow(task.root).status(stage_id)
+
+
+def workflow_cancel(task: Task, stage_id: str) -> dict:
+    from openfigura.core.workflow import Workflow
+    return Workflow(task.root).cancel(stage_id)
+
+
+def workflow_resume(task: Task, stage_id: str) -> dict:
+    from openfigura.core.workflow import Workflow
+    return Workflow(task.root).resume(stage_id)
+
+
 def generate(task: Task, backend_id: str, params: dict | None = None,
              force: bool = False) -> dict:
     inputs = list((task.root / "input").glob("*"))
@@ -119,8 +167,18 @@ def export(task: Task, dest: Path, fmt: str = "glb", artifact: str = "model.glb"
     report_path = task.root / ("inspect.json" if artifact == "model.glb" else glb.stem + "-inspect.json")
     if not glb.is_file():
         raise FileNotFoundError("nothing to export; run generate first")
+    current_hash = sha256_file(glb)
+    try:
+        current_report = inspect_glb(glb)
+    except (ValueError, KeyError, IndexError) as exc:
+        raise RuntimeError('refusing to export: current GLB cannot be inspected') from exc
+    if not current_report['ok']:
+        raise RuntimeError('refusing to export: current asset failed inspection: '
+                           + '; '.join(current_report['problems']))
     if report_path.is_file():
         report = json.loads(report_path.read_text(encoding="utf-8"))
+        if report.get('sha256') and report['sha256'] != current_hash:
+            raise RuntimeError('refusing to export: asset changed since inspection; inspect again')
         if not report.get("ok"):
             raise RuntimeError("refusing to export: inspection reported problems: "
                                + "; ".join(report["problems"]))

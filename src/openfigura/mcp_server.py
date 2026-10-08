@@ -31,6 +31,32 @@ def build():
 
     app = _Server("openfigura")
 
+    @app.tool(description='Validate and record project pixel dimensions, palette, '
+              'outline, shading, FPS and anchor. Does not generate pixels or approve visual quality.')
+    def figura_set_style(task_root: str, spec: dict) -> dict:
+        return engine.set_style(Task.open(Path(task_root)), spec)
+
+    @app.tool(description='Read latest validated project pixel style or explicit unset status.')
+    def figura_project_style(task_root: str) -> dict:
+        return engine.project_style(Task.open(Path(task_root)))
+
+    @app.tool(description='Persist a workflow request for later execution. '
+              'This foundation API does not start a backend or claim model generation.')
+    def figura_workflow_submit(task_root: str, request: dict) -> dict:
+        return engine.workflow_submit(Task.open(Path(task_root)), request)
+
+    @app.tool(description='Read persistent stage state and hash-linked asset references.')
+    def figura_workflow_status(task_root: str, stage_id: str | None = None) -> dict:
+        return engine.workflow_status(Task.open(Path(task_root)), stage_id)
+
+    @app.tool(description='Cancel a queued workflow request; active processes are not killed.')
+    def figura_workflow_cancel(task_root: str, stage_id: str) -> dict:
+        return engine.workflow_cancel(Task.open(Path(task_root)), stage_id)
+
+    @app.tool(description='Create a fresh attempt after failure or queued cancellation; preserve old evidence.')
+    def figura_workflow_resume(task_root: str, stage_id: str) -> dict:
+        return engine.workflow_resume(Task.open(Path(task_root)), stage_id)
+
     @app.tool(description="List generation/render backends and probe availability.")
     def figura_backends() -> dict:
         out = {}
