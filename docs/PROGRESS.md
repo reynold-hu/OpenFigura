@@ -525,3 +525,28 @@ Work continues on branch `codex/3d-loop` (worktree
   unfinished work. STATE/TASKS record current jobs to prevent duplicate
   generation. All visual approvals pending; full Studio parity and full
   fine-character collision-safe chain remain incomplete.
+
+### Same-night UV repair and real render correction
+
+- Found the destructive step: original optimized scifi retained a UV atlas
+  with summed area41.732%; old smart_project(.02) yielded39,501 islands and
+  summed area0.00574%. All95,881 triangles were below half a texel at1024.
+  Temporary connectivity weld and narrower repacking were tried on copies,
+  still insufficient; no geometry-altering workaround promoted.
+- `mesh uv` defaults toauto, retaining a technically valid existing atlas.
+  Explicit preserve/unwrap/repack modes, resolution and pixel margin added;
+  nonfinite/degenerate/out-of-unit/sparse atlas rejected before export with
+  diagnostics. Area gates are heuristics, not nonoverlap or ray-hit proof;
+  UDIM/multi-atlas support remains absent. Independent readonly review:
+  9 UV tests pass, no overwrite/blocker found within this scope.
+- Real protectedUV→three-map bake256 diagnostic then1024/16 samples pass.
+  The1024 worker took9.17s; target UV and input source hashes unchanged.
+  AO/albedo alpha coverage including8px margin92.440%, not ray coverage.
+  Identical camera/sample8 before/after native renders inspected by root:
+  black asset now restores armor/gold trim/skin color; geometry/animation
+  problems remain. Evidence `~/Desktop/openfigura-review-2026-10-09/scifi-uv-trial/`
+  (low-protected.mesh-report.json,bake-1024/{ledger,bake-report}.json,
+  render-before/,render-after/). Visual approval pending.
+- Real CLI bake also passed: `bake-cli.json` records argv/exit/output, in
+  addition to earlier MCP/executor proofs. Latest full suite **292 passed
+  in30.31s**, same worktree/PYTHONPATH/venv command as above.

@@ -3,7 +3,7 @@
 - [x] L01 Studio 固定版本完整功能矩阵：docs/2026-10-08-studio-parity-matrix.md（95 工具清点，附证据行号）。
 - [x] L02 真实执行器：engine.execute 沙箱阶段化运行；180 测试通过；真实证据见 PROGRESS 2026-10-08 晚间条目。
 - [x] L03 静态网格工具：已注册并 CLI/MCP 镜像；真实通过 optimize（6.75s）、collision（0.87s）、uv（1.12s）、retopo（voxel 水密管线，QuadriFlow 如实降级并写明）；segment 如实失败（8,090 组件）。证据 `~/Desktop/openfigura-3d-loop-2026-10-08/logs/`。
-- [~] L04：transfer_rig 与 CPU normal/AO/albedo 已实现并真实验证；scifi首轮UV/烘焙覆盖不合格，修复后需真实渲染复验。见2026-10-09-handoff-review。
+- [~] L04：transfer_rig 与 CPU normal/AO/albedo真实验证；scifi UV默认重展开破坏图集已修，保留继承UV的1024三贴图及前后真实渲染通过技术复核，美术pending。ORM/多图集等未完。
 - [~] L05 Pixal Metal真实生成通过，本地profile已配置；新模型精细脸/口袋未达标。CUDA/其他材质后端/硬件调度未完。
 - [~] L06 MIA CPU：scifi52关节结构通过，新半写实小满52关节结构/fit通过；旧chibi未通过。关节数不能替代蒙皮/语义部件/运动质量。
 - [ ] L07 动作接触：scifi 重定向被接触闸持续拒绝。修正循环升级为深度自适应＋

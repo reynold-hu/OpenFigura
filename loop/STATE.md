@@ -17,8 +17,9 @@
   增加组合缓存身份（生成器+gate，export+格式转换器），独立复审已进行。
 - 新增CPU normal/AO/可选albedo高低模烘焙，CLI/MCP/execute镜像，真实
   球体与MCP/executor/OBJ/USD依赖证明在桌面。scifi三贴图字节产出但仅
-  0.2867% AO/albedo alpha有效，实看黑底散点；UV岛39,501个，面积仅
-  0.00574% atlas，所有95,881三角形低于半像素，UV修复在推进。
+  首轮0.2867% AO/albedo alpha有效，实看黑底散点；UV岛39,501个，面积仅
+  0.00574% atlas。已修auto保留有效继承UV；真实1024重烘焙alpha含margin
+  约92.44%，前后真实帧恢复护甲/金线/肤色，美术接受仍pending。
 - **纠正“本机没有Pixal运行时”**：已有Metal binary/GGUF，新增profile
   已发现并实跑新半写实小满生成。四视角、MIA CPU52关节结构/fit通过。
   旧版chibi未解决；新模型白眼／口袋几何和纹理不达精细目标。
@@ -38,8 +39,11 @@
 先读STATE/TASKS/CONTRACT和Git状态；检查已有job JSON/进程，禁止重复重任务。
 job入口：generation-job.json、generated-followup.json、generated-motion.json、scifi-bake-job.json。
 生成pass／rigpass／motionfail；scifi第一轮烘焙是技术pass但视觉不可用。
+scifi-uv-trial/bake-1024为有效继承UV的后续候选；旧first job勿误用。
+新小满降面→保留UV烘焙→autorig→retarget trial正推进，检查实际进程/最新报告
+后再接续，不重复启动MIA或Blender。
 
-优先：scifi UV/烘焙覆盖修复与真实渲染 → 新模型降至可动画资产再烘焙与自动骨架
+优先：新模型降至可动画资产再烘焙与自动骨架
 → 分区/蒙皮审核与动作闸 → 全链文件与Blender帧 → Studio矩阵逐项独立开发。
 低模和贴图必须联合保留细节，不能拿低分辨率截图证明精细。
 

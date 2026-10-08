@@ -1,5 +1,6 @@
 """Blender-only worker. Original implementation; no third-party copied scripts."""
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -56,6 +57,42 @@ def component_groups(mesh):
                     visited.add(other); stack.append(other)
         groups.append(group)
     return groups
+
+
+def uv_triangle_metrics(triangles, resolution):
+    areas = []; nonfinite = 0; outside = 0
+    for triangle in triangles:
+        if not all(math.isfinite(v) for point in triangle for v in point):
+            nonfinite += 1; areas.append(0.0); continue
+        outside += int(any(v < -1e-6 or v > 1 + 1e-6 for point in triangle for v in point))
+        a, b, c = triangle
+        areas.append(abs((b[0]-a[0])*(c[1]-a[1]) - (b[1]-a[1])*(c[0]-a[0])) / 2)
+    return {'triangles': len(areas), 'summed_uv_area': sum(areas),
+            'degenerate_uv_triangles': sum(a <= 1e-14 for a in areas),
+            'nonfinite_uv_triangles': nonfinite, 'outside_unit_atlas_triangles': outside,
+            'sub_half_texel_triangles': sum(a < .5 / resolution**2 for a in areas),
+            'resolution': resolution,
+            'limitations': ['summed area does not prove nonoverlap',
+                            'UV area does not measure bake ray hits or aesthetic quality']}
+
+
+def require_uv_quality(metrics):
+    if not metrics['triangles'] or metrics['nonfinite_uv_triangles'] or metrics['degenerate_uv_triangles']:
+        raise ValueError('empty, nonfinite or degenerate UV triangles; no atlas published')
+    if metrics['outside_unit_atlas_triangles']:
+        raise ValueError('UV triangles outside the unit atlas; no atlas published')
+    if metrics['summed_uv_area'] < .05:
+        raise ValueError('sparse UV atlas: summed triangle area below 5%; no atlas published')
+    if metrics['summed_uv_area'] > 1.000001:
+        raise ValueError('summed UV area exceeds unit atlas; overlap or out-of-bounds UVs')
+
+
+def uv_quality(obj, resolution):
+    if not obj.data.uv_layers.active:
+        return uv_triangle_metrics([], resolution)
+    obj.data.calc_loop_triangles(); data = obj.data.uv_layers.active.data
+    return uv_triangle_metrics([[tuple(data[i].uv) for i in tri.loops]
+                                for tri in obj.data.loop_triangles], resolution)
 
 
 def main(cfg):
@@ -144,15 +181,48 @@ def main(cfg):
         details = {'method': 'one convex hull per source mesh', 'render_geometry_included': False,
                    'warning': 'Collision-only output; convex hulls fill concavities and contain no source materials.'}
     elif operation == 'uv':
+        per_object = []; changed = False
         for obj in objects:
             activate(obj)
-            for layer in list(obj.data.uv_layers):
-                obj.data.uv_layers.remove(layer)
-            obj.data.uv_layers.new(name='OpenFiguraUV')
-            bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='SELECT')
-            bpy.ops.uv.smart_project(island_margin=0.02); bpy.ops.object.mode_set(mode='OBJECT')
-        details = {'uv_changed': True, 'requires_rebake': True,
-                   'warning': 'All source UV layers replaced by smart projection. Material slots retained; old textures will map differently.'}
+            before = uv_quality(obj, params['resolution']); mode = params['mode']
+            if mode == 'auto':
+                try:
+                    require_uv_quality(before); mode = 'preserve'
+                except ValueError:
+                    mode = 'unwrap'
+            if mode == 'preserve':
+                require_uv_quality(before)
+            else:
+                changed = True
+                if mode == 'unwrap':
+                    for layer in list(obj.data.uv_layers):
+                        obj.data.uv_layers.remove(layer)
+                    obj.data.uv_layers.new(name='OpenFiguraUV')
+                elif not obj.data.uv_layers.active:
+                    raise ValueError('repack needs an existing UV layer')
+                bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='SELECT')
+                if mode == 'unwrap':
+                    bpy.ops.uv.smart_project(island_margin=0)
+                bpy.ops.uv.select_all(action='SELECT')
+                bpy.ops.uv.pack_islands(margin_method='FRACTION',
+                                       margin=params['margin_pixels']/params['resolution'],
+                                       rotate=True, scale=True)
+                bpy.ops.object.mode_set(mode='OBJECT')
+            after = uv_quality(obj, params['resolution'])
+            per_object.append({'object': obj.name, 'method': mode, 'before': before, 'after': after})
+            try:
+                require_uv_quality(after)
+            except ValueError as exc:
+                report_path.write_text(json.dumps({'operation': operation, 'status': 'rejected',
+                    'source': source, 'details': {'per_object': per_object},
+                    'error': str(exc), 'visual_approval': 'pending'}, indent=2), encoding='utf-8')
+                raise
+        details = {'uv_changed': changed, 'requires_rebake': changed, 'mode_requested': params['mode'],
+                   'margin_pixels': params['margin_pixels'], 'resolution': params['resolution'],
+                   'per_object': per_object,
+                   'warning': 'Auto preserves existing UVs that clear technical area/degeneracy checks. '
+                              'Unwrap/repack changes texture mapping and requires rebaking. '
+                              'This does not prove nonoverlap, ray coverage or visual quality.'}
     else:
         raise ValueError('unsupported operation')
     result = stats(objects)

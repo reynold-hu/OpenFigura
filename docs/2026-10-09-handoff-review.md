@@ -38,6 +38,22 @@ PNG 和报告。目标必须是已有 UV 的单个静态网格，骨架前执行
 | `format-proof.json`, `delivery-packaged-obj/`, `delivery-packaged-usd/` | OBJ MTL 引用存在；USD 纹理依赖存在且 hash 正确 |
 | `run_scifi_bake.py`, `scifi-bake-job.json` | 958,816→95,881 面，1024 三贴图产出；AO/albedo 有效 alpha 仅 0.2867%，实看为黑底散点，**不可视为可用烘焙资产** |
 
+### scifi UV 根因与修复对照
+
+旧UV重展开将已有图集变成39,501个岛，面积仅0.00574%图集，95,881个三角形
+全部低于1024贴图半像素。缩margin/临时焊接重新展开仍不足，未选作交付方案。
+优化阶段继承UV面积41.732%，因此新`uv`默认`mode=auto`保留技术合格既有UV；
+显式unwrap/repack才改变映射，并用margin_pixels/resolution控制间距。
+非有限、退化、单位图集外和极稀疏UV在导出前拒绝。
+
+`scifi-uv-trial/`下`low-protected.mesh-report.json`、`bake-1024/ledger.json`、
+`bake-1024/bake-report.json`及`render-before/`、`render-after/`构成真实证据。
+1024/16samples三贴图烘焙9.17秒；AO/albedo alpha含margin覆盖约92.44%，
+**不是射线命中率**。同一相机8samples真实帧从黑色资产恢复护甲/金线/皮肤颜色。
+root已查看真实前后帧；用户美术接受仍pending，指/发几何和动作问题未修复。
+原高低模hash不变。面积检查仅启发式，不能证明UV无重叠；当前限单位图集，
+UDIM/多独立atlas应显式选择preserve并检查，不将auto当作通用UV保留保证。
+
 ## 本机生成能力：纠正运行时缺失判断
 
 实际 runtime 与 GGUF 在 `Desktop/Local/Opensource/pixal-local-trial-2026-10-05/`。

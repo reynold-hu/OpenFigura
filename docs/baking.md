@@ -26,3 +26,9 @@ CPU Cycles执行，原高低模hash、低模面数和UV须保持不变。输出�
 normal/occlusion/BaseColor引用及真实渲染。报告alpha覆盖含margin而非命中率，
 nonconstant不能保证图可用。首轮scifi烘焙的黑底散点是已知失败例，不能交付为
 “细节保留”。当前没有ORM/多目标图集/重叠UV自动修复，GPU烘焙尚未实现。
+
+UV工具默认`mode=auto`：技术合格已有图集保留，否则尝试展开。明确更改UV用
+`mode=unwrap`或`mode=repack`，间距由`margin_pixels`及`resolution`指定；
+默认2px/1024。只保留原图集可选`mode=preserve`，不合格会拒绝，不偷偷重画。
+质量检查限单个[0,1]图集，面积5%下限是拒绝极稀疏结果的启发式，不证明无重叠。
+scifi继承UV修复对照见handoff-review与桌面scifi-uv-trial；用户视觉接受仍待确认。

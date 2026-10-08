@@ -36,6 +36,18 @@ class MeshToolsBackend:
         if operation not in {'segment', 'optimize', 'retopo', 'collision', 'uv'}:
             raise ValueError('unsupported mesh operation')
         params = dict(params)
+        if operation == 'uv':
+            params = {'mode': 'auto', 'resolution': 1024, 'margin_pixels': 2, **params}
+            if params['mode'] not in {'auto', 'preserve', 'unwrap', 'repack'}:
+                raise ValueError('uv mode must be auto, preserve, unwrap, or repack')
+            resolution = params['resolution']
+            if (isinstance(resolution, bool) or not isinstance(resolution, int)
+                    or not 64 <= resolution <= 8192 or resolution & (resolution - 1)):
+                raise ValueError('uv resolution must be a power of two in [64, 8192]')
+            margin = params['margin_pixels']
+            if (isinstance(margin, bool) or not isinstance(margin, (int, float))
+                    or not math.isfinite(margin) or not 0 <= margin <= 32):
+                raise ValueError('uv margin_pixels must be finite in [0, 32]')
         if operation == 'optimize':
             ratio = params.get('ratio')
             if isinstance(ratio, bool) or not isinstance(ratio, (int, float)) or not math.isfinite(ratio) or not 0 < ratio <= 1:
