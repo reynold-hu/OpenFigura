@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import uuid
 from pathlib import Path
 
 from openfigura.core import registry
@@ -279,3 +280,106 @@ def rig(task: Task, calibration: Path, skin_method: str = 'automatic',
         raise
     task.record('rig', evidence)
     return evidence
+
+
+def _quarantine_candidate(task: Task, output: Path) -> list[str]:
+    """Preserve rejected tool-owned files outside normal deliverable paths."""
+    files = [p for p in (output, output.with_suffix('.blend')) if p.is_file()]
+    if not files:
+        return []
+    folder = task.root / 'artifacts' / 'rejected' / uuid.uuid4().hex
+    folder.mkdir(parents=True, exist_ok=False)
+    rejected = []
+    for path in files:
+        dest = folder / path.name
+        shutil.move(str(path), str(dest))
+        rejected.append(str(dest.relative_to(task.root)))
+    return rejected
+
+
+def autorig(task: Task, backend: str = 'mia', device: str = 'cpu', seed: int = 42,
+            query_chunk: int = 8192, artifact: str = 'model.glb') -> dict:
+    """External neural joint/weight prediction, independent of manual calibration."""
+    if device not in {'cpu','cuda'}:
+        raise ValueError('device must be cpu or cuda; MPS is not verified')
+    if type(seed) is not int or not 0 <= seed < 2**32:
+        raise ValueError('seed must be an unsigned 32-bit integer')
+    if type(query_chunk) is not int or not 1 <= query_chunk <= 65536:
+        raise ValueError('query_chunk must be in 1..65536')
+    model = _model(task, artifact)
+    if not model.is_file():
+        raise FileNotFoundError(model)
+    if inspect_glb(model)['has_skinning']:
+        raise ValueError('model already has skinning')
+    output = task.artifact('model-autorig.glb')
+    if output.exists() or output.with_suffix('.blend').exists():
+        raise FileExistsError('autorig candidate already exists; use a fresh task')
+    solver = registry.get(backend)
+    caps = solver.capabilities()
+    if not caps.available:
+        raise RuntimeError('neural rig unavailable: '+caps.reason)
+    evidence = {'backend':backend,'source_artifact':artifact,'input_sha256':sha256_file(model),
+                'device':device,'seed':seed,'query_chunk':query_chunk,
+                'artifact':str(output.relative_to(task.root)),'visual_approval':'pending'}
+    try:
+        result = solver.autorig(model,output,device=device,seed=seed,query_chunk=query_chunk)
+        evidence.update(result)
+        if not result.get('produced') or not output.is_file():
+            raise RuntimeError('neural rig failed: '+result.get('stderr_tail','see artifact logs'))
+        if result.get('fit_validation',{}).get('status') != 'pass':
+            raise RuntimeError('neural skeleton continuity validation did not pass')
+        if result.get('manual_coordinates') is not False:
+            raise RuntimeError('neural rig result did not confirm automatic coordinates')
+        report = inspect_glb(output)
+        if not report['ok'] or not report['has_skinning']:
+            raise RuntimeError('neural rig output failed skin/structural inspection')
+        if sha256_file(model) != evidence['input_sha256']:
+            raise RuntimeError('neural backend modified original model')
+        evidence.update(status='pass',output_sha256=sha256_file(output),joint_count=report['joint_count'])
+    except Exception as exc:
+        evidence.update(status='fail',error=str(exc),rejected_artifacts=_quarantine_candidate(task,output))
+        task.record('autorig',evidence)
+        raise
+    task.record('autorig',evidence)
+    return evidence
+
+
+def retarget(task: Task, animation: Path, artifact: str = 'model-autorig.glb',
+             frames: int = 31, fps: int = 24) -> dict:
+    """Native same-name humanoid retargeting with compulsory regional contact gate."""
+    if type(frames) is not int or not 1 <= frames <= 240:
+        raise ValueError('frames must be in 1..240')
+    if type(fps) is not int or not 1 <= fps <= 120:
+        raise ValueError('fps must be in 1..120')
+    model=_model(task,artifact);animation=Path(animation)
+    if not model.is_file() or not animation.is_file():raise FileNotFoundError('target or animation missing')
+    if not inspect_glb(model)['has_skinning']:raise ValueError('target must have a skin')
+    source_report=inspect_glb(animation)
+    clip_problems=[p for p in source_report['problems'] if p not in {'missing NORMAL attribute','missing TEXCOORD attribute','primitives present but no PBR material'}]
+    if clip_problems or not source_report['has_skinning'] or not source_report['animation_clips']:
+        raise ValueError('animation must be a valid skinned GLB with clips')
+    output=task.artifact('model-animated.glb')
+    if output.exists() or output.with_suffix('.blend').exists():raise FileExistsError('animated candidate exists; use fresh task')
+    staged=task.root/'input/animation-source.glb'
+    if staged.exists():raise FileExistsError('animation evidence exists; use fresh task')
+    solver=registry.get('native-motion');caps=solver.capabilities()
+    if not caps.available:raise RuntimeError('native motion unavailable: '+caps.reason)
+    shutil.copy2(animation,staged)
+    evidence={'source_artifact':artifact,'input_sha256':sha256_file(model),
+        'animation_sha256':sha256_file(staged),'frames':frames,'fps':fps,'visual_approval':'pending',
+        'artifact':str(output.relative_to(task.root))}
+    try:
+        result=solver.retarget(model,staged,output,frames,fps);evidence.update(result)
+        if not result.get('produced'):raise RuntimeError('retarget failed: '+result.get('stderr_tail','see logs'))
+        if result.get('contact_validation',{}).get('status')!='pass':raise RuntimeError('contact validation failed')
+        report=inspect_glb(output)
+        if not report['ok'] or not report['has_skinning'] or not report['animation_clips']:
+            raise RuntimeError('animated candidate failed inspection')
+        if len(report['animation_clips'])!=1:raise RuntimeError('retarget must export only one checked clip')
+        if sha256_file(model)!=evidence['input_sha256']:raise RuntimeError('retarget changed original target')
+        evidence.update(status='pass',output_sha256=sha256_file(output),animation_clips=report['animation_clips'])
+    except Exception as exc:
+        evidence.update(status='fail',error=str(exc),rejected_artifacts=_quarantine_candidate(task,output))
+        task.record('retarget',evidence)
+        raise
+    task.record('retarget',evidence);return evidence

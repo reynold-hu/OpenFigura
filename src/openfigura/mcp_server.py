@@ -70,6 +70,20 @@ def build():
         params = {k: v for k, v in {"seed": seed, "res": res}.items() if v is not None}
         return engine.generate(Task.open(Path(task_root)), backend, params, force=force)
 
+    @app.tool(description="Native Godot humanoid motion transfer plus Blender IK/contact gate. "
+              "Requires skinned GLBs with matching bone names and Mixamo hand chains. "
+              "Produces model-animated.glb only after integer-frame regional checks; no full cloth guarantee.")
+    def figura_retarget(task_root: str, animation: str, artifact: str = "model-autorig.glb",
+                       frames: int = 31, fps: int = 24) -> dict:
+        return engine.retarget(Task.open(Path(task_root)),Path(animation),artifact,frames,fps)
+
+    @app.tool(description="External neural humanoid skeleton and skin prediction; no manual coordinates. "
+              "Produces a separate static model-autorig.glb/.blend. "
+              "MIA runtime/checkpoints required; no motion synthesis or automatic collision repair.")
+    def figura_autorig(task_root: str, backend: str = "mia", device: str = "cpu",
+                      seed: int = 42, query_chunk: int = 8192, artifact: str = "model.glb") -> dict:
+        return engine.autorig(Task.open(Path(task_root)),backend,device,seed,query_chunk,artifact)
+
     @app.tool(description="Experimental basic-human Rigify binding from explicit bone calibration. "
               "Preserves original and emits model-rigged.glb/.blend. "
               "Automatic skinning fails explicitly; capsule is an opt-in approximate method. "

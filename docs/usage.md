@@ -151,3 +151,16 @@ set your tool timeout accordingly.
   calibration; see [calibration, skin methods and limitations](calibrated-rigging.md).
 - Render/inspect/export accept `artifact` to select a separate candidate. Render
   accepts `frame` for pose checks. Human visual approval remains separate.
+
+## External rigging and motion
+
+`openfigura autorig TASK --backend mia --device cpu --seed 42 --query-chunk 8192`
+invokes an installed external MIA v1 runtime. `figura_autorig` exposes the same
+arguments. Failed continuity checks never fall back to manually fitted coordinates.
+
+`openfigura retarget TASK --animation SOURCE.glb --artifact model-autorig.glb
+--frames 31 --fps 24` uses native Godot and Blender algorithms. `figura_retarget`
+mirrors it; output is an independent `model-animated.glb`. Matching Mixamo bone
+names/hand groups required; failures and residual contacts refuse export.
+Only the corrected clip is delivered. Source GLBs stay unchanged.
+See `docs/neural-rigging.md` for installation, scope and actual limitations.

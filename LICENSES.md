@@ -50,5 +50,13 @@ to keep the community larger than any single fork.
 Bingeljell and image-to-3dlab contributors. It is vendored unchanged from
 commit `10e007b1998c5ffed0b09e16d4218c05a1803afb`. LICENSE/NOTICE ship
 with the Python package; source provenance is in `third_party/image-to-3dlab/`.
-The OpenFigura adapter remains AGPL-3.0-only. Other surveyed neural pipelines
-are not vendored, installed or represented as working backends.
+The OpenFigura adapter remains AGPL-3.0-only. Other surveyed generation pipelines are not vendored or represented as working backends.
+
+The optional external Make-It-Animatable v1 adapter is implemented from its
+published inference stages. MIT attribution is retained under
+`third_party/make-it-animatable/` and ships with the package. Its actual neural
+code/checkpoints/template are not bundled. Model metadata declares Apache-2.0
+separately; no template or example-animation licence is inferred from the code.
+Godot and Blender remain external tools with their own licences.
+3DGenStudio itself has a restricted Community License: no project source was
+copied into this AGPL repository. See the 2026-10-08 source-review report.

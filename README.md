@@ -2,7 +2,7 @@
   <img src="assets/logo-wordmark.png" alt="OpenFigura" width="520"/>
 </p>
 
-**OpenFigura is a local, agent-driven 3D asset production framework.**
+**OpenFigura is a local 3D asset toolchain with CLI and MCP interfaces.**
 Drop in a reference image and a plain-language brief; get back a textured
 GLB, a Blender-checkable scene, multi-view renders, and a provenance record
 that says exactly how every artifact was made.
@@ -34,8 +34,8 @@ reference image + brief
           │
    ┌─────────────┬─────────────┐
    ▼              ▼             ▼
- CLI         MCP server    (later: own
- (scripts,   (Codex,       agent loop)
+ CLI         MCP server    (optional asset
+ (scripts,   (Codex,       workbench)
   CI)        opencode,
              Claude…)
 ```
@@ -66,6 +66,19 @@ precisely so same-input comparisons become measurable, not rhetorical.
 *Tripo, Meshy and Hi3D are trademarks of their respective owners. This
 project is not affiliated with or endorsed by any of them; the table
 describes our architecture versus their publicly documented one.*
+
+## External rigging and motion tools
+
+Experimental `autorig` invokes Make-It-Animatable v1 for neural joint/weight
+prediction; `retarget` invokes Godot and Blender for motion transfer, native IK
+and mandatory regional contact checks. No chat-model coordinate or keyframe
+construction is required. Actual CPU trials passed the upstream control character
+and **rejected Xiaoman's incorrect wrist prediction**; general quality is not claimed.
+See [tool guide](docs/neural-rigging.md) and [real evidence](docs/2026-10-08-neural-rig-trial.md).
+
+[3DGenStudio source review](docs/2026-10-08-3dgenstudio-review.md) maps further
+independent ComfyUI, material, topology, rigging and motion integrations. Its
+restricted project code is not copied into OpenFigura.
 
 ## Why not just an agent?
 

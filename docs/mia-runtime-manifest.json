@@ -1,0 +1,126 @@
+{
+  "Make-It-Animatable": {
+    "checkout": "/Users/reynoldhu/Desktop/Local/Opensource/Make-It-Animatable",
+    "commit": "8fb51382ff6da556cdb95cc03a48200603f3a493",
+    "license_sha256": "ba6b6399e4aa651ab6c12efbb38edc6f65a1c7292e25742414143fbb0fd29c91",
+    "scope": "external MIA v1 CPU runtime used"
+  },
+  "Make-It-Animatable-v2": {
+    "checkout": "/Users/reynoldhu/Desktop/Local/Opensource/Make-It-Animatable-v2",
+    "commit": "bbd8b158d88879c310ad130f9b25056935d221e9",
+    "license_sha256": "ba6b6399e4aa651ab6c12efbb38edc6f65a1c7292e25742414143fbb0fd29c91",
+    "scope": "source review only"
+  },
+  "pytorch_cluster": {
+    "checkout": "/Users/reynoldhu/Desktop/Local/Opensource/pytorch_cluster",
+    "commit": "29cd22bf1a5b82fc06b108d6573f81302c5d6b12",
+    "license_sha256": "7cbd1d9075b9cb3daa771f52d10e1a6b9c4577851f055d002449932fee4d7486",
+    "scope": "external dependency used"
+  },
+  "pytorch3d": {
+    "checkout": "/Users/reynoldhu/Desktop/Local/Opensource/pytorch3d",
+    "commit": "89653419d0973396f3eff1a381ba09a07fffc2ed",
+    "license_sha256": "6da05663049417a91409fa349bfad5778ed56c9ef68226dde28dffd541481579",
+    "scope": "external dependency used"
+  },
+  "3DGenStudio": {
+    "checkout": "/Users/reynoldhu/Desktop/Local/Opensource/3DGenStudio",
+    "commit": "3095871a2b8fc3182591f82d5de1a1b36f8bcbd0",
+    "license_sha256": "bc520283f5a4d4eecc8c287fcbcb78f8a20224c39a8e7db75ffcfe77b2e389e9",
+    "scope": "source review only"
+  },
+  "SkinTokens": {
+    "checkout": "/Users/reynoldhu/Desktop/Local/Opensource/SkinTokens",
+    "commit": "273b691d35989d71cd17ff2895fdc735097b92d1",
+    "license_sha256": "4f818b00ed33ed1772236c8b0acfd40e740e11e93f4d6f4f846b506b5b690789",
+    "scope": "source review only"
+  },
+  "MocapAnything": {
+    "checkout": "/Users/reynoldhu/Desktop/Local/Opensource/MocapAnything",
+    "commit": "c99fb22c2f6001958c73c197065322b98ca0b93b",
+    "license_sha256": "b188546863d98eead534e4db48c9eec0a20862b433e4de5f0dcec7eb7975db9f",
+    "scope": "source review only"
+  },
+  "checkpoints": [
+    {
+      "file": "/Users/reynoldhu/Desktop/Local/Opensource/Make-It-Animatable/output/best/new/joints_coarse.pth",
+      "sha256": "389e18f92a65e7925c1a940dfff22cc85e9ac4ead17ab4a65fd4ef5d6088b96b",
+      "bytes": 424706373,
+      "revision": "ca0daf6cb164f939e77bf32667513fc7558d5f98"
+    },
+    {
+      "file": "/Users/reynoldhu/Desktop/Local/Opensource/Make-It-Animatable/output/best/new/joints.pth",
+      "sha256": "595587abb2ef9977bc9e49f8221c326da473de8ff1cd8785eb55ac63acde2b8e",
+      "bytes": 525833771,
+      "revision": "ca0daf6cb164f939e77bf32667513fc7558d5f98"
+    },
+    {
+      "file": "/Users/reynoldhu/Desktop/Local/Opensource/Make-It-Animatable/output/best/new/bw.pth",
+      "sha256": "8ff6abc9ed78665513d2dcd7b2d7e8430f6c86335389120281be3bd999d27830",
+      "bytes": 424693698,
+      "revision": "ca0daf6cb164f939e77bf32667513fc7558d5f98"
+    }
+  ],
+  "template": {
+    "source": "public author model repository data/Standard Run.fbx",
+    "source_sha256": "d1666a78831cd14368c19aadb023ea98670d5d69e1bc50d96149b95cba519533",
+    "derived_template_sha256": "dbfd232a5d5d10f353d06f83367e4d7622c1843be4bbf18ddd44d8328cc44618",
+    "bone_count": 52,
+    "hierarchy": {
+      "mixamorig:Hips": null,
+      "mixamorig:Spine": "mixamorig:Hips",
+      "mixamorig:Spine1": "mixamorig:Spine",
+      "mixamorig:Spine2": "mixamorig:Spine1",
+      "mixamorig:Neck": "mixamorig:Spine2",
+      "mixamorig:Head": "mixamorig:Neck",
+      "mixamorig:RightShoulder": "mixamorig:Spine2",
+      "mixamorig:RightArm": "mixamorig:RightShoulder",
+      "mixamorig:RightForeArm": "mixamorig:RightArm",
+      "mixamorig:RightHand": "mixamorig:RightForeArm",
+      "mixamorig:RightHandThumb1": "mixamorig:RightHand",
+      "mixamorig:RightHandThumb2": "mixamorig:RightHandThumb1",
+      "mixamorig:RightHandThumb3": "mixamorig:RightHandThumb2",
+      "mixamorig:RightHandIndex1": "mixamorig:RightHand",
+      "mixamorig:RightHandIndex2": "mixamorig:RightHandIndex1",
+      "mixamorig:RightHandIndex3": "mixamorig:RightHandIndex2",
+      "mixamorig:RightHandMiddle1": "mixamorig:RightHand",
+      "mixamorig:RightHandMiddle2": "mixamorig:RightHandMiddle1",
+      "mixamorig:RightHandMiddle3": "mixamorig:RightHandMiddle2",
+      "mixamorig:RightHandRing1": "mixamorig:RightHand",
+      "mixamorig:RightHandRing2": "mixamorig:RightHandRing1",
+      "mixamorig:RightHandRing3": "mixamorig:RightHandRing2",
+      "mixamorig:RightHandPinky1": "mixamorig:RightHand",
+      "mixamorig:RightHandPinky2": "mixamorig:RightHandPinky1",
+      "mixamorig:RightHandPinky3": "mixamorig:RightHandPinky2",
+      "mixamorig:LeftShoulder": "mixamorig:Spine2",
+      "mixamorig:LeftArm": "mixamorig:LeftShoulder",
+      "mixamorig:LeftForeArm": "mixamorig:LeftArm",
+      "mixamorig:LeftHand": "mixamorig:LeftForeArm",
+      "mixamorig:LeftHandThumb1": "mixamorig:LeftHand",
+      "mixamorig:LeftHandThumb2": "mixamorig:LeftHandThumb1",
+      "mixamorig:LeftHandThumb3": "mixamorig:LeftHandThumb2",
+      "mixamorig:LeftHandIndex1": "mixamorig:LeftHand",
+      "mixamorig:LeftHandIndex2": "mixamorig:LeftHandIndex1",
+      "mixamorig:LeftHandIndex3": "mixamorig:LeftHandIndex2",
+      "mixamorig:LeftHandMiddle1": "mixamorig:LeftHand",
+      "mixamorig:LeftHandMiddle2": "mixamorig:LeftHandMiddle1",
+      "mixamorig:LeftHandMiddle3": "mixamorig:LeftHandMiddle2",
+      "mixamorig:LeftHandRing1": "mixamorig:LeftHand",
+      "mixamorig:LeftHandRing2": "mixamorig:LeftHandRing1",
+      "mixamorig:LeftHandRing3": "mixamorig:LeftHandRing2",
+      "mixamorig:LeftHandPinky1": "mixamorig:LeftHand",
+      "mixamorig:LeftHandPinky2": "mixamorig:LeftHandPinky1",
+      "mixamorig:LeftHandPinky3": "mixamorig:LeftHandPinky2",
+      "mixamorig:RightUpLeg": "mixamorig:Hips",
+      "mixamorig:RightLeg": "mixamorig:RightUpLeg",
+      "mixamorig:RightFoot": "mixamorig:RightLeg",
+      "mixamorig:RightToeBase": "mixamorig:RightFoot",
+      "mixamorig:LeftUpLeg": "mixamorig:Hips",
+      "mixamorig:LeftLeg": "mixamorig:LeftUpLeg",
+      "mixamorig:LeftFoot": "mixamorig:LeftLeg",
+      "mixamorig:LeftToeBase": "mixamorig:LeftFoot"
+    },
+    "changes": "removed 13 end bones and animation; no joint placement edited",
+    "not_redistributed": true
+  }
+}

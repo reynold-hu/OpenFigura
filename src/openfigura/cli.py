@@ -43,6 +43,25 @@ def main(argv: list[str] | None = None) -> int:
                    help="proceed even if preflight reports errors (records the override)")
     p.set_defaults(func=_cmd_generate)
 
+    p = sub.add_parser("retarget", help="native humanoid motion transfer and contact checks")
+    p.add_argument("task")
+    p.add_argument("--animation", required=True)
+    p.add_argument("--artifact", default="model-autorig.glb")
+    p.add_argument("--frames", type=int, default=31)
+    p.add_argument("--fps", type=int, default=24)
+    p.set_defaults(func=lambda a: _print(engine.retarget(Task.open(Path(a.task)),
+        Path(a.animation),artifact=a.artifact,frames=a.frames,fps=a.fps)))
+
+    p = sub.add_parser("autorig", help="external neural joint and skin prediction")
+    p.add_argument("task")
+    p.add_argument("--backend", default="mia")
+    p.add_argument("--device", choices=["cpu","cuda"], default="cpu")
+    p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--query-chunk", type=int, default=8192)
+    p.add_argument("--artifact", default="model.glb")
+    p.set_defaults(func=lambda a: _print(engine.autorig(Task.open(Path(a.task)),
+        backend=a.backend,device=a.device,seed=a.seed,query_chunk=a.query_chunk,artifact=a.artifact)))
+
     p = sub.add_parser("rig", help="experimental calibrated Rigify binding")
     p.add_argument("task")
     p.add_argument("--calibration", required=True)

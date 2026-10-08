@@ -23,7 +23,11 @@ evidence:
 - [x] Experimental calibrated `rig` — explicit basic-human Rigify bone data,
       automatic skinning failure and opt-in approximate weights; real chibi GLB
       animation reimport and Godot proof. No general autorig/finger claim.
-- [ ] Neural/manual joint fitting and validated production skinning
+- [x] Experimental external MIA v1 `autorig` — CPU inference, source preservation,
+      deterministic sampling and continuity rejection; not production skinning
+- [x] Experimental native `retarget` — Godot motion transfer, Blender IK and
+      compulsory integer-frame hand/body checks; corrected clip only
+- [ ] Further neural/manual joint fitting and validated production skinning
 - [ ] `skin-check` — weight visualization + deformation render at fixed
       pose set; automatic report of suspected bad regions (eyes, fingers,
       shoulders)
@@ -59,3 +63,14 @@ evidence:
   as designed).
 - No cloud uploads, ever, from the core. Privacy is the product.
 - No training our own 3D model; we integrate the best open ones.
+
+## Independent integrations after 3DGenStudio review
+
+- [ ] Persistent external jobs and per-GPU resource scheduling (CPU workers separate)
+- [ ] ComfyUI adapter with versioned workflows and explicit local endpoints
+- [ ] UV, editable quad retopology and high/low normal/material baking
+- [ ] Skin/animation transfer preserving existing GLB buffers and materials
+- [ ] SkinTokens and MoCapAnything trials on suitable NVIDIA GPU; no GPU result yet
+- [ ] Multi-view albedo/PBR refinement and optional asset version workbench
+
+Priorities and source/permission boundaries: `docs/2026-10-08-3dgenstudio-review.md`.

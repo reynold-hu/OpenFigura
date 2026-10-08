@@ -1,0 +1,10 @@
+The external MIA inference adapter follows the published inference stages of
+Make-It-Animatable, Copyright (c) 2025 Zhiyang Guo, MIT licensed code:
+https://github.com/jasongzy/Make-It-Animatable
+Reviewed source revision: 8fb51382ff6da556cdb95cc03a48200603f3a493.
+No PCAE model implementation, checkpoint, template FBX or animation is bundled.
+Model metadata declares Apache-2.0 separately. The gated Mixamo dataset is not
+installed. A locally derived 52-bone template came from the author's public
+model-repository Standard Run.fbx; it is not redistributed by OpenFigura.
+CPU-only torch-cluster and PyTorch3D pure transforms are externally installed
+components with their own licences; they are not vendored or re-licensed here.

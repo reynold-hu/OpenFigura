@@ -3,6 +3,32 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-08 — external neural rigging/motion tools, 3DGenStudio review
+
+- Implemented `autorig`/`figura_autorig` using external MIA v1 CPU prediction;
+  no hand-supplied joint coordinates. Installed isolated runtime, verified three
+  checkpoint hashes, and derived a compatible public-example template without
+  bypassing gated dataset access. Model code/assets not vendored.
+- Modern trimesh sampling ignored the configured seed; failed repro assertion
+  preserved, explicit Generator fix added. Xiaoman A/B skeleton and fit outputs
+  are now identical but **rejected** for wrist continuity/placement. No new
+  accepted Xiaoman neural asset. Bunny control passes; core/MCP GLB, skeleton and
+  weight bytes match. Source original hashes unchanged.
+- Added `retarget`/`figura_retarget`: native Godot pose transfer, Blender IK and
+  BVH steering, compulsory regional contact/export checks. Actual raw motion
+  failed hand/head contact; corrected control passed31 frames×2 hand/body pairs,
+  reimported final GLB also passed. Export-only-corrected-clip regression fixed.
+  Experimental; no full collision/cloth/ground-contact or walk-quality claim.
+- **73 tests passed**. Real evidence:
+  `~/Desktop/openfigura-neural-rig-trial-2026-10-07/`; report
+  `docs/2026-10-08-neural-rig-trial.md`, runtime manifest and user-facing tool guide.
+- Cloned/read 3DGenStudio at `3095871a…`. Restricted Community License means no
+  project code copied. Reviewed Comfy workflows, topology/UV/bake/skin transfer,
+  SkinTokens, motion services and backend batches. Independently cloned original
+  SkinTokens/MocapAnything; no GPU service installed or claimed working. Findings
+  and prioritized independent integration plan:
+  `docs/2026-10-08-3dgenstudio-review.md`.
+
 ## 2026-10-07 — correction: rejected hand penetration, regional export gate
 
 - User rejected the original motion for hand/garment penetration. The earlier
@@ -261,3 +287,18 @@ proves it. Intentions live in `ROADMAP.md`, not here.
 - No CI yet; tests run locally under `.venv` (Python 3.14).
 - Visual approval is never recorded as pass by agents; `visual_approval`
   in ledgers stays `pending` until the user says otherwise.
+
+### 2026-10-08 — Independent review: failed candidate isolation
+
+The independent review reproduced a rejected retarget GLB still being exportable
+from its normal artifact name. `autorig` and `retarget` now move failed tool-owned
+GLB/Blend candidates into unique `artifacts/rejected/<id>/` folders and record
+those paths in the failure ledger. Originals and diagnostic files are preserved;
+the export API accepts only top-level artifact filenames. Two regression tests
+failed before this change and pass afterward. Fresh full suite: **75 passed**.
+The Godot worker also explicitly rejects references containing only RESET clips.
+
+After the final worker change, the actual Godot→Blender motion pipeline was rerun
+successfully in `~/Desktop/openfigura-neural-rig-trial-2026-10-07/tasks/bunny-motion-review-final/`.
+The final wheel was rebuilt and checked for the Godot worker and MIA attribution
+resources; build log is `package-build-final.log` in that evidence root.

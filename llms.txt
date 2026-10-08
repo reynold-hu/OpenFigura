@@ -44,3 +44,11 @@
   separate candidate and camera/ROI evidence; does not repair geometry.
 - [Experimental calibrated Rigify](docs/calibrated-rigging.md): explicit bone data,
   no silent skinning fallback, no finger chains. Render selected pose frames.
+
+## External algorithms
+
+- [Neural rigging/motion](docs/neural-rigging.md): `figura_autorig` /
+  `figura_retarget`; dedicated external runtimes, no manual coordinates/keys.
+  MIA v1 CPU verified; current Xiaoman rejected, control passed.
+- [3DGenStudio review](docs/2026-10-08-3dgenstudio-review.md): independent stack
+  integrations planned; restricted Studio code not copied, GPU services untested.
