@@ -386,6 +386,7 @@ Work continues on branch `codex/3d-loop` (worktree
   result was kept. Real retry on the 95,881-tri model: pass in 1.64 s,
   240,052 watertight tris, one-way deviation max 0.0059 (log 12). 183 unit
   tests pass. `voxel_size` is validated before any subprocess.
+
 - **Same-task main chain** (`mesh-chain`): `autorig` on the decimated scifi
   mesh passed MIA CPU — 52 joints, no manual coordinates, fit/skin/original-
   hash gates all enforced (log 13). The following `retarget` against the
@@ -393,3 +394,41 @@ Work continues on branch `codex/3d-loop` (worktree
   on the left-hand chain; log 14), so no colliding animated model was
   delivered — the non-collision gate works but full-body non-intersection is
   still not achieved. `uv`/`collision` real runs also pass (logs 04, 10).
+
+### 2026-10-08 (night) — L07 negative result quantified; UniMate surveyed
+
+- Retarget contact gate now records `before_correction` crossings/clearance
+  per frame. On the scifi MIA rig + Mixamo walk the *raw retarget* buries
+  both hands in the thighs from frame 2 on (1,061–1,533 crossing triangles
+  per side per frame, evidence `scifi-motion/stages/f42b87a8/.../contact-report.json`).
+- The correction loop was rewritten three times (proximity steering,
+  candidate-probe commit gate, depth-scaled magnitude + whole-arm away
+  direction). **It does not converge for this depth** — every single-step
+  candidate probe fails to reduce crossings, so the commit gate (correctly)
+  rejects all moves. Local two-bone IK nudging is insufficient at
+  1,000-triangle embedding depth; the failure and its data are preserved,
+  not hidden. 184 unit tests pass (pure `pressure()` steering math is
+  ast-tested without Blender).
+- **UniMate** (SIGGRAPH Asia 2026, arXiv 2609.05415) cloned to
+  `~/Desktop/Local/Opensource/UniMate` @ b78c780 and reviewed in depth:
+  text→motion for arbitrary rigged skeletons with **no retarget step**
+  (generation happens in the rig's own canonical frame). Code MIT,
+  released checkpoints **CC BY-NC 4.0**; inference needs CUDA (torch
+  2.5.1+cu124, py3.10, torch_geometric + `Motion` lib; bpy not needed
+  for sampling); mesh driving runs through `blender -b` and reuses the
+  asset's own skin weights with joint-order digests. The repo has **zero
+  collision machinery** — which makes OpenFigura's regional contact gate
+  the complementary verifier: generate N repetitions, gate-check all
+  frames, deliver only clean samples. Pre-conditions recorded
+  (≤71 joints — MIA 52 fits; duplicate bone names collapse; facing pair
+  needs horizontal separation). Full findings:
+  `docs/2026-10-08-unimate-review.md`; licence posture note added to
+  `LICENSES.md`; integration entered as loop task L13 (blocked on user's
+  NC-weights decision + a CUDA node).
+- Git hygiene side-quest, same evening: `~/.gitconfig` email typo
+  (`reynonlds…`) corrected to `reynoldsworking@gmail.com`; all local
+  branches filter-rewritten (author, committer **and Signed-off-by
+  trailers**) with content-identical trees (verified by empty diff against
+  `backup/*` tags); GitHub `main` force-pushed once with lease from the
+  half-fixed noreply rewrite to the clean 25-commit gmail chain
+  (`31b9b1e → 1e5d27a`), zero typo occurrences left in reachable history.

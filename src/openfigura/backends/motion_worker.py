@@ -4,6 +4,13 @@ import numpy as np
 from pathlib import Path
 from mathutils import Matrix,Vector
 from mathutils.bvhtree import BVHTree
+MARGIN=.002
+def pressure(crossings,distance,margin,extent):
+ """Steering magnitude: deeper intersection pushes harder; sub-margin proximity gets shortfall plus slack."""
+ if crossings:return extent*(.01+.04*min(1.0,crossings/300.0))
+ if distance is None or not math.isfinite(distance):return 0.0
+ if distance>=margin:return 0.0
+ return max(0.0,min(extent*.02,margin-distance+extent*.002))
 cfg=json.loads(Path(sys.argv[-1]).read_text());root=Path(cfg['native']);capture=root
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete();bpy.ops.import_scene.gltf(filepath=cfg['model'])
 rig=next(o for o in bpy.context.scene.objects if o.type=='ARMATURE');rest=json.loads((capture/'rest.json').read_text());frames=json.loads((capture/'poses.json').read_text());names=rest['names']
@@ -33,6 +40,7 @@ labels=np.array([mesh.vertex_groups[max(v.groups,key=lambda g:g.weight).group].n
 mesh.data.calc_loop_triangles();tri=np.array([tuple(t.vertices) for t in mesh.data.loop_triangles])
 body=np.array([any(n.endswith(x) for x in ['Hips','Spine','Spine1','Spine2','Neck','Head','LeftUpLeg','LeftLeg','RightUpLeg','RightLeg']) for n in labels]);body_faces=tri[np.all(body[tri],axis=1)].tolist()
 hand_faces={side:tri[np.all(np.char.startswith(labels[tri],'mixamorig:'+side+'Hand'),axis=1)].tolist() for side in ['Left','Right']}
+hand_vertices={side:sorted({int(x) for face in faces for x in face}) for side,faces in hand_faces.items()}
 extent=.0
 raw_targets={side:[] for side in hand_faces}
 for f in range(1,len(frames)+1):
@@ -44,25 +52,60 @@ for side in hand_faces:
  for f,p in enumerate(raw_targets[side],1):target.location=p;target.keyframe_insert('location',frame=f)
  con=rig.pose.bones['mixamorig:'+side+'ForeArm'].constraints.new('IK');con.target=target;con.chain_count=2;con.iterations=100;con.use_rotation=False
 steps=[];cached=[]
+def pose_vertices():
+ dg=bpy.context.evaluated_depsgraph_get();ev=mesh.evaluated_get(dg);data=ev.to_mesh();verts=[ev.matrix_world@v.co for v in data.vertices];ev.to_mesh_clear();return verts
+def hand_measure(verts,side,bodytree):
+ handtree=BVHTree.FromPolygons(verts,hand_faces[side],all_triangles=True);cross=len(bodytree.overlap(handtree))
+ distances=[]
+ for i in hand_vertices[side]:
+  hit=bodytree.find_nearest(verts[i]);distances.append(hit[3] if hit and hit[0] is not None else math.inf)
+ return cross,(min(distances) if distances else math.inf)
 for f in range(1,len(frames)+1):
- scene.frame_set(f);bpy.context.view_layer.update();changes=0
- for iteration in range(12):
-  dg=bpy.context.evaluated_depsgraph_get();ev=mesh.evaluated_get(dg);data=ev.to_mesh();vertices=[ev.matrix_world@v.co for v in data.vertices];ev.to_mesh_clear()
-  bodytree=BVHTree.FromPolygons(vertices,body_faces,all_triangles=True);overlaps={}
-  extent=max(v.z for v in vertices)-min(v.z for v in vertices)
-  for side,faces in hand_faces.items():
-   handtree=BVHTree.FromPolygons(vertices,faces,all_triangles=True);pairs=bodytree.overlap(handtree)
-   if pairs:
-    normal=Vector((0,0,0))
-    for i in set(a for a,b in pairs):
-     a,b,c=[vertices[j] for j in body_faces[i]];normal+=(b-a).cross(c-a).normalized()
-    if normal.length<1e-8:raise ValueError('ambiguous contact normal')
-    overlaps[side]=normal.normalized()
-  if not overlaps:break
-  for side,normal in overlaps.items():targets[side].location+=normal*extent*.015;changes+=1
-  bpy.context.view_layer.update()
+ scene.frame_set(f);bpy.context.view_layer.update();changes=0;initial={}
+ for iteration in range(20):
+  vertices=pose_vertices();extent=max(v.z for v in vertices)-min(v.z for v in vertices)
+  bodytree=BVHTree.FromPolygons(vertices,body_faces,all_triangles=True);acted=False
+  for side in hand_faces:
+   cross,dist=hand_measure(vertices,side,bodytree)
+   if iteration==0:initial[side]={'crossings':cross,'distance':dist if math.isfinite(dist) else None}
+   amount=pressure(cross,dist if math.isfinite(dist) else None,MARGIN,extent)
+   if amount<=0:continue
+   hit=None;best_near=None
+   for i in hand_vertices[side]:
+    h=bodytree.find_nearest(vertices[i])
+    if h and h[0] is not None and (best_near is None or h[3]<best_near[1]):hit=(i,h);best_near=(i,h[3])
+   candidates=[]
+   if hit and hit[1][1] and hit[1][1].length>=1e-8:candidates.append(hit[1][1].normalized())
+   if cross:
+    tree=BVHTree.FromPolygons(vertices,hand_faces[side],all_triangles=True)
+    acc=Vector((0,0,0))
+    for a,b in bodytree.overlap(tree):
+      p,q,r=[vertices[j] for j in body_faces[a]];acc+=(q-p).cross(r-p).normalized()
+    if acc.length>=1e-8:candidates.append(acc.normalized())
+   if hit:
+    sep=vertices[hit[0]]-hit[1][0]
+    if sep.length>=1e-8:candidates.append(sep.normalized())
+   if hand_vertices[side]:
+    hc=Vector((0,0,0))
+    for i in hand_vertices[side]:hc+=vertices[i]
+    hc/=len(hand_vertices[side])
+    away=hc-(rig.matrix_world@rig.pose.bones['mixamorig:Hips'].head)
+    if away.length>=1e-8:candidates.append(away.normalized())
+   scored=[];seen=[]
+   for d in candidates:
+    if any(abs(d.dot(p)-1.0)<1e-6 for p in seen):continue
+    seen.append(d)
+    targets[side].location=targets[side].location+d*amount;bpy.context.view_layer.update()
+    tv=pose_vertices();ttree=BVHTree.FromPolygons(tv,body_faces,all_triangles=True);tc,td=hand_measure(tv,side,ttree)
+    targets[side].location=targets[side].location-d*amount;bpy.context.view_layer.update()
+    scored.append(((tc,-td),d))
+   if scored:
+    best=min(scored,key=lambda s:s[0])
+    if best[0]<(cross,-dist):
+     targets[side].location=targets[side].location+best[1]*amount;bpy.context.view_layer.update();changes+=1;acted=True
+  if not acted:break
  for side,target in targets.items():target.keyframe_insert('location',frame=f)
- cached.append({b.name:b.matrix.copy() for b in rig.pose.bones});steps.append({'frame':f,'iterations':iteration,'target_updates':changes})
+ cached.append({b.name:b.matrix.copy() for b in rig.pose.bones});steps.append({'frame':f,'iterations':iteration,'target_updates':changes,'before_correction':initial})
 # Bake final evaluated poses into ordinary keys, then remove constraints/targets.
 for b in rig.pose.bones:
  for con in list(b.constraints):b.constraints.remove(con)
@@ -74,9 +117,9 @@ for f,poses in enumerate(cached,1):
   for prop in ['location','rotation_quaternion','scale']:pb.keyframe_insert(prop,frame=f)
 contact=runpy.run_path(str(Path(__file__).with_name('contact.py')))
 body_names=[n for n in rig.data.bones.keys() if any(n.endswith(x) for x in ['Hips','Spine','Spine1','Spine2','Neck','Head','LeftUpLeg','LeftLeg','RightUpLeg','RightLeg'])]
-config={'margin':.002,'pairs':[{'a':[n for n in rig.data.bones.keys() if n.startswith('mixamorig:'+side+'Hand')],'b':body_names} for side in ['Left','Right']]}
-report=contact['evaluate']([mesh],scene,config,len(frames));report['correction']='Blender native two-bone IK with BVH intersected body triangle normal steering';report['steps']=steps
-try:contact['require_clear'](report['rows'],.002);report['status']='pass'
+config={'margin':MARGIN,'pairs':[{'a':[n for n in rig.data.bones.keys() if n.startswith('mixamorig:'+side+'Hand')],'b':body_names} for side in ['Left','Right']]}
+report=contact['evaluate']([mesh],scene,config,len(frames));report['correction']='distance-aware two-bone IK steering: intersected body-triangle normals push through overlaps, body-surface separation pushes sub-margin proximity';report['steps']=steps
+try:contact['require_clear'](report['rows'],MARGIN);report['status']='pass'
 except ValueError as e:report.update(status='fail',error=str(e))
 (root/'contact-report.json').write_text(json.dumps(report,indent=2));scene.frame_set(1)
 bpy.ops.wm.save_as_mainfile(filepath=str(root/'diagnostic.blend'))

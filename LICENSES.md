@@ -60,3 +60,10 @@ separately; no template or example-animation licence is inferred from the code.
 Godot and Blender remain external tools with their own licences.
 3DGenStudio itself has a restricted Community License: no project source was
 copied into this AGPL repository. See the 2026-10-08 source-review report.
+
+UniMate (Princeton et al., SIGGRAPH Asia 2026) is surveyed as a candidate
+motion backend, not vendored: its code is MIT, but its released checkpoints
+are CC BY-NC 4.0, so any OpenFigura adapter must be opt-in with the
+non-commercial weight licence stated in `capabilities().notes` before it can
+be declared available. Nothing from that repository is copied here. See
+`docs/2026-10-08-unimate-review.md`.

@@ -23,6 +23,14 @@
   区域接触校验）；打开产出 .blend 探针：action 帧区 1–31、520 通道、
   11 根肢骨在 8/16/24/31 相对第 1 帧全部位移；render frame 1 vs 16 像素差
   179,634/648,000。即"能在 Blender 里动起来"已有客观证据（主观认可待用户）。
+- scifi 不碰撞动作**未达成且已定位**：原始重定向即每帧 1000+ 手部三角形埋入
+  大腿（v5 before_correction 数据）；把推挤升级为候选方向探测（表面法线/
+  分离向量/整体外摆，只提交可测量的改善）后仍无法收敛。结论：两骨 IK 局部
+  推挤对该量级深穿插不足，失败按原样保留在阶段记录。
+- UniMate 已克隆至 Local/Opensource @ b78c780 并深调：文本→任意骨架动作、
+  **无重定向步骤**，代码 MIT／权重 CC BY-NC；它不处理碰撞，我们的接触闸
+  恰好是其缺失的验收器（N 样本→全检→只交付干净）。详见
+  docs/2026-10-08-unimate-review.md；接入列 L13，需 Windows GPU 与 NC 许可确认。
 - Studio parity 矩阵已落地：95 个 MCP 工具，21 项 reproduced/partial，
   63 项 absent，11 项 policy-gate（云 API／门控权重）。见
   `docs/2026-10-08-studio-parity-matrix.md`。

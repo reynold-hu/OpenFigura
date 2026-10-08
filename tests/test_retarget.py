@@ -5,6 +5,23 @@ from openfigura.core.task import Task
 from openfigura.core.registry import Capabilities
 from test_rig import skinned_glb
 
+def test_distance_aware_pressure_steering():
+    import ast
+    worker=Path(__file__).parents[1]/'src/openfigura/backends/motion_worker.py'
+    funcs=[n for n in ast.parse(worker.read_text()).body if isinstance(n,ast.FunctionDef) and n.name=='pressure']
+    assert funcs,'pressure() must exist as pure, testable steering logic'
+    import math
+    ns={'math':math}
+    exec(compile(ast.Module(body=funcs,type_ignores=[]),str(worker),'exec'),ns)
+    pressure=ns['pressure']
+    assert pressure(1061,0.0,.002,1.8)==1.8*.05
+    assert 1.8*.01<pressure(1,0.0,.002,1.8)<1.8*.02
+    assert pressure(0,.05,.002,1.8)==0.0
+    assert pressure(0,.002,.002,1.8)==0.0
+    assert .001<pressure(0,.001,.002,1.8)<=1.8*.02
+    assert pressure(0,float('inf'),.002,1.8)==0.0
+    assert pressure(0,None,.002,1.8)==0.0
+
 class FakeMotion:
     def capabilities(self):return Capabilities(True,hardware='cpu')
     def retarget(self,model,animation,output,frames,fps):
