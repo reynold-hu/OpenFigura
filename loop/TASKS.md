@@ -17,6 +17,10 @@
 - [ ] L13 UniMate 后端接入（调研完成 docs/2026-10-08-unimate-review.md）：需
   ①用户确认 CC BY-NC 权重可否作为可选后端 ②CUDA 节点 ③重复骨名/facing 预检
   ④以现有接触闸作为 N 样本验收器，对照今晚 retarget 深穿插负结果。
+- [ ] L14 CUDA 速度基准矩阵（口径见 docs/product.md「Speed stance」）：GPU 节点
+  到位后第一时间跑 backend(pixal3d/TRELLIS/Hunyuan2.1/UniMate) × 显存档位 ×
+  固定 seed，各阶段 wall time 由账本记录并发布；对外宣传引用速度数字必须以本
+  矩阵实测值为来源。
 
 ## 本轮执行信息
 

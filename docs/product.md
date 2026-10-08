@@ -45,6 +45,26 @@ makes every claim re-runnable.
   we have none (face/finger topology still needs human work in v0.2 —
   that's stated, not hidden).
 
+## Speed stance
+
+We do not compete on wall-clock speed, and we will not pretend to. The
+measured 27-minute generation on an M5/16GB laptop is the floor of our
+range, not the ceiling: run time belongs to the operator's hardware, and
+the same open models are minutes — not tens of minutes — on CUDA
+backends. No speed figure enters this project's prose before our own
+ledger measured it; a backend x VRAM-tier x seed benchmark matrix is
+tracked as loop task L14 and its numbers ship with their provenance.
+
+What we promise instead of fast: nothing wasted. Verified stages are
+reused by hash (identical inputs never re-run), interrupted work resumes
+from the ledger, and the same input plus seed reproduces identical bytes
+months later. A cloud service is fast only while you keep renting it; a
+local run gets faster once, on hardware you already own, and every
+iteration afterwards costs nothing but time you chose to spend.
+
+Deliberately not cloud-fast: speed belongs to your hardware, waste
+belongs to nobody, and every claim carries its ledger.
+
 ## Business-model stance
 
 OpenFigura will not offer a hosted service, will not add telemetry, and
