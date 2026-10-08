@@ -1,0 +1,67 @@
+# 夜间接手复核与验收入口
+
+时间：2026-10-09，Asia/Shanghai。接手版本 main `f354678`。
+本轮在 `codex/3d-loop` 开发；无重写历史、无强推，用户未跟踪素材保留。
+
+## 已复现并修复的交付问题
+
+- NC 授权参数必须为真正 Boolean；字符串 `"false"` 不再被转换为接受。
+- 执行器的 annotation 必须为声明并校验 hash 的输入。直接调用也把模型和
+  annotation 复制到私有快照，原文件不交给外部预处理程序。
+- 所有动作候选完成独立 gate 后才发布；后续 gate 抛错时不留正常交付候选。
+- 蒙皮转移缺失／非零未赋权证据时拒绝交付，失败 GLB/Blend 隔离。
+- OBJ/USD 随附 MTL/纹理，依赖文件逐一哈希；每资产独立子目录避免纹理同名覆盖。
+  Blender 5.2 USD 纹理参数通过 RNA 探测，不使用不存在的参数。
+- 缓存身份包含 engine、adapter、worker、可探测二进制；动画额外包含接触闸，
+  导出额外包含格式转换器，修复代码后不复用旧安全判定。
+  Pixal GGUF 目前只有尺寸和修改时间身份，不能据此声称权重内容完整性已校验。
+
+独立复核发现组合缓存依赖遗漏，已新增红测再修复。测试命令：
+`PYTHONPATH=src /Users/reynoldhu/Desktop/OpenFigura/.venv/bin/python -m pytest tests -q`
+在开发 worktree 执行；首次全量 270 passed，后续新增修复以 PROGRESS 最后条目为准。
+
+## 新增烘焙能力
+
+`bake` / `figura_bake` / `engine.execute(..., 'bake', ...)` 共用核心实现。
+CPU Cycles 高模到低模 tangent normal、AO、可选 albedo，输出 GLB、打包 Blend、
+PNG 和报告。目标必须是已有 UV 的单个静态网格，骨架前执行；原始 UV、三角形
+数、输入 hash 保持不变。粗 bounds overlap 不代表局部对应准确。
+覆盖统计是 alpha 加 margin，**不是射线命中覆盖率**，非恒定图也不是画质验收。
+
+真实命令脚本与产物根目录均为：
+`/Users/reynoldhu/Desktop/openfigura-review-2026-10-09/`。
+
+| 证据 | 实际结果 |
+|---|---|
+| `verify_integration.py`, `bake-execute.json`, `bake-mcp.json` | executor 与真实 MCP 烘焙调用通过 |
+| `bake-fixture/`, `bake-albedo-fixture/` | 高低球体：normal/AO 与彩色 albedo 非恒定，UV/面数/输入不变；无 UV、错位负测拒绝 |
+| `format-proof.json`, `delivery-packaged-obj/`, `delivery-packaged-usd/` | OBJ MTL 引用存在；USD 纹理依赖存在且 hash 正确 |
+| `run_scifi_bake.py`, `scifi-bake-job.json` | 958,816→95,881 面，1024 三贴图产出；AO/albedo 有效 alpha 仅 0.2867%，实看为黑底散点，**不可视为可用烘焙资产** |
+
+## 本机生成能力：纠正运行时缺失判断
+
+实际 runtime 与 GGUF 在 `Desktop/Local/Opensource/pixal-local-trial-2026-10-05/`。
+本轮未下载或安装新运行时；新增本地 profile 发现机制，显式环境配置优先，
+profile 在 `$HOME/.config/openfigura/pixal3d.json`，机器路径不提交进 Git。
+
+`run_generate.py` 实际 Pixal Metal 生成通过（seed42，1024，2048atlas）；
+`generation-job.json` 给出阶段与 hash。`continue_generated.py` 完成检查、四视角
+渲染和 MIA CPU 52 关节结构／fit 验证，见 `generated-followup.json`。
+输入是 golden 当前半写实小满，**不是旧版 chibi**；旧 chibi 手腕问题仍未解决。
+
+`run_generated_motion.py` 31 帧重定向在 Blender worker 超时 600 秒，见
+`generated-motion.json`。没有通过的本轮新动画，不得展示旧动画冒充。
+
+## 视觉与接触负结果
+
+- 新生成小满白眼、口袋灰凸条；纹理丢失在原始 BaseColor 已存在。
+  `face-projection-trial/README.md` 的原图投射保留几何/UV且恢复瞳孔和口袋 RGB，
+  但仍有嘴部双轮廓、侧脸接缝、错误口袋几何；诊断候选未替换基线。
+- `scifi-contact-trial/REPORT.md`：上臂及整肩链替代搜索均未过 2mm 间隙闸，
+  最好仍有 10／14 个表面交叉。部分手区域顶点身体权重高于手臂权重，且区域
+  混入发／披风／装甲，应先审计分区与蒙皮；不能认定换 UniMate 就能解决。
+- 现有 contact 只检查所声明区域和整数帧，排除过渡三角形，不证明全身、连续
+  时间、闭体积包含或布料物理意义的不碰撞。
+
+全部 `visual_approval` 留给用户；单测、结构通过和美术接受分别记录。
+Windows/CUDA 连接方式仍缺。UniMate 权重尚未真实运行，Studio 全功能仍有大缺口。

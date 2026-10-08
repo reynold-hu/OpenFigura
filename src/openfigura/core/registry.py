@@ -57,6 +57,8 @@ def _bootstrap() -> None:
     from openfigura.backends import (pixal3d, blender, photo_paint, rigify, mia,
                                      native_motion, mesh_tools, motion_gate, unimate,
                                      format_export, rig_transfer)  # noqa: F401
+    from openfigura.backends.bake import BakeBackend
+    register('blender-bake', BakeBackend, 'CPU Cycles high-to-low normal/AO baking')
 
 
 _bootstrap()

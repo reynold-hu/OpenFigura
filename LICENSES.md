@@ -67,3 +67,9 @@ are CC BY-NC 4.0, so any OpenFigura adapter must be opt-in with the
 non-commercial weight licence stated in `capabilities().notes` before it can
 be declared available. Nothing from that repository is copied here. See
 `docs/2026-10-08-unimate-review.md`.
+
+The high-to-low normal/AO/albedo adapter and UV diagnostics are original
+OpenFigura code (AGPL-3.0-only), using an external Blender installation's
+Cycles baking API. No Studio baking source is copied; Blender and optional
+generation/rigging runtimes retain their own licenses. Baking an asset does
+not change its upstream model or texture license.

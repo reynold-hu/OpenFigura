@@ -31,6 +31,16 @@ def build():
 
     app = _Server("openfigura")
 
+    @app.tool(description='Bake high-to-low tangent normals, AO and optional lighting-free albedo with CPU Blender. '
+              'Static models before rigging; target must have UVs. Preserves sources and emits GLB/Blend/PNGs/report.')
+    def figura_bake(task_root: str, source: str, artifact: str, resolution: int = 512,
+                    samples: int = 16, maps: list[str] | None = None,
+                    cage_extrusion: float = .01, ray_distance: float = .1) -> dict:
+        return engine.bake(Task.open(Path(task_root)), source, artifact,
+                           {'resolution': resolution, 'samples': samples,
+                            'maps': maps if maps is not None else ['normal','ao'],
+                            'cage_extrusion': cage_extrusion, 'ray_distance': ray_distance})
+
     @app.tool(description='Validate and record project pixel dimensions, palette, '
               'outline, shading, FPS and anchor. Does not generate pixels or approve visual quality.')
     def figura_set_style(task_root: str, spec: dict) -> dict:

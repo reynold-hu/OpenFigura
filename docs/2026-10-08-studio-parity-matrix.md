@@ -22,11 +22,11 @@
 | `inspect_mesh`（引擎就绪报告） | `inspect`（结构报告）+ mesh report | partial：无 UV 覆盖率/texel density/流形检测 |
 | `segment`（语义部件） | `mesh segment`（连通分量） | partial：96 万三角形实例给出 8,090 噪声组件，语义分解缺失（见 mesh-chain 证据 05-mesh-segment） |
 | `repair_mesh`（非流形修复） | — | absent |
-| `bake_mesh_maps`（高→低 normal/AO/ORM） | — | absent（L04 主项目标） |
+| `bake_mesh_maps`（高→低 normal/AO/ORM） | `bake`（CPU normal/AO/albedo） | partial：真实球体及MCP/executor通过；无ORM，scifi首轮覆盖不足 |
 | `generate_lods` | — | absent（可用 optimize 手工链式逼近，无命名/层级输出） |
-| `transfer_rig`（蒙皮转移，服务端确定性） | — | absent（L04/L06 关键项） |
+| `transfer_rig`（蒙皮转移，服务端确定性） | `transfer-rig`（重心权重转移） | partial：高低模转移/局域形变通过，不保证语义蒙皮正确 |
 | `auto_rig_mesh`（SkinTokens :8300, GPU≥14GB） | `autorig`（MIA CPU） | partial：不同上游，小满手腕仍失败 |
-| `convert_mesh_fbx`（Blender FBX + takes） | — | absent |
+| `convert_mesh_fbx`（Blender FBX + takes） | `export --format fbx` | partial：动画FBX真实产出，多takes编辑未复现 |
 | `move_mesh_pivot`（ground/centre，无损节点平移） | — | absent |
 | `export_mesh` | `export`（含 inspect 闸 + manifest） | reproduced（证据：foundation proof） |
 
@@ -81,7 +81,7 @@ partial（语义不同名易混，命名保留但文档写明）。
   native-motion retarget、blender render；pixal3d 无本地运行时。
 
 ## 结论（2026-10-08）
-95 个 MCP 工具中 reproduced/partial 覆盖 21 个（22%），absent 63，
+2026-10-08 原始清点：95 个 MCP 工具中 reproduced/partial 覆盖 21 个（22%），absent 63，
 policy-gate 11（云 API/生成图像/门控权重）。差距集中在：烘焙与蒙皮
 转移、语义部件分解、FBX/引擎导出、程序化子系统、库与批处理、UI。
 每一项推进需按 `loop/TASKS.md` 逐条以测试+真实产物为凭。

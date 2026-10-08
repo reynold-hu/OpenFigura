@@ -13,6 +13,7 @@ from pathlib import Path
 from openfigura.backends import base
 from openfigura.core import registry
 from openfigura.core.registry import Capabilities
+from openfigura.core.task import sha256_file
 
 PROBE = ('import bpy,addon_utils,json\n'
          'ok={}\n'
@@ -58,7 +59,7 @@ class FormatExportBackend:
                                 notes={'glb': 'always available via stdlib export'})
         found = self._probe()
         formats = sorted(name for name, key in
-                         {'fbx': 'fbx', 'obj': 'obj', 'stl': 'stl', 'usd': 'usd_export'}.items()
+                         {'fbx': 'fbx', 'obj': 'obj_export', 'stl': 'stl_export', 'usd': 'usd_export'}.items()
                          if found.get(key))
         return Capabilities(bool(formats), hardware='cpu',
                             reason='' if formats else 'no export operators enabled in this Blender',
@@ -103,7 +104,14 @@ class FormatExportBackend:
         if proc.returncode == 0 and (not output.is_file() or report is None):
             ledger['exit_code'] = ledger['exit_code'] or 1
             ledger['stderr_tail'] += '\nBlender did not produce output and report'
-        return {'backend': self.id, 'format': fmt, **ledger,
+        sidecars = []
+        for relative in (report or {}).get('dependencies', []):
+            path = (output.parent / relative).resolve()
+            path.relative_to(output.parent)
+            if not path.is_file():
+                raise RuntimeError('missing format dependency: ' + relative)
+            sidecars.append({'relative_path': relative, 'path': str(path), 'sha256': sha256_file(path)})
+        return {'backend': self.id, 'format': fmt, **ledger, 'sidecars': sidecars,
                 'output': str(output), 'report_path': str(report_path), 'report': report}
 
 

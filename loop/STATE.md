@@ -1,64 +1,48 @@
 # OpenFigura 3D 完整验收状态
 
-日期：2026-10-08（Asia/Shanghai）。状态：进行中，尚未达成最终验收。
+日期：2026-10-09（Asia/Shanghai）。**进行中，未达最终验收**。
+接手 main `f354678`；开发 checkout
+`/Users/reynoldhu/.codex/worktrees/openfigura-3d-loop`，分支 `codex/3d-loop`。
 
-## 用户验收目标
+## 用户目标
 
-1. 参考图到精细 3D 模型，几何与脸／衣物材质要经真实渲染验收。
-2. 部件拆解、骨架定位、蒙皮与可动模型。
-3. 指定动作的穿插／接触检查及修正，失败禁止交付。
-4. Blender 中打开真实 .blend，时间轴可播放，并提供动作帧证据。
-5. 3DGenStudio 全功能按一份固定版本矩阵独立复现；不复制受限代码。
+精细图生3D → 部件拆解 → 自动骨架/蒙皮 → 不碰撞动作 → Blender 真实播放，
+以及固定版本 3DGenStudio 全功能独立复现。人审美术必须另行认可。
 
-## 当前事实
+## 本轮事实
 
-- 起点：8127434；本轮新增执行器／网格工具／前端镜像后 **180 单测通过**
-  （`python -m pytest tests -q`，Python 3.14 venv）。三次小提交（DCO）。
-- `engine.execute` 已实现：动词在 `stages/<id>/` 沙箱内真实运行，输入按
-  hash 校验，输出为已验证 AssetRef，pass/fail 同时写阶段库与 provenance。
-- 网格工具已在真实 Blender 跑通：scifi-stride 958,816→95,881 tris（6.75s）、
-  collision（0.87s）、链式 inspect 均 pass；segment 如实失败（8,090 组件，
-  max_parts 保护，未写产物）。证据 `~/Desktop/openfigura-3d-loop-2026-10-08/logs/`。
-- 动作链真实证据：executor retarget 通过（MIA bunny + Mixamo clip，31 帧
-  区域接触校验）；打开产出 .blend 探针：action 帧区 1–31、520 通道、
-  11 根肢骨在 8/16/24/31 相对第 1 帧全部位移；render frame 1 vs 16 像素差
-  179,634/648,000。即"能在 Blender 里动起来"已有客观证据（主观认可待用户）。
-- scifi 不碰撞动作**未达成且已定位**：原始重定向即每帧 1000+ 手部三角形埋入
-  大腿（v5 before_correction 数据）；把推挤升级为候选方向探测（表面法线/
-  分离向量/整体外摆，只提交可测量的改善）后仍无法收敛。结论：两骨 IK 局部
-  推挤对该量级深穿插不足，失败按原样保留在阶段记录。
-- UniMate 已克隆至 Local/Opensource @ b78c780 并深调：文本→任意骨架动作、
-  **无重定向步骤**，代码 MIT／权重 CC BY-NC；它不处理碰撞，我们的接触闸
-  恰好是其缺失的验收器（N 样本→全检→只交付干净）。详见
-  docs/2026-10-08-unimate-review.md；接入列 L13，需 Windows GPU 与 NC 许可确认。
-- 用户拍板（22:5x）：NC 权重按"逐调用显式 accept + 账本记录"接入，功能全做。
-  adapter／`animate` 动词／独立 gate（blender-motion-gate）／CLI+MCP+执行器
-  镜像已落地；真实门证据双向（bunny pass 250 行、scifi 静置 fail 间隙不足）。
-  本机 `unimate` 如实报 unavailable。剩：GPU 节点实跑 + rig_preprocess 的
-  conda 环境安装（等连接方式）。
-- Studio parity 矩阵已落地：95 个 MCP 工具，21 项 reproduced/partial，
-  63 项 absent，11 项 policy-gate（云 API／门控权重）。见
-  `docs/2026-10-08-studio-parity-matrix.md`。
-- 自动骨架：MIA CPU Bunny 通过、小满手腕失败；尚无新的神经自动骨架通过项。
+- 接手228 tests；首次新增全量270 passed，最新总数以 PROGRESS 为准。
+- 修复NC字符串接受、annotation未声明/缓存无hash、外部预处理写原输入、
+  后续gate失败残留交付物、transfer未赋权、OBJ/USD丢sidecars。
+  增加组合缓存身份（生成器+gate，export+格式转换器），独立复审已进行。
+- 新增CPU normal/AO/可选albedo高低模烘焙，CLI/MCP/execute镜像，真实
+  球体与MCP/executor/OBJ/USD依赖证明在桌面。scifi三贴图字节产出但仅
+  0.2867% AO/albedo alpha有效，实看黑底散点；UV岛39,501个，面积仅
+  0.00574% atlas，所有95,881三角形低于半像素，UV修复在推进。
+- **纠正“本机没有Pixal运行时”**：已有Metal binary/GGUF，新增profile
+  已发现并实跑新半写实小满生成。四视角、MIA CPU52关节结构/fit通过。
+  旧版chibi未解决；新模型白眼／口袋几何和纹理不达精细目标。
+- 新生成模型31帧重定向worker在600秒超时，未产出通过动画。
+- scifi肩链替代搜索也未过闸，局部蒙皮权重和区域混入装甲/发/披风有问题；
+  UniMate未保证能修正，CUDA路径仍待实际验证。已修preprocess失败继续运行、
+  shell切换错误Python；真实smoke缺loguru/torch/defaultenv，未跑推理。
+- 所有visual_approval pending。此前bunny真实播放证据保留，不冒充本轮新模型。
+- Studio95工具矩阵仍有大量absent，烘焙/transfer/格式只是部分能力补齐。
 
-## 当前推进
+完整审查、命令和验收入口：`docs/2026-10-09-handoff-review.md`。
+产物根：`/Users/reynoldhu/Desktop/openfigura-review-2026-10-09/`。
 
-- L04：高→低烘焙、蒙皮／骨架转移（transfer_rig）、FBX／pivot 导出缺口最大。
-- L06：需要新模型或算法改进才能拿下小满自动骨架。
-- L07：区域／时间采样覆盖仍受限于整数帧＋部分区域。
-- 本机无 pixal3d 运行时；Windows CUDA 节点信息仍待用户回答。
+## 夜间接续
 
-## 依赖与风险
+已建立本线程30分钟heartbeat `openfigura-loop`，用户已授权持续开发。
+先读STATE/TASKS/CONTRACT和Git状态；检查已有job JSON/进程，禁止重复重任务。
+job入口：generation-job.json、generated-followup.json、generated-motion.json、scifi-bake-job.json。
+生成pass／rigpass／motionfail；scifi第一轮烘焙是技术pass但视觉不可用。
 
-- Windows CUDA 节点信息待用户回答（显卡／显存／访问方式）。Mac 可继续CPU／Metal工作。
-- SkinTokens 上游至少14GB NVIDIA，Hunyuan2.1纹理上游21GB；不能承诺16GB Mac跑所有模型。
-- “不碰撞”必须说明模型、片段、区域和采样范围；未覆盖的检测不写 pass。
-- “全部Studio功能”覆盖范围包含工作台与其它功能，按矩阵逐项验收，不以一个Demo代替。
-- 2026-10-08 用户拍板定位：不与 Tripo 拼云端速度；速度=用户硬件的属性，
-  承诺的是“零浪费”（缓存复用/resume/同 seed 复现）。任何速度数字进宣传
-  前必须有 L14 实测矩阵与账本出处。docs/product.md「Speed stance」为准。
+优先：scifi UV/烘焙覆盖修复与真实渲染 → 新模型降至可动画资产再烘焙与自动骨架
+→ 分区/蒙皮审核与动作闸 → 全链文件与Blender帧 → Studio矩阵逐项独立开发。
+低模和贴图必须联合保留细节，不能拿低分辨率截图证明精细。
 
-## 接续工作
-
-每轮从 TASKS.md 首个未完成项继续；每项代码有失败测试、修复、测试与真实文件证据。
-无需重复请求已授权开发确认；硬件、密钥或外部访问缺失时记录原因并推进独立任务。
+CUDA访问仍缺，可继续Mac CPU/Metal；不降低碰撞阈值、不重标区域掩盖失败。
+有限区域/整数帧检测不能声称全身连续不碰撞。无重写历史/强推；不覆盖用户
+golden/参考图/权重，验收前不替换基线；硬件和许可受限项如实保留。

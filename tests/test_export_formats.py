@@ -105,3 +105,36 @@ def test_executor_export_step_passes_fmt(tmp_path, monkeypatch):
     stage = engine.workflow_status(Task.open(task.root), result['stage_id'])
     kinds = {o['kind'] for o in stage['outputs']}
     assert 'model' in kinds
+
+
+def test_obj_delivery_contains_material_and_texture_dependencies(tmp_path, monkeypatch):
+    from openfigura.backends.format_export import FormatExportBackend
+    task = task_with_glb(tmp_path)
+    class WithDependencies(FakeFormats):
+        def convert(self, snapshot, converted, fmt):
+            result = super().convert(snapshot, converted, fmt)
+            mtl = converted.with_suffix('.mtl')
+            mtl.write_text('newmtl Surface\nmap_Kd textures/albedo.png\n')
+            image = converted.parent / 'textures' / 'albedo.png'
+            image.parent.mkdir()
+            image.write_bytes(b'PNG fixture')
+            converted.write_text('mtllib ' + mtl.name + '\n')
+            result['sidecars'] = [{'relative_path': p.relative_to(converted.parent).as_posix(),
+                                   'path': str(p), 'sha256': sha256_file(p)} for p in (mtl, image)]
+            return result
+    monkeypatch.setattr(registry, 'get', lambda name: WithDependencies())
+    dest = tmp_path / 'delivery'
+    result = engine.export(task, dest, fmt='obj')
+    reference = (dest / result['primary']).read_text().split()[1]
+    assert (dest / result['primary']).parent.joinpath(reference).exists()
+    texture = next(p for p in result['dependency_sha256'] if p.endswith('textures/albedo.png'))
+    assert (dest / texture).is_file()
+    assert result['dependency_sha256'][texture] == sha256_file(dest / texture)
+
+
+def test_operator_probe_names_include_obj_stl(tmp_path, monkeypatch):
+    from openfigura.backends.format_export import FormatExportBackend
+    monkeypatch.setattr(FormatExportBackend, 'binary', lambda self: 'blender')
+    monkeypatch.setattr(FormatExportBackend, '_probe', lambda self: {'fbx': True, 'obj_export': True,
+                                                                  'stl_export': True, 'usd_export': True})
+    assert set(FormatExportBackend().capabilities().notes['formats'].split(',')) == {'glb','fbx','obj','stl','usd'}

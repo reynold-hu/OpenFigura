@@ -20,6 +20,19 @@ def main(argv: list[str] | None = None) -> int:
                                      description="local 3D asset production for agents")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
+    p = sub.add_parser('bake', help='high-to-low tangent normal and AO bake in Blender')
+    p.add_argument('task')
+    p.add_argument('--source', required=True)
+    p.add_argument('--artifact', required=True)
+    p.add_argument('--resolution', type=int, default=512)
+    p.add_argument('--samples', type=int, default=16)
+    p.add_argument('--maps', nargs='+', choices=['normal','ao','albedo'], default=['normal','ao'])
+    p.add_argument('--cage-extrusion', type=float, default=.01)
+    p.add_argument('--ray-distance', type=float, default=.1)
+    p.set_defaults(func=lambda a: _print(engine.bake(Task.open(Path(a.task)), a.source, a.artifact,
+        {'resolution': a.resolution, 'samples': a.samples, 'maps': a.maps,
+         'cage_extrusion': a.cage_extrusion, 'ray_distance': a.ray_distance})))
+
     p = sub.add_parser('set-style', help='validate and record a project pixel style spec')
     p.add_argument('task')
     p.add_argument('--spec', required=True)

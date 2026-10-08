@@ -3,13 +3,13 @@
 - [x] L01 Studio 固定版本完整功能矩阵：docs/2026-10-08-studio-parity-matrix.md（95 工具清点，附证据行号）。
 - [x] L02 真实执行器：engine.execute 沙箱阶段化运行；180 测试通过；真实证据见 PROGRESS 2026-10-08 晚间条目。
 - [x] L03 静态网格工具：已注册并 CLI/MCP 镜像；真实通过 optimize（6.75s）、collision（0.87s）、uv（1.12s）、retopo（voxel 水密管线，QuadriFlow 如实降级并写明）；segment 如实失败（8,090 组件）。证据 `~/Desktop/openfigura-3d-loop-2026-10-08/logs/`。
-- [~] L04：蒙皮/骨架转移 `transfer_rig` 已落地并真实验证（scifi 90.5万顶点 0 未加权、形变探针 17% 局域移动）；**normal/AO 烘焙仍 absent**，是下一个 Mac 可做大块。
-- [ ] L05 神经生成／材质后端能力与硬件调度：可用则执行，不可用则给出真实原因。
-- [~] L06 自动骨架／解剖约束：scifi 低模经 MIA CPU 自动骨架**通过**（52 关节，12.75s，无手工坐标，fit/skin/原图哈希三重校验；证据 13-autorig-scifi.json）。小满仍无通过项。
+- [~] L04：transfer_rig 与 CPU normal/AO/albedo 已实现并真实验证；scifi首轮UV/烘焙覆盖不合格，修复后需真实渲染复验。见2026-10-09-handoff-review。
+- [~] L05 Pixal Metal真实生成通过，本地profile已配置；新模型精细脸/口袋未达标。CUDA/其他材质后端/硬件调度未完。
+- [~] L06 MIA CPU：scifi52关节结构通过，新半写实小满52关节结构/fit通过；旧chibi未通过。关节数不能替代蒙皮/语义部件/运动质量。
 - [ ] L07 动作接触：scifi 重定向被接触闸持续拒绝。修正循环升级为深度自适应＋
   候选方向探测（logs 15–19）仍不收敛：原始重定向每帧 1000+ 深穿插，两骨 IK
-  推挤不足。负结果与量化数据保留；正解路线＝L13 UniMate 无重定向生成＋闸筛选。
-- [~] L08 完整主链：mesh-chain 任务内 inspect→optimize→(segment fail)→retopo→uv→autorig→retarget(fail) 全部阶段化串联、同任务关联；缺 generate（本机无运行时）与 export 通过项。
+  推挤不足。肩链替代搜索也失败；先审计蒙皮/分区，再试L13 UniMate＋闸筛选，后者尚未证明能解决。
+- [~] L08 新generate→inspect→render→autorig真实通过，retarget600秒超时；原mesh-chain接触失败。独立bake/export通过不等于同一可动精细人物链验收。
 - [ ] L09 Blender .blend 动作播放及真实前／侧／背面帧，静态和动作主观认可分别记录。
 - [ ] L10 Studio其它功能按矩阵实现：项目／资产／编辑／工作台／Comfy工作流／接口。
 - [ ] L11 全部适配器的许可证、API／计算依赖和回归样例、包资源检查。

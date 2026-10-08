@@ -101,9 +101,9 @@ def _wire_engine(tmp_path, monkeypatch, joint_count=1, produced_exit=0, clip=Fal
                 doc = json.loads(data[20:20 + struct.unpack_from('<I', data, 12)[0]])
                 doc['animations'] = [{'name': 'Fabricated', 'channels': []}]
                 make_minimal_glb_from(output, doc)
-            output.with_suffix('.rig-transfer-report.json').write_text(json.dumps({'vertices': 3}))
+            output.with_suffix('.rig-transfer-report.json').write_text(json.dumps({'vertices': 3, 'vertices_without_weights': 0}))
             return {'backend': self.id, 'exit_code': produced_exit, 'wall_seconds': 0.5,
-                    'command': 'fake', 'stderr_tail': 'boom', 'report': {'vertices': 3},
+                    'command': 'fake', 'stderr_tail': 'boom', 'report': {'vertices': 3, 'vertices_without_weights': 0},
                     'output': str(output), 'report_path': str(output.with_suffix('.rig-transfer-report.json'))}
     monkeypatch.setattr(registry, 'get', lambda name: FakeTransfer())
     return task
@@ -151,9 +151,9 @@ def test_execute_transfer_rig_step(tmp_path, monkeypatch):
         def capabilities(self): return Capabilities(True, hardware='cpu')
         def transfer(self, target, source, output, params):
             skinned_static_glb(output)
-            output.with_suffix('.rig-transfer-report.json').write_text(json.dumps({'vertices': 3}))
+            output.with_suffix('.rig-transfer-report.json').write_text(json.dumps({'vertices': 3, 'vertices_without_weights': 0}))
             return {'backend': self.id, 'exit_code': 0, 'wall_seconds': 0.5, 'command': 'c',
-                    'stderr_tail': '', 'report': {'vertices': 3}, 'output': str(output),
+                    'stderr_tail': '', 'report': {'vertices': 3, 'vertices_without_weights': 0}, 'output': str(output),
                     'report_path': str(output.with_suffix('.rig-transfer-report.json'))}
     monkeypatch.setattr(registry, 'get', lambda name: FakeTransfer())
     refs = [AssetRef('artifacts/model.glb', sha256_file(task.artifact('model.glb')), 'model', 'import').to_dict(),

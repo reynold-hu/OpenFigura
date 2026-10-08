@@ -14,6 +14,7 @@ pipeline step instead of wasting a long generation on a refusal.
 from __future__ import annotations
 
 import os
+import json
 import platform as _platform
 import sys
 from dataclasses import dataclass
@@ -40,20 +41,44 @@ class Pixal3DBackend:
     id = "pixal3d"
     kind = "generate"
 
+    def profile(self) -> dict:
+        path = Path(os.environ.get('OPENFIGURA_PIXAL_PROFILE',
+                    str(Path.home() / '.config/openfigura/pixal3d.json')))
+        if not path.is_file():
+            return {}
+        try:
+            config = json.loads(path.read_text(encoding='utf-8'))
+        except (ValueError, OSError) as exc:
+            raise ValueError('invalid Pixal3D profile') from exc
+        if (not isinstance(config, dict) or set(config) != {'schema_version','runtime','models'}
+                or type(config['schema_version']) is not int or config['schema_version'] != 1
+                or any(not isinstance(config[k], str) or not Path(config[k]).is_absolute()
+                       for k in ('runtime','models'))):
+            raise ValueError('invalid Pixal3D profile schema or absolute paths')
+        return config
+
     def runtime_path(self) -> Path | None:
-        env = os.environ.get("OPENFIGURA_PIXAL_RUNTIME")
-        if env:
-            p = Path(env)
+        if 'OPENFIGURA_PIXAL_RUNTIME' in os.environ:
+            value = os.environ['OPENFIGURA_PIXAL_RUNTIME']
+            if not value:
+                return None
+            p = Path(value)
             return p if p.is_file() else None
         found = base.which("trellis-cli")
-        return Path(found) if found else None
+        if found:
+            return Path(found)
+        value = self.profile().get('runtime')
+        return Path(value) if value and Path(value).is_file() else None
 
     def models_dir(self) -> Path | None:
-        env = os.environ.get("OPENFIGURA_PIXAL_MODELS")
-        if env:
-            p = Path(env)
+        if 'OPENFIGURA_PIXAL_MODELS' in os.environ:
+            value = os.environ['OPENFIGURA_PIXAL_MODELS']
+            if not value:
+                return None
+            p = Path(value)
             return p if p.is_dir() else None
-        return None
+        value = self.profile().get('models')
+        return Path(value) if value and Path(value).is_dir() else None
 
     def matte_mode(self) -> str:
         """Preferred background-removal mode for this install."""
@@ -63,11 +88,14 @@ class Pixal3DBackend:
         return "threshold"
 
     def capabilities(self) -> Capabilities:
-        runtime = self.runtime_path()
+        try:
+            runtime = self.runtime_path()
+            models = self.models_dir()
+        except ValueError as exc:
+            return Capabilities(False, reason=str(exc))
         if runtime is None:
             return Capabilities(False, reason="no runtime: set OPENFIGURA_PIXAL_RUNTIME "
                               "to a pixal3d.cpp binary or put trellis-cli on PATH")
-        models = self.models_dir()
         if models is None:
             return Capabilities(False, reason="runtime found but no model dir: "
                               "set OPENFIGURA_PIXAL_MODELS")

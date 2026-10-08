@@ -67,6 +67,10 @@ class UnimateBackend:
                                    str(repo / 'outputs/unimate_uniml3d_f60_v3')))
         return repo, python, ckpt
 
+    def blender_binary(self):
+        from openfigura.backends.blender import BlenderBackend
+        return BlenderBackend().binary()
+
     def capabilities(self) -> Capabilities:
         repo, python, ckpt = self.paths()
         missing = []
@@ -78,6 +82,10 @@ class UnimateBackend:
             missing.append('checkpoint dir (set OPENFIGURA_UNIMATE_CKPT)')
         if not (ckpt / 'checkpoints').is_dir():
             missing.append('checkpoint files')
+        if not self.blender_binary():
+            missing.append('Blender executable for mesh driving')
+        if not (repo / 'data_process/mesh_animation/animate_motion.py').is_file():
+            missing.append('UniMate animate_motion.py entry point')
         if missing:
             return Capabilities(False, hardware='cuda', reason='missing: ' + '; '.join(missing),
                                 notes=self._notes())
@@ -98,7 +106,8 @@ class UnimateBackend:
                 'opt_in': 'accept_nc_license must be passed explicitly per call',
                 'length': '60 frames @ 30 fps per clip (upstream config)',
                 'collision': 'upstream has no collision machinery; OpenFigura motion-gate decides pass',
-                'pipeline': 'rig_preprocess --annotate rule -> inference.sample -> run_animate_motion.sh'}
+                'pipeline': 'selected Python: rig_preprocess -> inference.sample -> sample_manifest validation; detected Blender: animate_motion.py',
+                'drive_runtime': 'Blender uses its bundled Python and requires upstream animation dependencies; no conda activation or bare python shell calls.'}
 
     def preflight_rig(self, path: Path) -> dict:
         return preflight_rig(path)
@@ -107,7 +116,7 @@ class UnimateBackend:
                         cfg_scale: float, seed: int, annotation: str | None = None) -> dict:
         repo, python, ckpt = self.paths()
         model = Path(model).resolve()
-        workdir = Path(workdir)
+        workdir = Path(workdir).resolve()
         workdir.mkdir(parents=True, exist_ok=False)
         asset = workdir / 'asset'
         samples = workdir / 'samples'
@@ -116,7 +125,11 @@ class UnimateBackend:
                '--output_dir', str(asset), '--annotate', 'rule', '--formats', 'glb,fbx']
         if annotation:
             pre += ['--annotation', str(Path(annotation).resolve())]
-        steps['rig_preprocess'] = base.run(pre, timeout_s=900, cwd=repo).ledger()
+        preprocess = base.run(pre, timeout_s=900, cwd=repo)
+        steps['rig_preprocess'] = {**preprocess.ledger(), 'stdout_tail': preprocess.stdout_tail}
+        if not preprocess.ok:
+            return {'produced': False, 'status': 'fail', 'steps': steps,
+                    'stderr_tail': preprocess.stderr_tail}
         if not annotation:
             review = asset / 'REVIEW.md'
             if review.exists() or (asset / 'annotation.json').exists():
@@ -132,13 +145,67 @@ class UnimateBackend:
         if not sample.ok:
             return {'produced': False, 'status': 'fail', 'steps': steps,
                     'stderr_tail': sample.stderr_tail}
-        drive = base.run(['bash', 'scripts/run_animate_motion.sh', str(samples)],
-                         timeout_s=1800, cwd=repo)
-        steps['drive'] = {**drive.ledger(), 'stdout_tail': drive.stdout_tail}
-        clips = sorted(p for p in samples.rglob('*.glb') if p.is_file())
-        return {'produced': bool(clips) and drive.ok, 'status': 'pass' if clips and drive.ok else 'fail',
-                'clips': [str(p) for p in clips], 'steps': steps,
-                'stderr_tail': drive.stderr_tail if not drive.ok else ''}
+        blender = self.blender_binary()
+        if not blender:
+            return {'produced': False, 'status': 'unavailable', 'steps': steps,
+                    'stderr_tail': 'Blender executable unavailable for mesh driving'}
+        # Keep the complete upstream job list in a file, rather than the ledger's
+        # truncated stdout tail. The upstream module owns joint/frame validation.
+        job_path = workdir / 'drive-jobs.tsv'
+        manifest_code = (
+            'import contextlib,sys; '
+            'from data_process.mesh_animation.sample_manifest import main; '
+            'stream=open(sys.argv[2],"w",encoding="utf-8"); '
+            '\nwith stream,contextlib.redirect_stdout(stream):\n'
+            '    code=main([sys.argv[1]])\n'
+            'sys.exit(code)')
+        manifest = base.run([str(python), '-c', manifest_code, str(samples), str(job_path)],
+                            timeout_s=300, cwd=repo)
+        steps['manifest'] = {**manifest.ledger(), 'stdout_tail': manifest.stdout_tail}
+        if not manifest.ok:
+            return {'produced': False, 'status': 'fail', 'steps': steps,
+                    'stderr_tail': manifest.stderr_tail}
+        try:
+            jobs = [line.split('\t') for line in job_path.read_text(encoding='utf-8').splitlines() if line]
+            if not jobs or any(len(job) != 4 for job in jobs):
+                raise ValueError('manifest emitted no jobs or invalid TSV')
+            stems = set()
+            for index, (anim, char, cond, dtype) in enumerate(jobs):
+                # Upstream records asset/cond paths relative to its repository.
+                anim, char, cond = [str((repo / p).resolve()) if not Path(p).is_absolute()
+                                   else str(Path(p).resolve()) for p in (anim, char, cond)]
+                jobs[index] = [anim, char, cond, dtype]
+                if dtype not in {'general', 'truebones', 'mixamo', 'objaverse'}:
+                    raise ValueError('manifest emitted unsupported dataset type')
+                if any(not Path(p).is_file() for p in (anim, char, cond)):
+                    raise ValueError('manifest job inputs are missing')
+                stem = Path(anim).stem
+                if stem in stems: raise ValueError('manifest job output names collide')
+                stems.add(stem)
+        except (OSError, ValueError) as exc:
+            return {'produced': False, 'status': 'fail', 'steps': steps, 'stderr_tail': str(exc)}
+        clips = []
+        drive_steps = []
+        animated = samples / 'animated'
+        animated.mkdir(parents=True, exist_ok=False)
+        for anim, char, cond, dtype in jobs:
+            drive = base.run([str(blender), '-b', '--factory-startup', '--python-exit-code', '1',
+                              '--python', str(repo / 'data_process/mesh_animation/animate_motion.py'), '--',
+                              '--dataset_type', dtype, '--anim_path', anim, '--char_path', char,
+                              '--cond_path', cond, '--output_dir', str(animated), '--anim_mode', 'fk',
+                              '--asset', 'canonical', '--extra_bones_strategy', 'merge'],
+                             timeout_s=1800, cwd=repo)
+            drive_steps.append({**drive.ledger(), 'stdout_tail': drive.stdout_tail})
+            clip = animated / (Path(anim).stem + '.glb')
+            fbx = clip.with_suffix('.fbx')
+            if not drive.ok or not clip.is_file() or not fbx.is_file():
+                steps['drive'] = {'jobs': drive_steps, 'exit_code': drive.exit_code or 1}
+                return {'produced': False, 'status': 'fail', 'steps': steps, 'clips': [],
+                        'stderr_tail': drive.stderr_tail or 'Blender did not produce expected GLB and FBX'}
+            clips.append(str(clip))
+        steps['drive'] = {'jobs': drive_steps, 'exit_code': 0,
+                          'wall_seconds': round(sum(s['wall_seconds'] for s in drive_steps), 2)}
+        return {'produced': True, 'status': 'pass', 'clips': clips, 'steps': steps, 'stderr_tail': ''}
 
 
 registry.register('unimate', UnimateBackend,

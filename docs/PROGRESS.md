@@ -481,3 +481,47 @@ Work continues on branch `codex/3d-loop` (worktree
   `backup/*` tags); GitHub `main` force-pushed once with lease from the
   half-fixed noreply rewrite to the clean 25-commit gmail chain
   (`31b9b1e → 1e5d27a`), zero typo occurrences left in reachable history.
+
+## 2026-10-09 overnight independent handoff review
+
+- Reviewed `f354678`; reproduced delivery defects then fixed strict NC
+  Boolean handling, declared/hashed annotation inputs and private copies,
+  delayed motion publication, failed candidate quarantine, mandatory zero
+  unweighted transfer evidence, OBJ/USD sidecars and per-asset bundles.
+  Composite execution identity now includes the actual gate/format workers.
+  Independent reviewer reran 23 focused tests with no remaining blocker
+  in that scope. Full bare-core suite **283 passed in 31.63s** with
+  `PYTHONPATH=src /Users/reynoldhu/Desktop/OpenFigura/.venv/bin/python -m pytest tests -q`
+  in `/Users/reynoldhu/.codex/worktrees/openfigura-3d-loop`.
+- Original CPU Cycles selected-to-active normal/AO/optional albedo baking
+  implemented, with CLI/MCP/executor mirrors. Real sphere normal/AO and
+  two-colour albedo proofs, UV/input hashes unchanged; no-UV and disjoint
+  negatives refused. Real executor and MCP calls plus dependency-hashed
+  OBJ/USD deliveries validated by `verify_integration.py`. All commands,
+  reports and assets live at `~/Desktop/openfigura-review-2026-10-09/`.
+  See `docs/baking.md` and `docs/2026-10-09-handoff-review.md`.
+- **Correction to runtime availability:** existing Pixal Metal binary and
+  weights discovered, local profile configured outside Git; real fresh
+  golden semi-realistic xiaoman generate passed. `run_generate.py`,
+  `generation-job.json`, `continue_generated.py`, `generated-followup.json`
+  record generated ~947,962 tris, four-view renders, MIA CPU 52-joint
+  structural/fit pass. This does not fix the older chibi wrist failure.
+  Fresh retarget in `run_generated_motion.py` timed out at 600s; no new
+  accepted animation. BaseColor has white eyes/lost pocket detail. The
+  isolated `face-projection-trial/` restores some RGB but causes double
+  mouth/jaw contours and view-dependent seams; not a promoted baseline.
+- Real scifi bake high958,816→low95,881 tris at1024 produced all three maps
+  in3.83s, but AO/albedo alpha-covered pixels only0.2867%, visually black
+  with isolated dots: **not usable**, not evidence of preserved detail.
+  UV diagnosis found39,501 islands, UV area0.00574% atlas; inherited UV
+  before unwrap has41.732% area. Follow-up repair/bake remains in progress.
+- Scifi upper-arm/whole-shoulder alternatives failed2mm contact margin;
+  reports in `scifi-contact-trial/`. Region assignments include accessories
+  and some hand vertices have body weights exceeding arm weights. UniMate
+  is a hypothesis requiring gating, not a proven fix. Its preprocess now
+  fails fast and driver uses selected Python/detected Blender directly;
+  real smoke fails on missingloguru/torch/defaultenvironment, CUDA untested.
+- A user-authorized30-minute thread heartbeat `openfigura-loop` continues
+  unfinished work. STATE/TASKS record current jobs to prevent duplicate
+  generation. All visual approvals pending; full Studio parity and full
+  fine-character collision-safe chain remain incomplete.

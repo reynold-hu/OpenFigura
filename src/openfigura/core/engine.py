@@ -221,7 +221,11 @@ def export(task: Task, dest: Path, fmt: str = "glb", artifact: str = "model.glb"
             caps = backend.capabilities()
             if not caps.available:
                 raise RuntimeError('format export unavailable: ' + caps.reason)
-            converted = Path(staging) / f'convert.{backend.EXTENSIONS[fmt]}'
+            conversion_root = Path(staging)
+            if fmt in {'obj','usd'}:
+                conversion_root /= Path(output_name).stem + '-bundle'
+                conversion_root.mkdir()
+            converted = conversion_root / f'{Path(output_name).stem}.{backend.EXTENSIONS[fmt]}'
             conversion = backend.convert(snapshot, converted, fmt)
             if conversion['exit_code'] != 0 or not converted.is_file() or not conversion.get('report'):
                 raise RuntimeError(f"format conversion {fmt} exited {conversion['exit_code']}: "
@@ -230,12 +234,25 @@ def export(task: Task, dest: Path, fmt: str = "glb", artifact: str = "model.glb"
         _deliver(dest, output_name, snapshot, current_hash)
         if conversion is not None:
             ext = Path(conversion['output']).suffix.lstrip('.')
-            primary = output_name[:-4] + '.' + ext if output_name.endswith('.glb') else output_name + '.' + ext
-            _deliver(dest, primary, Path(conversion['output']),
+            primary = Path(conversion['output']).resolve().relative_to(Path(staging).resolve()).as_posix()
+            target_primary = dest / primary
+            target_primary.parent.mkdir(parents=True, exist_ok=True)
+            _deliver(target_primary.parent, target_primary.name, Path(conversion['output']),
                      sha256_file(Path(conversion['output'])))
-            _deliver(dest, f'{Path(primary).stem}.{ext}-report.json', Path(conversion['report_path']))
+            _deliver(target_primary.parent, f'{Path(primary).stem}.{ext}-report.json', Path(conversion['report_path']))
+            dependency_hashes = {}
+            for item in conversion.get('sidecars', []):
+                ref = AssetRef(item['relative_path'], item['sha256'], 'dependency', 'export')
+                source = ref.verify(Path(conversion['output']).parent)
+                relative = (Path(primary).parent / ref.task_relative_path).as_posix()
+                target = (dest / relative).resolve()
+                target.relative_to(dest.resolve())
+                target.parent.mkdir(parents=True, exist_ok=True)
+                _deliver(target.parent, target.name, source, ref.sha256)
+                dependency_hashes[relative] = ref.sha256
             manifest_extra = {'primary': primary, 'converted_sha256': sha256_file(dest / primary),
-                              'conversion_warnings': conversion['report'].get('warnings', [])}
+                              'conversion_warnings': conversion['report'].get('warnings', []),
+                              'dependency_sha256': dependency_hashes}
         else:
             manifest_extra = None
     if saved_report is not None:
@@ -245,7 +262,7 @@ def export(task: Task, dest: Path, fmt: str = "glb", artifact: str = "model.glb"
     for frame in sorted(render_dir.glob("*.png")):
         shutil.copy2(frame, dest / frame.name)
     manifest = {"task_id": task.id, "artifact": artifact, "format": fmt,
-                "files": sorted(p.name for p in dest.iterdir()),
+                "files": sorted(p.relative_to(dest).as_posix() for p in dest.rglob('*') if p.is_file()),
                 "glb_sha256": sha256_file(dest / output_name)}
     if manifest_extra:
         manifest.update(manifest_extra)
@@ -528,6 +545,8 @@ def animate(task: Task, prompt: str, backend: str = 'unimate', repetitions: int 
     call because UniMate's released checkpoints are CC BY-NC 4.0.
     """
     import math
+    if type(accept_nc_license) is not bool:
+        raise ValueError('accept_nc_license must be a boolean, explicitly true to accept')
     if not isinstance(prompt, str) or not prompt.strip():
         raise ValueError('prompt must be a nonempty string')
     if type(repetitions) is not int or not 1 <= repetitions <= 8:
@@ -572,9 +591,23 @@ def animate(task: Task, prompt: str, backend: str = 'unimate', repetitions: int 
                 'prompt': prompt, 'repetitions': repetitions, 'cfg_scale': cfg_scale, 'seed': seed,
                 'weights_license_accepted': bool(accept_nc_license),
                 'artifact': str(out.relative_to(task.root)), 'visual_approval': 'pending'}
+    # External preprocessing receives a private copy, never the accepted source.
+    snapshot = task.root / 'motion' / f'{backend}-input.glb'
+    snapshot.parent.mkdir(parents=True, exist_ok=True)
+    if snapshot.exists():
+        raise FileExistsError('motion input snapshot exists; use a fresh task')
+    shutil.copy2(model, snapshot)
+    annotation_path = Path(annotation).resolve() if annotation else None
+    annotation_snapshot = None
+    if annotation_path is not None:
+        evidence['annotation_sha256'] = sha256_file(annotation_path)
+        annotation_snapshot = snapshot.with_name(f'{backend}-annotation.json')
+        if annotation_snapshot.exists():
+            raise FileExistsError('motion annotation snapshot exists; use a fresh task')
+        shutil.copy2(annotation_path, annotation_snapshot)
     try:
-        motion = solver.generate_motion(model, workdir, prompt, repetitions, cfg_scale, seed,
-                                        annotation)
+        motion = solver.generate_motion(snapshot, workdir, prompt, repetitions, cfg_scale, seed,
+                                        str(annotation_snapshot) if annotation_snapshot else None)
         evidence['motion'] = {key: value for key, value in motion.items() if key != 'clips'}
         if motion.get('status') == 'awaiting_review':
             raise RuntimeError('backend stopped for joint-label/facing review ('
@@ -582,26 +615,41 @@ def animate(task: Task, prompt: str, backend: str = 'unimate', repetitions: int 
         clips = [Path(p) for p in motion.get('clips') or []]
         if not motion.get('produced') or not clips:
             raise RuntimeError('motion backend produced no animated GLBs')
+        if (sha256_file(model) != evidence['input_sha256']
+                or sha256_file(snapshot) != evidence['input_sha256']):
+            raise RuntimeError('motion backend modified its input model')
+        if annotation_path and (sha256_file(annotation_path) != evidence['annotation_sha256']
+                or sha256_file(annotation_snapshot) != evidence['annotation_sha256']):
+            raise RuntimeError('motion backend modified annotation input')
         verdicts = []
         delivered = None
         for clip in clips:
+            clip.resolve().relative_to(workdir.resolve())
+            structural = inspect_glb(clip)
+            if (not structural['ok'] or not structural['has_skinning']
+                    or len(structural['animation_clips']) != 1
+                    or structural['joint_count'] != report['joint_count']):
+                raise RuntimeError('generated motion clip failed skin/animation inspection')
             gate_report = workdir / f'gate-{clip.stem}.json'
             result = gate.gate(clip, gate_report)
             status = (result.get('report') or {}).get('status', 'unavailable')
             verdicts.append({'clip': str(clip.relative_to(task.root)), 'status': status,
                              'exit_code': result['exit_code'],
                              'report': str(gate_report.relative_to(task.root))})
-            if status == 'pass' and delivered is None:
-                shutil.copy2(clip, out)
+            if status == 'pass' and result['exit_code'] == 0 and delivered is None:
                 delivered = clip
         evidence['gate'] = verdicts
         if delivered is None:
             rejected = _quarantine_files(task, clips)
             raise RuntimeError(f'no generated clip passed the contact gate; quarantined: {rejected}')
+        if sha256_file(model) != evidence['input_sha256']:
+            raise RuntimeError('motion source modified during contact checks')
+        shutil.copy2(delivered, out)
         evidence.update(status='pass', output_sha256=sha256_file(out),
                         delivered_clip=str(delivered.relative_to(task.root)))
     except Exception as exc:
-        evidence.update(status='fail', error=str(exc))
+        evidence.update(status='fail', error=str(exc),
+                        rejected_artifacts=_quarantine_candidate(task, out))
         task.record('animate', evidence)
         raise
     task.record('animate', evidence)
@@ -649,6 +697,8 @@ def transfer_rig(task: Task, source: str, artifact: str = 'model.glb',
                                + (result.get('stderr_tail') or '')[-500:])
         if not result.get('report'):
             raise RuntimeError('rig transfer produced no machine-readable report')
+        if result['report'].get('vertices_without_weights') != 0:
+            raise RuntimeError('rig transfer has unweighted vertices or missing weight evidence')
         report = inspect_glb(out)
         if not report['ok'] or not report['has_skinning']:
             raise RuntimeError('transferred GLB failed structural/skin inspection: '
@@ -664,10 +714,61 @@ def transfer_rig(task: Task, source: str, artifact: str = 'model.glb',
                         joint_count=report['joint_count'],
                         vertices_without_weights=result['report'].get('vertices_without_weights'))
     except Exception as exc:
-        evidence.update(status='fail', error=str(exc))
+        evidence.update(status='fail', error=str(exc),
+                        rejected_artifacts=_quarantine_candidate(task, out))
         task.record('transfer_rig', evidence)
         raise
     task.record('transfer_rig', evidence)
+    return evidence
+
+
+def bake(task: Task, source: str, artifact: str, params: dict | None = None) -> dict:
+    """High-to-low normal/AO bake; preserve both input assets."""
+    high, low = _model(task, source), _model(task, artifact)
+    if high == low:
+        raise ValueError('bake requires distinct high and low assets')
+    for path in (high, low):
+        report = inspect_glb(path)
+        allowed = {'primitives present but no PBR material', 'missing NORMAL attribute'}
+        if path == high:
+            allowed.add('missing TEXCOORD attribute')
+        problems = [p for p in report['problems'] if p not in allowed]
+        if problems or report['has_skinning'] or report['animation_clips']:
+            raise ValueError('bake requires structurally valid static GLBs before rigging')
+    backend = registry.get('blender-bake')
+    caps = backend.capabilities()
+    if not caps.available:
+        raise RuntimeError('bake unavailable: ' + caps.reason)
+    output = task.artifact('model-baked.glb')
+    if output.exists() or output.with_suffix('.blend').exists():
+        raise FileExistsError('bake candidate exists; use a new task')
+    evidence = {'backend': backend.id, 'source_artifact': source, 'target_artifact': artifact,
+                'high_sha256': sha256_file(high), 'low_sha256': sha256_file(low),
+                'params': dict(params or {}), 'artifact': 'artifacts/model-baked.glb',
+                'visual_approval': 'pending'}
+    try:
+        result = backend.bake(high, low, output, params or {})
+        evidence.update(result)
+        if result['exit_code'] != 0 or not result.get('produced'):
+            raise RuntimeError('bake failed: ' + result.get('stderr_tail', 'see report'))
+        report = result.get('report') or {}
+        if report.get('uv_preserved') is not True or report.get('target_triangles') != report.get('result_triangles'):
+            raise RuntimeError('bake changed target topology or UVs')
+        if not inspect_glb(output)['ok']:
+            raise RuntimeError('baked GLB failed structural inspection')
+        for path in (Path(result['blend']), Path(result['report_path']),
+                     *[Path(p) for p in result['textures'].values()]):
+            path.resolve().relative_to(output.parent.resolve())
+            if not path.is_file():
+                raise RuntimeError('bake artifact missing: ' + path.name)
+        if sha256_file(high) != evidence['high_sha256'] or sha256_file(low) != evidence['low_sha256']:
+            raise RuntimeError('bake modified source assets')
+        evidence.update(status='pass', output_sha256=sha256_file(output))
+    except Exception as exc:
+        evidence.update(status='fail', error=str(exc), rejected_artifacts=_quarantine_candidate(task, output))
+        task.record('bake', evidence)
+        raise
+    task.record('bake', evidence)
     return evidence
 
 
@@ -709,17 +810,49 @@ def mesh(task: Task, operation: str, params: dict | None = None,
 
 
 def _backend_version(backend_id: str) -> str:
+    import hashlib
+    import inspect as python_inspect
     import openfigura
     fallback = 'openfigura-' + openfigura.__version__
+    identity = {'package': fallback, 'backend': backend_id,
+                'engine_sha256': sha256_file(Path(__file__))}
+    # Composite verbs also depend on downstream validators/converters. A
+    # generation adapter's unchanged code must not preserve an obsolete gate.
+    composite = {'unimate': ['blender-motion-gate'],
+                 'export-snapshot': ['blender-formats']}.get(backend_id, [])
+    identity['downstream'] = {name: _backend_version(name) for name in composite}
     try:
-        notes = registry.probe(backend_id).notes or {}
+        backend = registry.get(backend_id)
+        notes = backend.capabilities().notes or {}
+        module = Path(python_inspect.getfile(type(backend)))
+        identity['adapter_sha256'] = sha256_file(module)
+        identity['class'] = type(backend).__qualname__
+        # Worker code is part of the computation identity, not just the package label.
+        dependencies = {'native-motion': ['motion_worker.py','retarget_worker.gd','contact.py'],
+                        'mia': ['mia_worker.py','neural_bind_worker.py','neural_fit.py','mesh_sampling.py'],
+                        'blender-motion-gate': ['motion_gate_worker.py','contact.py'],
+                        'blender-rig-transfer': ['rig_transfer_worker.py'],
+                        'blender-formats': ['format_export_worker.py'],
+                        'blender-bake': ['bake_worker.py'],
+                        'blender-mesh-tools': ['mesh_tools_worker.py']}.get(backend_id, [])
+        identity['workers'] = {name: sha256_file(module.with_name(name))
+                               for name in dependencies if module.with_name(name).is_file()}
+        identity['declared_versions'] = {k: notes[k] for k in ('version','binary_version') if k in notes}
+        binaries = {}
+        for key in ('runtime','binary'):
+            value = notes.get(key)
+            if isinstance(value, str) and Path(value).is_file():
+                binaries[key] = sha256_file(Path(value))
+        identity['binaries'] = binaries
+        models = notes.get('models')
+        if isinstance(models, str) and Path(models).is_dir():
+            identity['model_files'] = {p.name: [p.stat().st_size, p.stat().st_mtime_ns]
+                                       for p in sorted(Path(models).glob('*.gguf'))}
     except Exception:
-        return fallback
-    for key in ('version', 'binary_version'):
-        value = notes.get(key)
-        if isinstance(value, str) and value.strip():
-            return value
-    return fallback
+        # Builtin verbs have no external backend. Engine bytes still invalidate stale gates.
+        pass
+    digest = hashlib.sha256(json.dumps(identity, sort_keys=True, default=str).encode()).hexdigest()
+    return fallback + '+' + digest
 
 
 def _dict_param(params: dict, key: str) -> dict:
@@ -873,8 +1006,8 @@ def _run_animate(sandbox, staged, params):
     return animate(sandbox, prompt, backend=params.get('backend', 'unimate'),
                    repetitions=params.get('repetitions', 3), cfg_scale=params.get('cfg_scale', 3.0),
                    seed=params.get('seed', 42), artifact=params.get('artifact', 'model-autorig.glb'),
-                   annotation=params.get('annotation'),
-                   accept_nc_license=bool(params.get('accept_nc_license', False)))
+                   annotation=str(_require_input(staged, params, 'annotation')) if params.get('annotation') else None,
+                   accept_nc_license=params.get('accept_nc_license', False))
 
 
 def _outputs_animate(sandbox, params, result):
@@ -906,10 +1039,23 @@ def _backend_for(step: str, params: dict) -> str:
         return value
     return {'rig': 'rigify', 'mesh': 'blender-mesh-tools', 'retarget': 'native-motion',
             'render': 'blender', 'export': 'export-snapshot', 'transfer_rig': 'blender-rig-transfer',
-            'inspect': 'stdlib-inspect'}[step]
+            'inspect': 'stdlib-inspect', 'bake': 'blender-bake'}[step]
+
+
+def _run_bake(sandbox, staged, params):
+    return bake(sandbox, params['source'], params['artifact'], _dict_param(params, 'params'))
+
+
+def _outputs_bake(sandbox, params, result):
+    output = [_pair(sandbox, 'artifacts/model-baked.glb', 'model'),
+              _pair(sandbox, 'artifacts/model-baked.blend', 'blend'),
+              _pair(sandbox, 'artifacts/model-baked.bake-report.json', 'report')]
+    output += [(str(Path(p).relative_to(sandbox.root)), 'texture') for p in result['textures'].values()]
+    return output
 
 
 _EXEC_STEPS = {
+    'bake': {'allowed': {'source', 'artifact', 'params'}, 'run': _run_bake, 'outputs': _outputs_bake},
     'inspect': {'allowed': {'artifact'}, 'run': _run_inspect, 'outputs': _outputs_inspect},
     'generate': {'allowed': {'backend', 'params', 'force'}, 'run': _run_generate, 'outputs': _outputs_generate},
     'render': {'allowed': {'views', 'samples', 'facing_deg', 'artifact', 'frame'}, 'run': _run_render, 'outputs': _outputs_render},
@@ -947,6 +1093,12 @@ def execute(task: Task, step: str, inputs: list[dict], params: dict | None = Non
     unknown = sorted(set(params) - spec['allowed'])
     if unknown:
         raise ValueError(f'unsupported parameters for {step}: {unknown}')
+    if step == 'animate':
+        if type(params.get('accept_nc_license', False)) is not bool:
+            raise ValueError('accept_nc_license must be a boolean')
+        if params.get('annotation') is not None and params['annotation'] not in {
+                Path(ref.task_relative_path).name for ref in refs}:
+            raise ValueError('annotation must name a declared hash-verified input basename')
     backend_id = _backend_for(step, params)
     workflow = Workflow(task.root)
     stage = workflow.submit(step, refs, params, backend_id, _backend_version(backend_id))
