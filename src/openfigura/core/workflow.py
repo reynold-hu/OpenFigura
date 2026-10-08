@@ -107,6 +107,23 @@ class Workflow:
     def _verify_serialized(self, refs: list[dict]) -> None:
         self._refs([AssetRef.from_dict(ref) for ref in refs])
 
+    def _accepted_outputs(self, stage: dict, outputs: list[AssetRef]) -> list[dict]:
+        if not outputs:
+            raise ValueError('completion requires verified outputs')
+        self._verify_serialized(stage['inputs'])
+        refs = self._refs(outputs)
+        input_paths = {(self.root / ref['task_relative_path']).resolve() for ref in stage['inputs']}
+        for ref in outputs:
+            path = (self.root / ref.task_relative_path).resolve()
+            if path in input_paths or any(path.samefile(input_path) for input_path in input_paths):
+                raise ValueError('an input path cannot be reused as an output')
+            if ('rejected' in Path(ref.task_relative_path).parts
+                    or 'rejected' in path.relative_to(self.root).parts):
+                raise ValueError('rejected assets cannot be outputs')
+            if ref.producer_step != stage['step']:
+                raise ValueError('output producer_step must match stage step')
+        return refs
+
     def _cached(self, connection, key: str) -> dict | None:
         rows = connection.execute('SELECT payload FROM stages ORDER BY rowid DESC').fetchall()
         for row in rows:
@@ -114,8 +131,7 @@ class Workflow:
             if stage['cache_key'] != key or stage['status'] != 'pass' or not stage['outputs']:
                 continue
             try:
-                self._verify_serialized(stage['inputs'])
-                self._verify_serialized(stage['outputs'])
+                self._accepted_outputs(stage, [AssetRef.from_dict(ref) for ref in stage['outputs']])
             except (ValueError, OSError):
                 continue
             return stage
@@ -158,20 +174,7 @@ class Workflow:
             stage = self._load(connection, stage_id)
             if stage['status'] != 'running':
                 raise ValueError('only a running stage can complete')
-            if not outputs:
-                raise ValueError('completion requires verified outputs')
-            self._verify_serialized(stage['inputs'])
-            refs = self._refs(outputs)
-            input_paths = {(self.root / ref['task_relative_path']).resolve() for ref in stage['inputs']}
-            for ref in outputs:
-                path = (self.root / ref.task_relative_path).resolve()
-                if path in input_paths or any(path.samefile(input_path) for input_path in input_paths):
-                    raise ValueError('an input path cannot be reused as an output')
-                if ('rejected' in Path(ref.task_relative_path).parts
-                        or 'rejected' in path.relative_to(self.root).parts):
-                    raise ValueError('rejected assets cannot be outputs')
-                if ref.producer_step != stage['step']:
-                    raise ValueError('output producer_step must match stage step')
+            refs = self._accepted_outputs(stage, outputs)
             stage.update(status='pass', outputs=refs, updated_utc=time.time())
             return self._save(connection, stage)
 

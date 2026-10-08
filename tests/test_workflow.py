@@ -193,3 +193,34 @@ def test_complete_rejects_hardlink_alias_of_input(task):
     output = AssetRef('artifacts/alias', asset.sha256, 'mesh', 'generate')
     with pytest.raises(ValueError):
         workflow.complete(stage['stage_id'], [output])
+
+
+@pytest.mark.parametrize('replacement', ['hardlink', 'rejected_symlink', 'producer'])
+def test_cache_reapplies_output_acceptance_guards(task, replacement):
+    workflow = Workflow(task.root)
+    asset = ref(task, 'input/a')
+    stage = submit(workflow, [asset])
+    sid = stage['stage_id']
+    workflow.claim(sid)
+    output = ref(task, 'artifacts/output', 'generate')
+    workflow.complete(sid, [output])
+    path = task.root / output.task_relative_path
+    if replacement == 'hardlink':
+        path.unlink()
+        path.hardlink_to(task.root / asset.task_relative_path)
+    elif replacement == 'rejected_symlink':
+        rejected = ref(task, 'artifacts/rejected/candidate', 'generate')
+        path.unlink()
+        path.symlink_to(task.root / rejected.task_relative_path)
+    else:
+        with sqlite3.connect(workflow.database) as database:
+            payload = json.loads(database.execute(
+                'SELECT payload FROM stages WHERE stage_id = ?', (sid,)).fetchone()[0])
+            payload['outputs'][0]['producer_step'] = 'other'
+            database.execute('UPDATE stages SET payload = ? WHERE stage_id = ?',
+                             (json.dumps(payload), sid))
+    before = workflow.events(sid)
+    fresh = submit(workflow, [asset])
+    assert fresh['status'] == 'queued'
+    assert fresh['cached_from'] is None
+    assert workflow.events(sid) == before
