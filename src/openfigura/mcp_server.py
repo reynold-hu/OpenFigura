@@ -147,6 +147,22 @@ def build():
                       artifact: str = "model.glb") -> dict:
         return engine.export(Task.open(Path(task_root)), Path(dest), fmt=format, artifact=artifact)
 
+    @app.tool(description="Static mesh operation in an isolated Blender process: "
+              "segment | optimize (decimate) | retopo (QuadriFlow) | collision (convex hulls) | uv "
+              "(smart project). Preserves the source, emits <stem>-<operation>.glb plus a machine "
+              "report. Retopo/UV replace topology or UVs: texture rebake required, no bake here.")
+    def figura_mesh(task_root: str, operation: str, params: dict | None = None,
+                    artifact: str = "model.glb") -> dict:
+        return engine.mesh(Task.open(Path(task_root)), operation, params, artifact=artifact)
+
+    @app.tool(description="Execute one engine verb under a durable workflow stage: "
+              "inputs are hash-verified task-local asset references, the verb runs in a private "
+              "sandbox, and a pass names the exact output bytes it produced. Identical verified "
+              "requests reuse the cached pass without re-running the backend.")
+    def figura_execute(task_root: str, step: str, inputs: list[dict],
+                       params: dict | None = None) -> dict:
+        return engine.execute(Task.open(Path(task_root)), step, inputs, params)
+
     return app
 
 

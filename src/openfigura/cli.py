@@ -130,6 +130,27 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--artifact", default="model.glb")
     p.set_defaults(func=lambda a: _print(engine.inspect(Task.open(Path(a.task)), artifact=a.artifact)))
 
+    p = sub.add_parser("mesh", help="static mesh op in isolated Blender "
+                       "(segment/optimize/retopo/collision/uv)")
+    p.add_argument("task")
+    p.add_argument("--operation", required=True,
+                   choices=["segment", "optimize", "retopo", "collision", "uv"])
+    p.add_argument("--params", default="{}", help="JSON object of operation parameters")
+    p.add_argument("--artifact", default="model.glb")
+    p.set_defaults(func=lambda a: _print(engine.mesh(
+        Task.open(Path(a.task)), a.operation, json.loads(_json_arg(a.params)),
+        artifact=a.artifact)))
+
+    p = sub.add_parser("execute", help="run one verb under a durable stage record "
+                       "with hash-verified inputs and outputs")
+    p.add_argument("task")
+    p.add_argument("--step", required=True)
+    p.add_argument("--inputs", required=True, help="JSON list of asset refs, or @file.json")
+    p.add_argument("--params", default="{}", help="JSON object, or @file.json")
+    p.set_defaults(func=lambda a: _print(engine.execute(
+        Task.open(Path(a.task)), a.step, json.loads(_json_arg(a.inputs)),
+        json.loads(_json_arg(a.params)))))
+
     p = sub.add_parser("export", help="copy verified artifacts to a delivery folder")
     p.add_argument("task")
     p.add_argument("--artifact", default="model.glb")
@@ -144,6 +165,13 @@ def main(argv: list[str] | None = None) -> int:
     except (RuntimeError, FileNotFoundError, ValueError) as exc:
         print(f"OPENFIGURA ERROR: {exc}", file=sys.stderr)
         return 1
+
+
+def _json_arg(value: str) -> str:
+    """Accept inline JSON or @path/to/file.json."""
+    if value.startswith('@'):
+        return Path(value[1:]).read_text(encoding='utf-8')
+    return value
 
 
 def _probe(bid: str) -> dict:

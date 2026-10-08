@@ -17,9 +17,11 @@ import uuid
 from pathlib import Path
 
 from openfigura.core import registry
+from openfigura.core.contracts import AssetRef
 from openfigura.core.inspect import inspect_glb
 from openfigura.core.preflight import preflight
 from openfigura.core.task import Task, sha256_file
+from openfigura.core.workflow import Workflow
 
 
 def set_style(task: Task, spec: dict) -> dict:
@@ -462,3 +464,287 @@ def retarget(task: Task, animation: Path, artifact: str = 'model-autorig.glb',
         task.record('retarget',evidence)
         raise
     task.record('retarget',evidence);return evidence
+
+
+def mesh(task: Task, operation: str, params: dict | None = None,
+         artifact: str = 'model.glb') -> dict:
+    """Static-mesh processing in an isolated Blender process (original tools).
+
+    Deterministic candidate name '<artifact stem>-<operation>.glb' so the
+    durable stage record, the ledger and the bytes always agree.
+    """
+    backend = registry.get('blender-mesh-tools')
+    caps = backend.capabilities()
+    if not caps.available:
+        raise RuntimeError('mesh tools unavailable: ' + caps.reason)
+    model = _model(task, artifact)
+    if not model.is_file():
+        raise FileNotFoundError('nothing to process; run generate first')
+    out = task.artifact(f'{model.stem}-{operation}.glb')
+    if out.exists() or out.with_suffix('.mesh-report.json').exists():
+        raise FileExistsError('mesh candidate already exists; use a new task')
+    evidence = {'backend': backend.id, 'source_artifact': artifact, 'operation': operation,
+                'input_sha256': sha256_file(model), 'params': dict(params or {}),
+                'artifact': str(out.relative_to(task.root)), 'visual_approval': 'pending'}
+    try:
+        result = backend.process(model, out, operation, params or {})
+        evidence.update(result)
+        if result['exit_code'] != 0 or not out.is_file():
+            raise RuntimeError(f"mesh {operation} exited {result['exit_code']}: "
+                               + (result.get('stderr_tail') or '')[-500:])
+        if not result.get('report'):
+            raise RuntimeError(f'mesh {operation} produced no machine-readable report')
+        evidence.update(status='pass', output_sha256=sha256_file(out))
+    except Exception as exc:
+        evidence.update(status='fail', error=str(exc))
+        task.record('mesh', evidence)
+        raise
+    task.record('mesh', evidence)
+    return evidence
+
+
+def _backend_version(backend_id: str) -> str:
+    import openfigura
+    fallback = 'openfigura-' + openfigura.__version__
+    try:
+        notes = registry.probe(backend_id).notes or {}
+    except Exception:
+        return fallback
+    for key in ('version', 'binary_version'):
+        value = notes.get(key)
+        if isinstance(value, str) and value.strip():
+            return value
+    return fallback
+
+
+def _dict_param(params: dict, key: str) -> dict:
+    value = params.get(key) or {}
+    if not isinstance(value, dict):
+        raise ValueError(f"params[{key!r}] must be an object")
+    return dict(value)
+
+
+def _stage_inputs(task: Task, refs: list[AssetRef], sandbox: Task) -> dict[str, Path]:
+    staged: dict[str, Path] = {}
+    for ref in refs:
+        source = ref.verify(task.root)
+        name = Path(ref.task_relative_path).name
+        if name in staged:
+            raise ValueError(f'input basenames must be unique; collision on {name!r}')
+        dest = sandbox.artifact(name) if ref.kind == 'model' else sandbox.root / 'input' / name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, dest)
+        staged[name] = dest
+    return staged
+
+
+def _require_input(staged: dict[str, Path], params: dict, key: str) -> Path:
+    name = params.get(key)
+    if not isinstance(name, str) or name not in staged:
+        raise ValueError(f'params[{key!r}] must name a declared input basename')
+    return staged[name]
+
+
+def _pair(sandbox: Task, rel: str, kind: str) -> tuple[str, str]:
+    if not (sandbox.root / rel).is_file():
+        raise RuntimeError(f'verb reported pass but output is missing: {rel}')
+    return (rel, kind)
+
+
+def _blend_pair(sandbox: Task, stem: str) -> list[tuple[str, str]]:
+    return [_pair(sandbox, f'artifacts/{stem}.blend', 'blend')] \
+        if (sandbox.artifact(f'{stem}.blend')).is_file() else []
+
+
+def _run_inspect(sandbox, staged, params):
+    return inspect(sandbox, artifact=params.get('artifact', 'model.glb'))
+
+
+def _outputs_inspect(sandbox, params, result):
+    artifact = params.get('artifact', 'model.glb')
+    name = 'inspect.json' if artifact == 'model.glb' else f'{Path(artifact).stem}-inspect.json'
+    return [_pair(sandbox, name, 'report')]
+
+
+def _run_generate(sandbox, staged, params):
+    backend = params.get('backend')
+    if not isinstance(backend, str) or not backend.strip():
+        raise ValueError("params['backend'] must be a backend id")
+    return generate(sandbox, backend, _dict_param(params, 'params'),
+                    force=bool(params.get('force', False)))
+
+
+def _outputs_generate(sandbox, params, result):
+    refs = [_pair(sandbox, 'artifacts/model.glb', 'model')]
+    if (sandbox.root / 'artifacts/matte.glb').is_file():
+        refs.append(_pair(sandbox, 'artifacts/matte.glb', 'model'))
+    return refs
+
+
+def _run_render(sandbox, staged, params):
+    views = params.get('views')
+    if views is not None and (not isinstance(views, list)
+                              or any(not isinstance(v, str) for v in views)):
+        raise ValueError('views must be a list of strings')
+    return render(sandbox, views=views, samples=params.get('samples', 32),
+                  facing_deg=params.get('facing_deg', 0),
+                  artifact=params.get('artifact', 'model.glb'),
+                  frame=params.get('frame', 1))
+
+
+def _outputs_render(sandbox, params, result):
+    frames = sorted(p for p in (sandbox.root / 'render').rglob('*.png') if p.is_file())
+    if not frames:
+        raise RuntimeError('render produced no frames')
+    return [_pair(sandbox, str(p.relative_to(sandbox.root)), 'frame') for p in frames]
+
+
+def _run_rig(sandbox, staged, params):
+    calibration = _require_input(staged, params, 'calibration')
+    return rig(sandbox, calibration, skin_method=params.get('skin_method', 'automatic'),
+               artifact=params.get('artifact', 'model.glb'))
+
+
+def _outputs_rig(sandbox, params, result):
+    return [_pair(sandbox, 'artifacts/model-rigged.glb', 'model')] \
+        + _blend_pair(sandbox, 'model-rigged')
+
+
+def _run_autorig(sandbox, staged, params):
+    return autorig(sandbox, backend=params.get('backend', 'mia'),
+                   device=params.get('device', 'cpu'), seed=params.get('seed', 42),
+                   query_chunk=params.get('query_chunk', 8192),
+                   artifact=params.get('artifact', 'model.glb'))
+
+
+def _outputs_autorig(sandbox, params, result):
+    return [_pair(sandbox, 'artifacts/model-autorig.glb', 'model')] \
+        + _blend_pair(sandbox, 'model-autorig')
+
+
+def _run_retarget(sandbox, staged, params):
+    animation = _require_input(staged, params, 'animation')
+    return retarget(sandbox, animation, artifact=params.get('artifact', 'model-autorig.glb'),
+                    frames=params.get('frames', 31), fps=params.get('fps', 24))
+
+
+def _outputs_retarget(sandbox, params, result):
+    return [_pair(sandbox, 'artifacts/model-animated.glb', 'model')] \
+        + _blend_pair(sandbox, 'model-animated')
+
+
+def _run_export(sandbox, staged, params):
+    return export(sandbox, sandbox.root / 'delivery', fmt=params.get('fmt', 'glb'),
+                  artifact=params.get('artifact', 'model.glb'))
+
+
+def _outputs_export(sandbox, params, result):
+    files = sorted(p for p in (sandbox.root / 'delivery').rglob('*') if p.is_file())
+    if not files:
+        raise RuntimeError('export produced no files')
+    kind = {'.glb': 'model', '.json': 'report', '.png': 'frame'}
+    return [_pair(sandbox, str(p.relative_to(sandbox.root)),
+                  kind.get(p.suffix.lower(), 'file')) for p in files]
+
+
+def _run_mesh(sandbox, staged, params):
+    operation = params.get('operation')
+    if not isinstance(operation, str) or not operation.strip():
+        raise ValueError("params['operation'] is required")
+    return mesh(sandbox, operation, _dict_param(params, 'params'),
+                artifact=params.get('artifact', 'model.glb'))
+
+
+def _outputs_mesh(sandbox, params, result):
+    stem = f'{Path(params.get("artifact", "model.glb")).stem}-{params["operation"]}'
+    return [_pair(sandbox, f'artifacts/{stem}.glb', 'model'),
+            _pair(sandbox, f'artifacts/{stem}.mesh-report.json', 'report')]
+
+
+def _backend_for(step: str, params: dict) -> str:
+    if step in {'generate', 'autorig'}:
+        value = params.get('backend')
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("params['backend'] must be a backend id")
+        return value
+    return {'rig': 'rigify', 'mesh': 'blender-mesh-tools', 'retarget': 'native-motion',
+            'render': 'blender', 'export': 'export-snapshot',
+            'inspect': 'stdlib-inspect'}[step]
+
+
+_EXEC_STEPS = {
+    'inspect': {'allowed': {'artifact'}, 'run': _run_inspect, 'outputs': _outputs_inspect},
+    'generate': {'allowed': {'backend', 'params', 'force'}, 'run': _run_generate, 'outputs': _outputs_generate},
+    'render': {'allowed': {'views', 'samples', 'facing_deg', 'artifact', 'frame'}, 'run': _run_render, 'outputs': _outputs_render},
+    'rig': {'allowed': {'calibration', 'skin_method', 'artifact'}, 'run': _run_rig, 'outputs': _outputs_rig},
+    'autorig': {'allowed': {'backend', 'device', 'seed', 'query_chunk', 'artifact'}, 'run': _run_autorig, 'outputs': _outputs_autorig},
+    'retarget': {'allowed': {'animation', 'artifact', 'frames', 'fps'}, 'run': _run_retarget, 'outputs': _outputs_retarget},
+    'export': {'allowed': {'fmt', 'artifact'}, 'run': _run_export, 'outputs': _outputs_export},
+    'mesh': {'allowed': {'operation', 'params', 'artifact'}, 'run': _run_mesh, 'outputs': _outputs_mesh},
+}
+
+
+def execute(task: Task, step: str, inputs: list[dict], params: dict | None = None) -> dict:
+    """Run one engine verb under a durable stage record with verified outputs.
+
+    Inputs are task-local AssetRefs; each stage executes the verb inside a
+    private sandbox (stages/<stage_id>/) so a stage only ever sees the
+    declared inputs, and a pass always names the bytes it produced.
+    """
+    import time
+    spec = _EXEC_STEPS.get(step)
+    if spec is None:
+        raise ValueError(f'step {step!r} is not executable; known: {sorted(_EXEC_STEPS)}')
+    if not isinstance(inputs, list):
+        raise ValueError('inputs must be a list of asset reference dicts')
+    refs = [AssetRef.from_dict(item) for item in inputs]
+    if params is None:
+        params = {}
+    if not isinstance(params, dict):
+        raise ValueError('params must be an object')
+    unknown = sorted(set(params) - spec['allowed'])
+    if unknown:
+        raise ValueError(f'unsupported parameters for {step}: {unknown}')
+    backend_id = _backend_for(step, params)
+    workflow = Workflow(task.root)
+    stage = workflow.submit(step, refs, params, backend_id, _backend_version(backend_id))
+    identity = {'stage_id': stage['stage_id'], 'step': step, 'backend': stage['backend'],
+                'backend_version': stage['backend_version'], 'cache_key': stage['cache_key']}
+    if stage['status'] == 'pass':
+        task.record('execute', {**identity, 'status': 'pass',
+                                'cached_from': stage['cached_from'], 'outputs': stage['outputs']})
+        return {'status': 'pass', **identity, 'cached_from': stage['cached_from'],
+                'outputs': stage['outputs']}
+    started = time.monotonic()
+    workflow.claim(stage['stage_id'])
+    sandbox = Task.create(task.root / 'stages', name=stage['stage_id'])
+    sandbox.record('stage', {**identity, 'inputs': stage['inputs'], 'params': stage['params']})
+    try:
+        staged = _stage_inputs(task, refs, sandbox)
+        result = spec['run'](sandbox, staged, params)
+        pairs = spec['outputs'](sandbox, params, result)
+        outputs = [AssetRef(f'stages/{sandbox.id}/{rel}', sha256_file(sandbox.root / rel),
+                           kind, step) for rel, kind in pairs]
+        workflow.complete(stage['stage_id'], outputs)
+    except Exception as exc:
+        reason = f'{type(exc).__name__}: {exc}'
+        sandbox.record('stage_result', {'stage_id': stage['stage_id'], 'status': 'fail',
+                                        'error': reason})
+        workflow.fail(stage['stage_id'], reason)
+        task.record('execute', {**identity, 'status': 'fail', 'error': reason,
+                                'wall_seconds': round(time.monotonic() - started, 2)})
+        raise ValueError(f'stage {step} failed: {reason}') from exc
+    summary = {'status': 'pass', **identity, 'cached_from': None,
+               'outputs': [ref.to_dict() for ref in outputs],
+               'wall_seconds': round(time.monotonic() - started, 2),
+               'result': {key: value for key, value in result.items()
+                          if key in {'ok', 'sha256', 'frames', 'exit_code', 'operation',
+                                     'output', 'report_path', 'joint_count', 'glb_sha256',
+                                     'produced', 'output_sha256'}}}
+    sandbox.record('stage_result', {'stage_id': stage['stage_id'], 'status': 'pass',
+                                    'outputs': summary['outputs'],
+                                    'wall_seconds': summary['wall_seconds']})
+    task.record('execute', {**identity, 'status': 'pass', 'cached_from': None,
+                            'outputs': summary['outputs'],
+                            'wall_seconds': summary['wall_seconds']})
+    return summary
