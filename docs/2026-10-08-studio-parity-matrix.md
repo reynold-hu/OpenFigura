@@ -85,3 +85,10 @@ partial（语义不同名易混，命名保留但文档写明）。
 policy-gate 11（云 API/生成图像/门控权重）。差距集中在：烘焙与蒙皮
 转移、语义部件分解、FBX/引擎导出、程序化子系统、库与批处理、UI。
 每一项推进需按 `loop/TASKS.md` 逐条以测试+真实产物为凭。
+
+## 晚间补记（同日晚些，追加事实）
+- 导出多格式（B 类 #4）已落地并真实运行：FBX（含动画 2.83MB）/OBJ/STL/USD
+  全部 exit 0，USDZ 如实报"本 Blender 构建未暴露"。§1 与 §7 中的导出缺口相应收窄。
+- `animate` 动词 + 独立 `blender-motion-gate`（真实双向证据入单测）与
+  UniMate 适配器合入；Studio 的 auto_rig/Kimodo/MoCap 类功能仍是 absent，
+  等待 CUDA 节点后以 L13 实跑数据更新本矩阵。

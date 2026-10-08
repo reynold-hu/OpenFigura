@@ -169,11 +169,12 @@ def main(argv: list[str] | None = None) -> int:
         Task.open(Path(a.task)), a.step, json.loads(_json_arg(a.inputs)),
         json.loads(_json_arg(a.params)))))
 
-    p = sub.add_parser("export", help="copy verified artifacts to a delivery folder")
+    p = sub.add_parser("export", help="copy verified artifacts to a delivery folder "
+                       "(glb via stdlib; fbx/obj/stl/usd convert the verified snapshot in Blender)")
     p.add_argument("task")
     p.add_argument("--artifact", default="model.glb")
     p.add_argument("--dest", required=True)
-    p.add_argument("--format", default="glb", choices=["glb"])
+    p.add_argument("--format", default="glb", choices=["glb", "fbx", "obj", "stl", "usd"])
     p.set_defaults(func=_cmd_export)
 
     args = parser.parse_args(argv)

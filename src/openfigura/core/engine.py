@@ -164,9 +164,27 @@ def inspect(task: Task, artifact: str = "model.glb") -> dict:
     return report
 
 
+SUPPORTED_FORMATS = ('glb', 'fbx', 'obj', 'stl', 'usd')
+
+
+def _deliver(dest: Path, name: str, source: Path, expect_sha: str | None = None) -> None:
+    """Atomically place one file in dest via a same-directory temp, re-hashing bytes."""
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(dir=dest, suffix='.export-tmp', delete=False) as handle:
+            temporary = Path(handle.name)
+        shutil.copy2(source, temporary)
+        if expect_sha is not None and sha256_file(temporary) != expect_sha:
+            raise RuntimeError(f'refusing to export: copied bytes failed hash verification ({name})')
+        os.replace(temporary, dest / name)
+    finally:
+        if temporary is not None and temporary.exists():
+            temporary.unlink()
+
+
 def export(task: Task, dest: Path, fmt: str = "glb", artifact: str = "model.glb") -> dict:
-    if fmt != "glb":
-        raise ValueError(f"format {fmt!r} not supported yet; only 'glb'")
+    if fmt not in SUPPORTED_FORMATS:
+        raise ValueError(f"format {fmt!r} unsupported; supported: {list(SUPPORTED_FORMATS)}")
     glb = _model(task, artifact)
     report_path = task.root / ("inspect.json" if artifact == "model.glb" else glb.stem + "-inspect.json")
     if not glb.is_file():
@@ -175,6 +193,7 @@ def export(task: Task, dest: Path, fmt: str = "glb", artifact: str = "model.glb"
     output_name = f"{task.id}.glb" if artifact == "model.glb" else f"{task.id}-{glb.stem}.glb"
     # Inspect and publish a private snapshot, so an active writer cannot switch
     # the source bytes between inspection and delivery.
+    conversion = None
     with tempfile.TemporaryDirectory(prefix='openfigura-export-') as staging:
         snapshot = Path(staging) / 'model.glb'
         shutil.copy2(glb, snapshot)
@@ -197,29 +216,46 @@ def export(task: Task, dest: Path, fmt: str = "glb", artifact: str = "model.glb"
             if not report.get('ok'):
                 raise RuntimeError('refusing to export: inspection reported problems: '
                                    + '; '.join(report['problems']))
+        if fmt != 'glb':
+            backend = registry.get('blender-formats')
+            caps = backend.capabilities()
+            if not caps.available:
+                raise RuntimeError('format export unavailable: ' + caps.reason)
+            converted = Path(staging) / f'convert.{backend.EXTENSIONS[fmt]}'
+            conversion = backend.convert(snapshot, converted, fmt)
+            if conversion['exit_code'] != 0 or not converted.is_file() or not conversion.get('report'):
+                raise RuntimeError(f"format conversion {fmt} exited {conversion['exit_code']}: "
+                                   + (conversion.get('stderr_tail') or '')[-400:])
         dest.mkdir(parents=True, exist_ok=True)
-        temporary_output = None
-        try:
-            with tempfile.NamedTemporaryFile(dir=dest, suffix='.export-tmp', delete=False) as handle:
-                temporary_output = Path(handle.name)
-            shutil.copy2(snapshot, temporary_output)
-            if sha256_file(temporary_output) != current_hash:
-                raise RuntimeError('refusing to export: copied bytes failed hash verification')
-            os.replace(temporary_output, dest / output_name)
-        finally:
-            if temporary_output is not None and temporary_output.exists():
-                temporary_output.unlink()
+        _deliver(dest, output_name, snapshot, current_hash)
+        if conversion is not None:
+            ext = Path(conversion['output']).suffix.lstrip('.')
+            primary = output_name[:-4] + '.' + ext if output_name.endswith('.glb') else output_name + '.' + ext
+            _deliver(dest, primary, Path(conversion['output']),
+                     sha256_file(Path(conversion['output'])))
+            _deliver(dest, f'{Path(primary).stem}.{ext}-report.json', Path(conversion['report_path']))
+            manifest_extra = {'primary': primary, 'converted_sha256': sha256_file(dest / primary),
+                              'conversion_warnings': conversion['report'].get('warnings', [])}
+        else:
+            manifest_extra = None
     if saved_report is not None:
         (dest / 'inspect.json').write_text(saved_report, encoding='utf-8')
     shutil.copy2(task.root / "provenance.json", dest / "provenance.json")
     render_dir = task.root / "render" if artifact == "model.glb" else task.root / "render" / glb.stem
     for frame in sorted(render_dir.glob("*.png")):
         shutil.copy2(frame, dest / frame.name)
-    manifest = {"task_id": task.id, "artifact": artifact, "files": sorted(p.name for p in dest.iterdir()),
+    manifest = {"task_id": task.id, "artifact": artifact, "format": fmt,
+                "files": sorted(p.name for p in dest.iterdir()),
                 "glb_sha256": sha256_file(dest / output_name)}
+    if manifest_extra:
+        manifest.update(manifest_extra)
     (dest / "export-manifest.json").write_text(
         json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    task.record("export", {"dest": str(dest), **manifest})
+    entry = {"dest": str(dest), **manifest}
+    if conversion is not None:
+        entry['conversion'] = {'command': conversion['command'], 'exit_code': conversion['exit_code'],
+                               'wall_seconds': conversion['wall_seconds']}
+    task.record("export", entry)
     return manifest
 
 

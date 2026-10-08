@@ -142,7 +142,9 @@ def build():
         return engine.inspect(Task.open(Path(task_root)), artifact=artifact)
 
     @app.tool(description="Export verified artifacts + provenance to a delivery "
-              "folder. Refuses if inspection reported problems.")
+              "folder. Refuses if inspection reported problems. format 'glb' is "
+              "stdlib; 'fbx'/'obj'/'stl'/'usd' convert the verified snapshot in an "
+              "isolated Blender and ship a machine report naming what each format drops.")
     def figura_export(task_root: str, dest: str, format: str = "glb",
                       artifact: str = "model.glb") -> dict:
         return engine.export(Task.open(Path(task_root)), Path(dest), fmt=format, artifact=artifact)

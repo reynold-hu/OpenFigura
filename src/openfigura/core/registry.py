@@ -55,7 +55,8 @@ def probe(backend_id: str) -> Capabilities:
 def _bootstrap() -> None:
     """Register built-in backends lazily so import errors stay per-backend."""
     from openfigura.backends import (pixal3d, blender, photo_paint, rigify, mia,
-                                     native_motion, mesh_tools, motion_gate, unimate)  # noqa: F401
+                                     native_motion, mesh_tools, motion_gate, unimate,
+                                     format_export)  # noqa: F401
 
 
 _bootstrap()

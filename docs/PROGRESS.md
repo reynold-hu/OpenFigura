@@ -443,6 +443,18 @@ Work continues on branch `codex/3d-loop` (worktree
   rest-pose `model-autorig.glb` FAILS the same gate on sub-margin clearance
   — the standalone gate reproduces the verdicts the in-loop checker made,
   with no shared process state.
+- **Multi-format export landed** (parity B-class #4): `openfigura export
+  --format {glb,fbx,obj,stl,usd}` + MCP mirror + executor step. GLB path
+  unchanged (stdlib); other formats convert the *verified snapshot* in an
+  isolated Blender (`blender-formats` backend, operators probed live —
+  USDZ is honestly reported absent on this build). Delivery folders carry
+  the source GLB, the converted file, a machine report naming what each
+  format drops, hashes for both, and the ledger records the conversion
+  command/exit/wall. Real runs tonight: bunny animated GLB → FBX 2.83 MB
+  carrying action `NativeRetargetIKContactTrial` (20,038 verts, textures
+  embedded), plus OBJ/STL/USD all exit 0 with warnings
+  (`~/Desktop/openfigura-3d-loop-2026-10-08/delivery-{fbx,obj,stl,usd}/`,
+  logs 20). Suite: **211 passed**.
 - Git hygiene side-quest, same evening: `~/.gitconfig` email typo
   (`reynonlds…`) corrected to `reynoldsworking@gmail.com`; all local
   branches filter-rewritten (author, committer **and Signed-off-by
