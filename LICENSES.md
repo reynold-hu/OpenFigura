@@ -73,3 +73,8 @@ OpenFigura code (AGPL-3.0-only), using an external Blender installation's
 Cycles baking API. No Studio baking source is copied; Blender and optional
 generation/rigging runtimes retain their own licenses. Baking an asset does
 not change its upstream model or texture license.
+
+PyMeshLab 2025.7.post1 is evaluated in an external optional CPU runtime.
+Installed metadata/license declare GPL-3.0; no binary/source is bundled.
+The shared core stays dependency-free. The face-index editor is original
+OpenFigura AGPL-3.0-only code. See `docs/2026-10-09-repair-trials.md`.

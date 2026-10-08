@@ -59,7 +59,13 @@ UV签名核验、导入前有限数值检查和共享实例隔离。正式源小
 产物批次：2026-10-09-weld-optimize、optimize-tool-verify、optimize-review-verify。
 不要重跑相同MIA或同动作参数，先查看failed contact诊断与region/skin定义。
 
-优先：正规非流形/重复面repair（保留UV/明确删除/填面与部件风险）→安全降面复验
+本轮repair试验已结束，见docs/2026-10-09-repair-trials.md：Blender保守清理仍有
+2493非流形边；MeshLab删面使边归0，却增加边界/碎片和UV冲突面删除。
+内部索引编辑器已验证原属性字节保留，候选仅diagnostic；其后降面仍因22个
+新重复面拒绝。不要重复这三条同族repair/Decimate试错。PyMeshLab独立ARM64
+runtime可用，不代表正式人物repair后端可用。
+
+优先：薄层/壳结构与属性约束简化架构评估（不再盲删/填洞）→工具适配→降面复验
 →分区/蒙皮审核与动作闸→全链文件与Blender帧
 → Studio矩阵逐项独立开发。重定向失败不能靠重复同算法搜索或降低阈值掩盖。
 低模和贴图必须联合保留细节，不能拿低分辨率截图证明精细。

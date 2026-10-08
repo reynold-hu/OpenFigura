@@ -659,3 +659,29 @@ Work continues on branch `codex/3d-loop` (worktree
 - 只读研究了本地3DGenStudio repair服务与CommunityLicense，没有复制代码或
   执行上游脚本。其通用路线区分保留UV和重建式修复，并报告前后计数。
   我们的修复必须按几何位置报告缺陷，不能仅拆顶点ID就声称重叠边已变流形。
+
+## 2026-10-09 repair trials and attribute-preserving index kernel
+
+- PyMeshLab2025.7.post1已在独立Python3.14 ARM64环境安装，官方wheel hash核对，
+  headless CPU tetra及wedge UV smoke通过，许可证GPL-3.0。源码/二进制未打包，
+  core环境未改；记录在`.local/runs/2026-10-09-pymeshlab-probe/`。
+- 保守Blender试验删773面，仍2493非流形边/443边界，边界多为分叉/开放链。
+  实际custom corner normals在重导出时改变，布尔has_custom_normals不足以证明
+  保留；恢复后仍有量化误差。本试验不通过严格属性闸。
+- 一次MeshLab删面生成可验证原face ID mask：删除5125面、面积0.11425%，
+  非流形边2502→0，但边界443→7327、组件49→133、非流形顶点376→1868。
+  322重叠面均相反绕序，288有UV冲突，不能称无害清理。原source SHA保持。
+- 新内部`core.glb_faces.prune_faces`按原始face ID追加indices，完整原BIN前缀
+  和原accessors/views/materials/images/nodes/scenes保持；不重编码UV/法线。
+  TDD先missing-module，再实现8测；独立review发现悬空输出symlink问题，红测
+  后修复，扩展15测，包括竞争发布、预算、metadata/未修改primitive和bounds。
+  独立复审15passed、无剩余blocker。它不是正式repair工具，repair_complete
+  始终false，预算默认1%，并保留未引用顶点/原index字节。
+- 实际942837面诊断GLB与front render在
+  `.local/runs/2026-10-09-glb-face-index-verify/`。root验证byte prefix/原属性引用
+  和sourcehash，亲自看真实PNG；外观保留但仍为开放面候选。再执行正式optimize
+  因duplicate0→22拒绝，未发布低模，没有松阈值或重新跑相同动作。
+- Root全量 **346 passed in35.26s**（同worktree/PYTHONPATH/共享venv命令），
+  diff check通过。三条修复路线均未正式达标，不再同族删面试错；下一步先做
+  源薄层/壳结构与属性约束简化的架构比较。完整路径/限制见
+  `docs/2026-10-09-repair-trials.md`，所有试验catalog登记且不改历史manifest。
