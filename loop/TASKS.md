@@ -1,8 +1,8 @@
 # 任务与验收表
 
-- [ ] L01 Studio 固定版本完整功能矩阵：读MCP／服务／工作流／UI源码。
-- [ ] L02 真实执行器：generate/inspect/render/rig/autorig/retarget/export，不只记录请求。
-- [ ] L03 静态网格工具：组件分解、LOD简化、四边形候选、UV、凸包代理。
+- [x] L01 Studio 固定版本完整功能矩阵：docs/2026-10-08-studio-parity-matrix.md（95 工具清点，附证据行号）。
+- [x] L02 真实执行器：engine.execute 沙箱阶段化运行；180 测试通过；真实证据见 PROGRESS 2026-10-08 晚间条目。
+- [ ] L03 静态网格工具：已注册并 CLI/MCP 镜像；optimize/collision/inspect 已真实通过；segment 如实失败（8,090 组件）；uv/retopo 真实运行待做。
 - [ ] L04 原始高模→低模的材质／normal／AO烘焙与蒙皮转移。
 - [ ] L05 神经生成／材质后端能力与硬件调度：可用则执行，不可用则给出真实原因。
 - [ ] L06 自动骨架／解剖约束：小满和scifi新结果，不能用手工calibration冒充通用算法。

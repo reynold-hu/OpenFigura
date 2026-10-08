@@ -333,3 +333,48 @@ After the final worker change, the actual Godot→Blender motion pipeline was re
 successfully in `~/Desktop/openfigura-neural-rig-trial-2026-10-07/tasks/bunny-motion-review-final/`.
 The final wheel was rebuilt and checked for the Godot worker and MIA attribution
 resources; build log is `package-build-final.log` in that evidence root.
+
+### 2026-10-08 (evening) — Real executor, mesh tools and motion playback evidence
+
+Work continues on branch `codex/3d-loop` (worktree
+`~/.codex/worktrees/openfigura-3d-loop`); loop state lives in `loop/`.
+
+- **`engine.execute` landed** (L02): runs the real verbs (inspect/generate/
+  render/rig/autorig/retarget/export/mesh) inside a durable stage with a
+  private sandbox `stages/<stage_id>/`, hash-verified inputs, declared
+  outputs, pass/fail recorded in both the stage DB and the provenance
+  ledger; identical verified requests reuse the cached pass. Codex wrote
+  7 failing TDD tests on 2026-10-08; all now pass. Suite: **180 passed**
+  (`python -m pytest tests -q`, Python 3.14 venv).
+- **Mesh tools registered and mirrored** (L03): `blender-mesh-tools` in the
+  registry, `mesh` verb in engine, `openfigura mesh|execute` in CLI,
+  `figura_mesh|figura_execute` in MCP.
+- **Real Blender run** on the 958,816-triangle scifi-stride model
+  (evidence `~/Desktop/openfigura-3d-loop-2026-10-08/logs/`):
+  `mesh optimize ratio=0.1` → 95,881 tris in 6.75 s, output+report hashed;
+  `mesh collision` pass in 0.87 s; chained `inspect` of the optimized GLB
+  pass; `mesh segment` **failed honestly**: the generator mesh has 8,090
+  connected components (noise islands), the `max_parts` guard aborted
+  before writing anything, and the stage records the exact reason. Part
+  decomposition therefore needs semantic segmentation, not connectivity —
+  recorded as an L04 finding, not papered over.
+- **Motion chain via the executor**: retarget of the MIA autorigged bunny
+  against the stored Mixamo clip passed in 5.47 s (regional contact
+  validation enforced by the verb, 31 frames; outputs
+  `model-animated.glb` + `model-animated.blend` as verified stage refs).
+  Probing the produced .blend headless (Blender 5.2.2): action
+  `NativeRetargetIKContactTrial` spans frames 1–31, 520 channels; 11
+  sampled leg/arm/spine pose bones all change translation at frames
+  8/16/24/31 vs frame 1 (`*.pose-motion.json` next to the blend).
+  Executor `render frame=1 vs frame=16` produced front frames differing
+  in 179,634/648,000 pixels — the timeline actually moves.
+- **Honest availability on this Mac** (`openfigura backends`,
+  `logs/00-backends.json`): blender, blender-mesh-tools, mia,
+  native-motion, photo-paint, rigify available; pixal3d unavailable (no
+  local runtime; Windows GPU node still unanswered by the user).
+- **Studio parity** (L01): full inventory taken from the real 3DGenStudio
+  3.5.3 sources — 95 MCP tools (12 groups), ~150 HTTP routes, 4 Python
+  services (mesh-tools :8200, SkinTokens :8300, Kimodo :8400, MoCap :8401),
+  procedural VFX/building/tree systems, cloud mesh APIs, editor UI. Matrix
+  with per-feature status in `docs/2026-10-08-studio-parity-matrix.md`;
+  nothing is marked reproduced without an OpenFigura command proving it.

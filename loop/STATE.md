@@ -12,18 +12,28 @@
 
 ## 当前事实
 
-- 起点：8127434；现有 157 项单测通过（上一批），本轮重新验证后更新。
-- 输入生成：Pixal3D Mac 实际生成过；八例质量被用户拒绝，未因结构测试通过而获认可。
-- 自动骨架：MIA CPU 对照 Bunny 通过，小满手腕失败；小满尚无通过的神经自动骨架。
-- 动作：Godot重定向＋Blender IK 对照案例通过区域整数帧检查；不是全身连续碰撞保证。
-- 持久状态：SQLite 阶段状态已实现；自动执行器／GPU调度尚未实现。
-- Studio parity：正在从实际源码列全功能矩阵，未完成的功能不会标成已复现。
+- 起点：8127434；本轮新增执行器／网格工具／前端镜像后 **180 单测通过**
+  （`python -m pytest tests -q`，Python 3.14 venv）。三次小提交（DCO）。
+- `engine.execute` 已实现：动词在 `stages/<id>/` 沙箱内真实运行，输入按
+  hash 校验，输出为已验证 AssetRef，pass/fail 同时写阶段库与 provenance。
+- 网格工具已在真实 Blender 跑通：scifi-stride 958,816→95,881 tris（6.75s）、
+  collision（0.87s）、链式 inspect 均 pass；segment 如实失败（8,090 组件，
+  max_parts 保护，未写产物）。证据 `~/Desktop/openfigura-3d-loop-2026-10-08/logs/`。
+- 动作链真实证据：executor retarget 通过（MIA bunny + Mixamo clip，31 帧
+  区域接触校验）；打开产出 .blend 探针：action 帧区 1–31、520 通道、
+  11 根肢骨在 8/16/24/31 相对第 1 帧全部位移；render frame 1 vs 16 像素差
+  179,634/648,000。即"能在 Blender 里动起来"已有客观证据（主观认可待用户）。
+- Studio parity 矩阵已落地：95 个 MCP 工具，21 项 reproduced/partial，
+  63 项 absent，11 项 policy-gate（云 API／门控权重）。见
+  `docs/2026-10-08-studio-parity-matrix.md`。
+- 自动骨架：MIA CPU Bunny 通过、小满手腕失败；尚无新的神经自动骨架通过项。
 
 ## 当前推进
 
-- 原创 Blender 网格工具：拓扑、UV、组件拆分、简化、碰撞代理。
-- 核心执行器：连接真实 engine verbs，复用持久阶段，不再只记录 queued。
-- 实际生成和动画证据：桌面独立输出目录，不覆盖之前资产或用户 golden 候选。
+- L04：高→低烘焙、蒙皮／骨架转移（transfer_rig）、FBX／pivot 导出缺口最大。
+- L06：需要新模型或算法改进才能拿下小满自动骨架。
+- L07：区域／时间采样覆盖仍受限于整数帧＋部分区域。
+- 本机无 pixal3d 运行时；Windows CUDA 节点信息仍待用户回答。
 
 ## 依赖与风险
 
