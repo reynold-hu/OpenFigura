@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 import pytest
 
@@ -7,13 +8,15 @@ from openfigura.backends.motion_gate import MotionGateBackend
 blender = MotionGateBackend().binary()
 pytestmark = pytest.mark.skipif(not blender, reason='requires a real Blender binary')
 
-BUNNY = Path.home() / 'Desktop/openfigura-neural-rig-trial-2026-10-07/tasks/bunny-motion-mcp/artifacts/model-animated.glb'
+RUNS = Path(os.environ.get('OPENFIGURA_TEST_RUNS',
+    str(Path.home() / 'Desktop/OpenFigura/.local/runs')))
+BUNNY = RUNS / 'openfigura-neural-rig-trial-2026-10-07/tasks/bunny-motion-mcp/artifacts/model-animated.glb'
 
 # A real, known-bad static bind pose: the scifi MIA autorig rests its hands on
 # the thighs with sub-margin clearance (the same asset whose retarget the
 # in-loop gate rejected 2026-10-08). No synthetic fixture needed.
-SCIFI_REST = next(Path.home().glob(
-    'Desktop/openfigura-3d-loop-2026-10-08/tasks/mesh-chain/stages/*/artifacts/model-autorig.glb'), None)
+SCIFI_REST = next(RUNS.glob(
+    'openfigura-3d-loop-2026-10-08/tasks/mesh-chain/stages/*/artifacts/model-autorig.glb'), None)
 
 
 def test_gate_passes_real_bunny_animation(tmp_path):

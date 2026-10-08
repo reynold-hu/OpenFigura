@@ -793,16 +793,26 @@ def mesh(task: Task, operation: str, params: dict | None = None,
                 'input_sha256': sha256_file(model), 'params': dict(params or {}),
                 'artifact': str(out.relative_to(task.root)), 'visual_approval': 'pending'}
     try:
-        result = backend.process(model, out, operation, params or {})
-        evidence.update(result)
+        # Backends only receive a private input snapshot. Hash checks detect
+        # mutations without sacrificing the accepted source to preprocessing.
+        with tempfile.TemporaryDirectory(prefix='openfigura-mesh-input-') as folder:
+            snapshot = Path(folder) / model.name
+            shutil.copy2(model, snapshot)
+            result = backend.process(snapshot, out, operation, params or {})
+            evidence.update(result)
+            if sha256_file(snapshot) != evidence['input_sha256']:
+                raise RuntimeError('mesh backend modified input snapshot')
         if result['exit_code'] != 0 or not out.is_file():
             raise RuntimeError(f"mesh {operation} exited {result['exit_code']}: "
                                + (result.get('stderr_tail') or '')[-500:])
         if not result.get('report'):
             raise RuntimeError(f'mesh {operation} produced no machine-readable report')
+        if sha256_file(model) != evidence['input_sha256']:
+            raise RuntimeError('mesh source changed during processing')
         evidence.update(status='pass', output_sha256=sha256_file(out))
     except Exception as exc:
-        evidence.update(status='fail', error=str(exc))
+        evidence.update(status='fail', error=str(exc),
+                        rejected_artifacts=_quarantine_candidate(task, out))
         task.record('mesh', evidence)
         raise
     task.record('mesh', evidence)

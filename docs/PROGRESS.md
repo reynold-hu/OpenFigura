@@ -611,3 +611,26 @@ Work continues on branch `codex/3d-loop` (worktree
   optimize, with possible additional normal/shading defects. Full summary,
   runtime/node records and21-file manifest catalogued locally; source
   hashes unchanged. No production fix or further bake retry yet.
+
+## 2026-10-09 next heartbeat: private mesh inputs and seam trial
+
+- Mesh engine now passes a private temporary snapshot, detects writes to
+  it/source hashes, retains returned command/exit/time before validation,
+  and quarantines failed normal-name GLB/Blend candidates. Two red tests
+  reproduced source mutation and failure residue before fixes. Independent
+  scope review found no blocker; focused mesh/frontend/UV30tests passed.
+  Ledger preservation assertions added. Actual positive bunny/negative
+  scifi motion-gate tests relocated to `.local/runs` (optional
+  OPENFIGURA_TEST_RUNS override): with private-mesh tests **5 passed in21.29s**.
+- Fresh exact-weld trial `.local/runs/2026-10-09-weld-optimize/` uses
+  original high, raw Decimate baseline and dist0.0 merge→same .08 Decimate.
+  Source hash unchanged; actual material/clay720×900samples8 frames reviewed
+  by root show all-over cracks vanish. Clustered boundary edges84,873→422,
+  triangles75,835→75,775; surviving cornerUV signatures unchanged, while
+  weld removes770duplicate/degenerateface signatures. Exact weld caused no
+  bbox movement; final max bbox delta0.00020856 is not Hausdorff error.
+- This is **diagnostic improvement**, not watertight or delivery proof:
+  source already has2,570nonmanifoldedges; welded candidate retains2,502
+  and creates58duplicatefaces after Decimate. Strict production topology
+  checks being implemented must reject that regression, not silently
+  remove defects or relax safety. Original eye/pocket issues remain.
