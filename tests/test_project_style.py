@@ -40,6 +40,45 @@ def test_missing_style_is_explicit(tmp_path):
     assert engine.project_style(task) == {'status': 'unset', 'style_spec': None}
 
 
+def test_two_open_clients_preserve_both_style_revisions(tmp_path):
+    task = Task.create(tmp_path)
+    first, second = Task.open(task.root), Task.open(task.root)
+    engine.set_style(first, style())
+    updated = style()
+    updated['fps'] = 12
+    engine.set_style(second, updated)
+    entries = Task.open(task.root).entries
+    assert [e['style_spec']['fps'] for e in entries] == [8, 12]
+
+
+def test_concurrent_clients_preserve_each_ledger_entry(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    task = Task.create(tmp_path)
+    clients = [Task.open(task.root) for _ in range(12)]
+    with ThreadPoolExecutor(max_workers=12) as workers:
+        list(workers.map(lambda pair: pair[1].record('client', {'number': pair[0]}),
+                         enumerate(clients)))
+    assert sorted(e['number'] for e in Task.open(task.root).entries) == list(range(12))
+
+
+def test_export_detects_mutation_during_inspection(tmp_path, monkeypatch):
+    import pytest
+    from test_engine import make_minimal_glb
+    task = Task.create(tmp_path / 'tasks')
+    model = task.artifact('model.glb')
+    make_minimal_glb(model)
+    inspect = engine.inspect_glb
+    def mutate(path):
+        result = inspect(path)
+        path.write_bytes(b'not a GLB')
+        return result
+    monkeypatch.setattr(engine, 'inspect_glb', mutate)
+    dest = tmp_path / 'delivery'
+    with pytest.raises(RuntimeError):
+        engine.export(task, dest)
+    assert not list(dest.glob('*.glb'))
+
+
 def test_export_does_not_trust_stale_inspection(tmp_path):
     import pytest
     from test_engine import make_minimal_glb

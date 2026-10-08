@@ -13,9 +13,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
+import tempfile
 import time
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -30,6 +33,32 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: f.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+@contextmanager
+def _ledger_lock(root: Path):
+    """Serialize local writers across independent processes and threads."""
+    with (root / '.provenance.lock').open('a+b') as handle:
+        if os.name == 'nt':
+            import msvcrt
+            handle.seek(0, os.SEEK_END)
+            if handle.tell() == 0:
+                handle.write(b'0')
+                handle.flush()
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+            try:
+                yield
+            finally:
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(handle, fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(handle, fcntl.LOCK_UN)
 
 
 @dataclass
@@ -71,8 +100,12 @@ class Task:
         return digest
 
     def record(self, step: str, data: dict[str, Any]) -> None:
-        self.entries.append({"step": step, "utc": time.time(), **data})
-        self._flush()
+        with _ledger_lock(self.root):
+            latest = Task.open(self.root)
+            if latest.id != self.id or latest.created_utc != self.created_utc:
+                raise ValueError('task identity changed while recording')
+            self.entries = latest.entries + [{"step": step, "utc": time.time(), **data}]
+            self._flush()
 
     def record_style(self, spec: StyleSpec) -> None:
         """Record declared style requirements, without a quality verdict."""
@@ -97,5 +130,18 @@ class Task:
             "openfigura_version": __import__("openfigura").__version__,
             "entries": self.entries,
         }
-        (self.root / "provenance.json").write_text(
-            json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        # Prepare valid JSON before replacing the previous complete ledger.
+        text = json.dumps(payload, indent=2, ensure_ascii=False) + '\n'
+        path = None
+        try:
+            with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8',
+                                             dir=self.root, suffix='.ledger-tmp',
+                                             delete=False) as handle:
+                path = Path(handle.name)
+                handle.write(text)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(path, self.root / 'provenance.json')
+        finally:
+            if path is not None and path.exists():
+                path.unlink()

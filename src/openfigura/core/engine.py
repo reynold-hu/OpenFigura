@@ -10,7 +10,9 @@ Each verb appends to the task ledger; nothing is recorded that did not run.
 from __future__ import annotations
 
 import json
+import os
 import shutil
+import tempfile
 import uuid
 from pathlib import Path
 
@@ -167,27 +169,46 @@ def export(task: Task, dest: Path, fmt: str = "glb", artifact: str = "model.glb"
     report_path = task.root / ("inspect.json" if artifact == "model.glb" else glb.stem + "-inspect.json")
     if not glb.is_file():
         raise FileNotFoundError("nothing to export; run generate first")
-    current_hash = sha256_file(glb)
-    try:
-        current_report = inspect_glb(glb)
-    except (ValueError, KeyError, IndexError) as exc:
-        raise RuntimeError('refusing to export: current GLB cannot be inspected') from exc
-    if not current_report['ok']:
-        raise RuntimeError('refusing to export: current asset failed inspection: '
-                           + '; '.join(current_report['problems']))
-    if report_path.is_file():
-        report = json.loads(report_path.read_text(encoding="utf-8"))
-        if report.get('sha256') and report['sha256'] != current_hash:
-            raise RuntimeError('refusing to export: asset changed since inspection; inspect again')
-        if not report.get("ok"):
-            raise RuntimeError("refusing to export: inspection reported problems: "
-                               + "; ".join(report["problems"]))
     dest = Path(dest)
-    dest.mkdir(parents=True, exist_ok=True)
     output_name = f"{task.id}.glb" if artifact == "model.glb" else f"{task.id}-{glb.stem}.glb"
-    shutil.copy2(glb, dest / output_name)
-    if report_path.is_file():
-        shutil.copy2(report_path, dest / "inspect.json")
+    # Inspect and publish a private snapshot, so an active writer cannot switch
+    # the source bytes between inspection and delivery.
+    with tempfile.TemporaryDirectory(prefix='openfigura-export-') as staging:
+        snapshot = Path(staging) / 'model.glb'
+        shutil.copy2(glb, snapshot)
+        current_hash = sha256_file(snapshot)
+        try:
+            current_report = inspect_glb(snapshot)
+        except (ValueError, KeyError, IndexError) as exc:
+            raise RuntimeError('refusing to export: current GLB cannot be inspected') from exc
+        if not current_report['ok']:
+            raise RuntimeError('refusing to export: current asset failed inspection: '
+                               + '; '.join(current_report['problems']))
+        if sha256_file(snapshot) != current_hash or sha256_file(glb) != current_hash:
+            raise RuntimeError('refusing to export: asset changed during inspection')
+        saved_report = None
+        if report_path.is_file():
+            saved_report = report_path.read_text(encoding='utf-8')
+            report = json.loads(saved_report)
+            if report.get('sha256') and report['sha256'] != current_hash:
+                raise RuntimeError('refusing to export: asset changed since inspection; inspect again')
+            if not report.get('ok'):
+                raise RuntimeError('refusing to export: inspection reported problems: '
+                                   + '; '.join(report['problems']))
+        dest.mkdir(parents=True, exist_ok=True)
+        temporary_output = None
+        try:
+            with tempfile.NamedTemporaryFile(dir=dest, suffix='.export-tmp', delete=False) as handle:
+                temporary_output = Path(handle.name)
+            shutil.copy2(snapshot, temporary_output)
+            if sha256_file(temporary_output) != current_hash:
+                raise RuntimeError('refusing to export: copied bytes failed hash verification')
+            os.replace(temporary_output, dest / output_name)
+        finally:
+            if temporary_output is not None and temporary_output.exists():
+                temporary_output.unlink()
+    if saved_report is not None:
+        (dest / 'inspect.json').write_text(saved_report, encoding='utf-8')
     shutil.copy2(task.root / "provenance.json", dest / "provenance.json")
     render_dir = task.root / "render" if artifact == "model.glb" else task.root / "render" / glb.stem
     for frame in sorted(render_dir.glob("*.png")):
