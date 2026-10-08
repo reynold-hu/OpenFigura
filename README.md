@@ -69,6 +69,13 @@ describes our architecture versus their publicly documented one.*
 
 ## External rigging and motion tools
 
+Experimental [asset/workflow foundation](docs/asset-workflow-foundation.md)
+adds immutable hash-linked assets, project pixel-style validation and durable
+SQLite stage requests with matching CLI/MCP tools. It records requests and
+verified transitions; automatic execution, GPU scheduling and pixel generation
+are separate integrations. [Source review and implementation decisions](docs/2026-10-08-ecosystem-deep-review.md)
+describe the 3D/2D routes and optional upstreams.
+
 Experimental `autorig` invokes Make-It-Animatable v1 for neural joint/weight
 prediction; `retarget` invokes Godot and Blender for motion transfer, native IK
 and mandatory regional contact checks. No chat-model coordinate or keyframe

@@ -12,6 +12,24 @@
 
 ## Scope and delivery order
 
+### 2026-10-08 源码复核后的执行说明
+
+首批已开发并验证：资产／风格契约、Task 记录方法、CLI/MCP 风格入口、
+SQLite 阶段状态及原子领取、同任务缓存、重跑记录、CLI/MCP 阶段接口。
+兼容已存在的后端工具；还没有注册完整 DAG 或自动启动计算进程。
+导出已经改为检查并发布私有快照，保存过的检查哈希不匹配则拒绝。
+审查发现的缓存输出别名、并发历史覆盖和检查／导出竞态均有先失败后通过的回归测试。
+Task 2 的 registry capability 扩展、资源闸门及后续任务保持未完成状态。
+进度证据见 `docs/PROGRESS.md`；第一批说明见 `docs/asset-workflow-foundation.md`。
+
+本文件原先属于跨子系统实施概要，不是包含完整代码的逐步施工图。
+本轮先落地 Task 1 和 Task 2 的持久状态基础，以及共用 CLI/MCP 风格入口。
+Task 2 使用标准库 SQLite 事务保存阶段／事件，已有后端 `provenance.json` 保持兼容；
+不直接让多个进程覆写 JSON。未接入的 GPU 调度、工作台、拓扑烘焙和像素处理不标记完成。
+Task 1 的实际测试合并于 `tests/test_asset_contracts.py`；字段使用 canvas_width/height。
+基础风格设置仅校验参数，不执行描边或阴影，不产生像素资源。
+后续逐批补充施工图和实际验收，源码与一手资料见 `docs/2026-10-08-ecosystem-deep-review.md`。
+
 本计划拆成三个可独立交付的子项目，每个子项目都有自己的测试、证据和提交：
 
 1. **核心工作流与 3D 主链**：先把阶段状态、缓存、资源闸门和现有 3D 后端统一起来。
@@ -32,7 +50,7 @@
 
 - [ ] **Step 1: Write failing contract tests**
 
-  Add tests that construct a style contract with `canvas_size=(64,64)`, `pixel_scale=1`, a six-colour palette, `outline_policy="single_pixel"`, `fps=8`, and `anchor="feet"`; assert JSON round-trip preserves values and rejects a non-integer canvas, empty palette, zero FPS, and unknown policy. Add an asset reference test that rejects a missing file hash and accepts a relative task artifact plus SHA-256.
+  Add tests that construct a style contract with `canvas_width=64`, `canvas_height=64`, `pixel_scale=1`, a six-colour palette, `outline_policy="single_pixel"`, `fps=8`, and `anchor="feet"`; assert JSON round-trip preserves values and rejects a non-integer canvas, empty palette, zero FPS, and unknown policy. Add an asset reference test that rejects a missing file hash and accepts a relative task artifact plus SHA-256.
 
 - [ ] **Step 2: Run the focused tests**
 

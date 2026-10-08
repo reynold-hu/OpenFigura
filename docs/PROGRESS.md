@@ -3,6 +3,37 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-08 — asset/style contracts and durable workflow foundation
+
+- Source review: `docs/2026-10-08-ecosystem-deep-review.md`; added source-only
+  checkouts for GodotPixelRenderer, Pixelorama and pixel-art-addon-mod under
+  Desktop Local/Opensource. No new model/runtime installed or Studio code copied.
+- Immutable AssetRef and StyleSpec v1: strict paths/hashes, relocation-safe asset
+  verification, palette/size/FPS/anchor validation. Shared engine `set-style` and
+  `project-style` have matching CLI/MCP entrypoints; parameters alone do not render.
+- SQLite stage store: atomic claim, pass/fail history, new resume attempts,
+  same-task cache with input/output revalidation. CLI/MCP `workflow-submit/status/
+  cancel/resume` record/query stages; no backend dispatch, DAG or GPU leases yet.
+- Review repros fixed: cache hardlink/rejected symlink acceptance, stale-client
+  style revision loss, and export file mutation. Task.record serializes writers
+  and atomically publishes ledger JSON; GLB export validates a private snapshot
+  and publishes verified copied bytes. Windows locking branch is not runtime-tested.
+- Tests: `PYTHONPATH=src /Users/reynoldhu/Desktop/OpenFigura/.venv/bin/python -m
+  pytest tests -q`: **157 passed**. Isolated Python 3.14 environment with pytest
+  only: **151 passed, 5 skipped** (optional image/MCP integrations).
+- Real imported Xiaoman GLB proof: Desktop `openfigura-foundation-proof-2026-10-08/`
+  contains `probe.py`, `summary.json`, `style.json`, task databases and a delivery.
+  Two clients yielded one running claim/one refusal; cache reuse and backend-version
+  invalidation worked, cancel/resume preserved attempts, MCP snapshot matched core,
+  exported SHA-256 matched the unchanged original. No generation, rig fitting,
+  motion or pixel art improvement was performed in this proof.
+- Wheel: `python -m pip wheel . --no-deps` produced
+  `package-2e3eb21/openfigura-0.1.0-py3-none-any.whl` in the evidence folder;
+  verified contracts/style/workflow modules and existing Godot worker, with no
+  GLB/Blend/weights/task databases bundled.
+- Developer guide: `docs/asset-workflow-foundation.md`. Automatic execution,
+  GPU scheduling, pixel output, topology/baking, HTTP and IDE remain planned.
+
 ## 2026-10-08 — external neural rigging/motion tools, 3DGenStudio review
 
 - Implemented `autorig`/`figura_autorig` using external MIA v1 CPU prediction;
