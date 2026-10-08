@@ -603,3 +603,11 @@ Work continues on branch `codex/3d-loop` (worktree
   that preview with ordinary BlenderAO shading. Next fix must start with
   the optimize-stage geometry/normal audit, not repeated same-map baking.
   Reports/node records/PNG stay in ignored batch; visual approval pending.
+
+- Follow-up readonly topology audit in that samebatch: with explicit
+  1e-6world-position clustering, boundaryedges high0→optimized84,873;
+  baked retains84,873. Optimized duplicatefaces0; all source materials
+  OPAQUE/alpha1. This confirms open geometry seams introduced during
+  optimize, with possible additional normal/shading defects. Full summary,
+  runtime/node records and21-file manifest catalogued locally; source
+  hashes unchanged. No production fix or further bake retry yet.

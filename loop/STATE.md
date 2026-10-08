@@ -49,6 +49,10 @@ scifi-uv-trial/bake-1024为有效继承UV的后续候选；旧first job勿误用
 新批次`.local/runs/2026-10-09-xiaoman-map-ablation/`：原高模H平滑，优化后A
 未烘焙已裂，完全无贴图clay I仍裂。因此先审计optimize几何/custom normals/
 shading，不把烘焙或UV当已证明根因。C/E等图证明Cycles原occlusion组不连Surface。
+消融summary及geometry统计已完成：1e-6世界位置聚类后，边界边high0→optimized
+84,873，baked相同；优化后重复面0，OPAQUE alpha1。明确几何缝/孔在optimize
+出现，法线可能加重。下一步在独立副本研究缝处分裂顶点的连通性恢复再降面，
+保留UV loop属性，实测边界/轮廓/渲染再决定是否生产接入；不可直接焊原模型。
 不要重跑相同MIA或同动作参数，先查看failed contact诊断与region/skin定义。
 
 优先：新小满降面前后几何/法线审计与修复 → 分区/蒙皮审核与动作闸 → 全链文件与Blender帧
