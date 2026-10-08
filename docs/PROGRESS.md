@@ -550,3 +550,16 @@ Work continues on branch `codex/3d-loop` (worktree
 - Real CLI bake also passed: `bake-cli.json` records argv/exit/output, in
   addition to earlier MCP/executor proofs. Latest full suite **292 passed
   in30.31s**, same worktree/PYTHONPATH/venv command as above.
+
+### Fresh generated Xiaoman low-poly motion trial (negative)
+
+- One fresh task `generated-low-motion-tasks/20261009-010752-8d43bb16`:
+  optimize947,962→75,835tris/131,111verts(5.76s), retained/interpolated UV,
+  three-map1024 bake with unchanged bake-stage targetUV/topology, MIA52joints
+  (9.52s), then newly retargeted31-frame standard-run reference. No old
+  bunny animation output was reused. Job `generated-low-motion.json` ends
+  **fail**: frame4 insufficient2mm hand/body clearance; source hash unchanged.
+  This lower-density chain finishes in~58s rather than the high-poly600s
+  timeout, but it is not an accepted collision-free animation. Existing
+  generated facial errors remain. Trial commands/logs/report are in the
+  desktop evidence root; no repeated correction grid or relaxed margin.

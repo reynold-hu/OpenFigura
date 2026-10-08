@@ -40,11 +40,12 @@
 job入口：generation-job.json、generated-followup.json、generated-motion.json、scifi-bake-job.json。
 生成pass／rigpass／motionfail；scifi第一轮烘焙是技术pass但视觉不可用。
 scifi-uv-trial/bake-1024为有效继承UV的后续候选；旧first job勿误用。
-新小满降面→保留UV烘焙→autorig→retarget trial正推进，检查实际进程/最新报告
-后再接续，不重复启动MIA或Blender。
+`generated-low-motion.json`的唯一低模试验已结束：947,962→75,835面，1024三图
+烘焙和MIA52关节通过，retarget被第4帧2mm间隙闸拒绝；原图/高模未改。
+不要重跑相同MIA或同动作参数，先查看failed contact诊断与region/skin定义。
 
-优先：新模型降至可动画资产再烘焙与自动骨架
-→ 分区/蒙皮审核与动作闸 → 全链文件与Blender帧 → Studio矩阵逐项独立开发。
+优先：第4帧失败量化及分区/蒙皮审核与动作闸 → 全链文件与Blender帧
+→ Studio矩阵逐项独立开发。重定向失败不能靠重复同算法搜索或降低阈值掩盖。
 低模和贴图必须联合保留细节，不能拿低分辨率截图证明精细。
 
 CUDA访问仍缺，可继续Mac CPU/Metal；不降低碰撞阈值、不重标区域掩盖失败。

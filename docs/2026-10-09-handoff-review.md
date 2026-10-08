@@ -68,6 +68,12 @@ profile 在 `$HOME/.config/openfigura/pixal3d.json`，机器路径不提交进 G
 `run_generated_motion.py` 31 帧重定向在 Blender worker 超时 600 秒，见
 `generated-motion.json`。没有通过的本轮新动画，不得展示旧动画冒充。
 
+随后唯一低模链见`generated-low-motion.json`及`generated-low-motion-tasks/`：
+947,962→75,835面（5.76s）→1024三图bake→MIA52关节（9.52s）全部实际通过，
+31帧重定向在第4帧未过2mm接触间隙而被拒绝，保留失败账本；约58秒结束。
+原高模hash不变，低模速度问题已改善，但**不碰撞模型仍未交付**。
+此重烘焙继承白眼/错误口袋，不能宣称修复输入到精细脸部质量。
+
 ## 视觉与接触负结果
 
 - 新生成小满白眼、口袋灰凸条；纹理丢失在原始 BaseColor 已存在。
