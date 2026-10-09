@@ -1,8 +1,49 @@
 # 蒙皮质量检查：只读内核
 
-当前范围为 `core.skin_quality.analyze_weights`，已实现内核；**不是完整
-skin-check 工具**。CLI／MCP／执行器、通用GLB解码、固定姿态形变与近景报告
-尚未接入，不替代接触闸或美术认可，也不自动修正权重。
+已提供 `skin-check` CLI、`figura_skin_check` MCP 和执行器同名步骤，共用engine。
+GLB读取器与只读内核完成；固定姿态形变与近景报告尚未接入。
+它不替代接触闸或美术认可，也不自动修正权重。
+
+## 工具入口
+
+```sh
+openfigura skin-check <task> --artifact model.glb --config skin-config.json
+```
+
+config需要显式`families`和`pairs`，还可包含`mass_threshold`、`sum_tolerance`、
+`sample_limit`。骨名应使用该skin真实名字；例如：
+
+```json
+{"families":{"hand":["mixamorig:LeftHand","mixamorig:LeftHandIndex3"],
+             "leg":["mixamorig:LeftUpLeg","mixamorig:LeftLeg"]},
+ "pairs":[["hand","leg"]]}
+```
+
+这只是小示例，不代表完整手指族；调用方应包含需要检测的所有骨骼。
+MCP传`task_root, config, artifact`；execute params传`config, artifact`，输入是
+hash验证的model AssetRef。Python调用execute时也应使用JSON数组，不能传tuple。
+
+`status=pass`只表示检查运行与报告发布完成。必须读取`assessment`；它可为
+suspicious或invalid_weights。接受标记始终false，不产生动画或修正模型。
+报告位于`artifacts/<model-stem>-skin-check.json`，既有报告不覆盖；execute
+沙箱允许用同输入/config复用验证过的报告缓存。
+
+## GLB支持范围
+
+GLB2、asset.version2.0、单个嵌入BIN。遍历**所有携带skin的节点**，包括
+不在active scene的节点；实例分别报告，顶点统计是各节点primitive之和。
+每个报告标注node/skin/mesh/primitive，样本ID是该primitive的本地顶点索引。
+按正确skin局部joint索引映射唯一非空骨名，重复有效影响聚合不归一化。
+
+支持连续配对的JOINTS_n/WEIGHTS_n多个sets；joints为UINT8/UINT16 VEC4，
+weights为FLOAT32或normalized UINT8/UINT16 VEC4；POSITION为FLOAT VEC3。
+验证accessor/view引用、counts、stride、alignment和范围。
+压缩、sparse、外部buffer、GPU-instanced skin或不支持的类型明确拒绝。
+不检查bind matrix、姿态、POSITION数值质量、材质或全身碰撞，也不推断语义。
+
+engine私有输入快照、前后SHA与原输入复核；报告原子发布，竞争文件不覆盖，
+文件替换/hash变化拒绝，输出声明前再次核对。缓存包含GLB reader、skin parser
+和diagnostic kernel hash。Windows尚未实机验证。
 
 ## 接口
 
@@ -51,15 +92,20 @@ LeftLeg混合671、RightHand/RightLeg527、两条跨侧对0，状态suspicious�
 normalized weights、多sets、sparse、多个skin/mesh或压缩支持已经完成。
 报告不是用原始神经weights替代实际导出数据；两个数据域计数不能混用。
 
+## 工具接入的真实证据
+
+`.local/runs/2026-10-09-skin-check-tool/`：真实CLI/MCP报告，以及execute
+沙箱输出均为698962顶点、同侧混合671/527、suspicious、接受标记false。
+源hash保持，没有重新生成/绑定/动作搜索。首次verifier的execute config使用
+Python tuple导致JSON约定拒绝，原日志保留；continuation读既有CLI/MCP产物，
+改从JSON配置加载数组后execute通过，并验证最终strict parser与报告一致。
+这不是模型或生产工具失败，也没有重置旧task。没有新增Blender形变证据。
+
 ## 下一实现小步
 
-1. stdlib GLB权重读取器：明确支持范围，遍历实际skinned nodes/primitive；
-   关节局部索引映射到正确skin，检查counts/stride/bounds、重复影响聚合。
-   多sets和normalized支持必须测试，未支持的sparse/compressed明确拒绝。
-2. engine先提供只读skin-check入口，私有输入快照、hash和报告声明；再镜像
-   CLI／MCP／执行器，身份包含解析与检查模块，不把诊断完成等同质量pass。
-3. 固定关节形变探针与近景输出：保存原标签/顶点集合比较，让极值与局部帧
+1. 固定关节形变探针与近景输出：保存原标签/顶点集合比较，让极值与局部帧
    成为证据；原区域/2mm接触闸另跑，未过不得交付动画。
+2. 明确语义种子与几何边界，再研究权重约束；不得靠减少统计数量当修复通过。
 
 更可靠的语义分区与蒙皮约束仍在研究；此前UV颜色候选视觉不通过，不能用
 调诊断阈值、少报样本或换区域标签掩盖残余尖刺。

@@ -771,3 +771,23 @@ Work continues on branch `codex/3d-loop` (worktree
   diff check通过。批次`.local/runs/2026-10-09-skin-quality-kernel/`已manifest/
   catalog登记，source与kernel哈希及命令在ledger，visual pending。完整范围和
   接续解析/engine/CLI/MCP/execute/形变步骤见docs/skin-quality.md。
+
+## 2026-10-09 skin-check tool and strict GLB reader
+
+- skin-check已从内核接为engine/CLI/MCP/execute统一入口。报告status pass表示
+  操作完成，assessment仍可suspicious/invalid；skin_quality_accepted及
+  collision_checked始终false，没有自动修正或动作交付。
+- GLB2/asset2.0、单嵌入BIN，所有skin-bearing节点逐primitive读取正确局部
+  joint映射。支持连续多sets、UINT8/16 joints、FLOAT/normalized UINT8/16
+  weights，counts/stride/alignment/bounds检查；sparse/compressed/external/
+  GPU instancing拒绝。重复坏值不被聚合掩盖；不宣称bind矩阵/形变支持。
+- parser TDD多轮红绿，最终65 fixture tests；engine12测试包含输入隔离、
+  竞争发布、替换保护、不可冒称接受、声明输入及缓存。规格审查109对应
+  最终用例范围，前版99通过；质量最终77parser/engine passed，无blocker。
+- 真实高模三入口报告均698962顶点、同侧混合671/527、suspicious，源SHA
+  保持。初harness tuple config违背JSON约定，退出1，CLI/MCP产物保留；
+  continuation从JSON读取数组完成execute，最终strict parser核对报告一致。
+  没有重置任务/重跑生成/绑定/旧动作，没新增Blender视觉或碰撞证据。
+- Root全量 **518 passed in31.57s**；diff check通过，命令/代码hash/产物
+  在`.local/runs/2026-10-09-skin-check-tool/`及catalog。docs/skin-quality.md
+  更新真实支持范围；下一步固定形变与近景。全3D验收、人物蒙皮仍未通过。

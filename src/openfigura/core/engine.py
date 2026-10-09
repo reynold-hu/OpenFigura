@@ -167,6 +167,65 @@ def inspect(task: Task, artifact: str = "model.glb") -> dict:
 SUPPORTED_FORMATS = ('glb', 'fbx', 'obj', 'stl', 'usd')
 
 
+def skin_check(task: Task, config: dict, artifact: str = 'model.glb') -> dict:
+    """Read-only weight diagnostics; completion is not skin-quality acceptance."""
+    import copy
+    import hashlib
+    import time
+    from openfigura.core.skin_quality import analyze_weights
+    from openfigura.core.glb_skin import analyze_glb_weights
+    if not isinstance(config, dict) or set(config)-{'families','pairs','mass_threshold','sum_tolerance','sample_limit'}:
+        raise ValueError('unsupported skin-check configuration')
+    config = copy.deepcopy(config)
+    if 'families' not in config or 'pairs' not in config:
+        raise ValueError('skin-check requires explicit families and pairs')
+    options = {k:v for k,v in config.items() if k not in ('families','pairs')}
+    analyze_weights([], config['families'], config['pairs'], **options)
+    model = _model(task, artifact)
+    output = task.artifact(model.stem+'-skin-check.json')
+    if output.exists() or output.is_symlink():
+        raise FileExistsError('skin-check report already exists; use a new task')
+    expected = sha256_file(model); started = time.monotonic(); temporary = None; owned = None
+    evidence = {'backend':'stdlib-skin-check','source_artifact':artifact,'input_sha256':expected,
+                'config':config,'visual_approval':'pending'}
+    try:
+        with tempfile.TemporaryDirectory(prefix='openfigura-skin-input-') as folder:
+            snapshot = Path(folder)/model.name
+            shutil.copy2(model, snapshot)
+            report = analyze_glb_weights(snapshot, config['families'], config['pairs'], **options)
+            if sha256_file(snapshot) != expected or report.get('source_sha256') != expected:
+                raise RuntimeError('skin-check input snapshot hash mismatch')
+        if sha256_file(model) != expected:
+            raise RuntimeError('skin-check source changed')
+        if report.get('assessment') not in {'unavailable','invalid_weights','suspicious','no_flagged_conflicts'}:
+            raise RuntimeError('skin-check report has invalid assessment')
+        if report.get('skin_quality_accepted') is not False or report.get('collision_checked') is not False:
+            raise RuntimeError('weight diagnostics cannot accept skin or collisions')
+        report.update(status='pass', config=config, report_path=str(output.relative_to(task.root)),
+                      backend='stdlib-skin-check', visual_approval='pending',
+                      wall_seconds=time.monotonic()-started)
+        payload=(json.dumps(report,indent=2,ensure_ascii=False,allow_nan=False)+'\n').encode()
+        with tempfile.NamedTemporaryFile(dir=output.parent,suffix='.skin-tmp',delete=False) as handle:
+            temporary=Path(handle.name);handle.write(payload);handle.flush()
+            identity=os.fstat(handle.fileno());expected_owner=(identity.st_dev,identity.st_ino)
+        os.link(temporary,output);owned=expected_owner
+        actual=output.lstat()
+        if (actual.st_dev,actual.st_ino)!=owned or sha256_file(output)!=hashlib.sha256(payload).hexdigest() or sha256_file(model)!=expected:
+            raise RuntimeError('skin-check publication or source changed')
+        evidence.update(status='pass',assessment=report['assessment'],report_path=report['report_path'],
+                        output_sha256=hashlib.sha256(payload).hexdigest(),wall_seconds=time.monotonic()-started)
+    except Exception as exc:
+        if owned is not None and output.exists() and (output.lstat().st_dev,output.lstat().st_ino)==owned:
+            output.unlink()
+        evidence.update(status='fail',error=str(exc),wall_seconds=time.monotonic()-started)
+        task.record('skin-check',evidence)
+        raise
+    finally:
+        if temporary is not None:temporary.unlink(missing_ok=True)
+    task.record('skin-check',evidence)
+    return report
+
+
 def _deliver(dest: Path, name: str, source: Path, expect_sha: str | None = None) -> None:
     """Atomically place one file in dest via a same-directory temp, re-hashing bytes."""
     temporary = None
@@ -900,6 +959,9 @@ def _backend_version(backend_id: str) -> str:
     identity['downstream'] = {name: _backend_version(name) for name in composite}
     if backend_id == 'gltf-pivot':
         identity['container_reader_sha256'] = sha256_file(Path(__file__).with_name('glb_faces.py'))
+    if backend_id == 'stdlib-skin-check':
+        identity['diagnostic_modules'] = {name:sha256_file(Path(__file__).with_name(name))
+                                          for name in ['glb_faces.py','glb_skin.py','skin_quality.py']}
     try:
         backend = registry.get(backend_id)
         notes = backend.capabilities().notes or {}
@@ -975,6 +1037,22 @@ def _blend_pair(sandbox: Task, stem: str) -> list[tuple[str, str]]:
 
 def _run_inspect(sandbox, staged, params):
     return inspect(sandbox, artifact=params.get('artifact', 'model.glb'))
+
+
+def _run_skin_check(sandbox, staged, params):
+    artifact=params.get('artifact','model.glb')
+    if artifact not in staged:
+        raise ValueError('skin-check artifact must name a declared input basename')
+    return skin_check(sandbox,params.get('config'),artifact)
+
+
+def _outputs_skin_check(sandbox, params, result):
+    import hashlib
+    path=sandbox.root/result['report_path']
+    expected=hashlib.sha256((json.dumps(result,indent=2,ensure_ascii=False,allow_nan=False)+'\n').encode()).hexdigest()
+    if path.is_symlink() or sha256_file(path)!=expected:
+        raise RuntimeError('skin-check report changed before output declaration')
+    return [_pair(sandbox,result['report_path'],'report')]
 
 
 def _outputs_inspect(sandbox, params, result):
@@ -1118,7 +1196,7 @@ def _backend_for(step: str, params: dict) -> str:
         return value
     return {'rig': 'rigify', 'mesh': 'blender-mesh-tools', 'retarget': 'native-motion',
             'render': 'blender', 'export': 'export-snapshot', 'transfer_rig': 'blender-rig-transfer',
-            'inspect': 'stdlib-inspect', 'bake': 'blender-bake', 'pivot': 'gltf-pivot'}[step]
+            'inspect': 'stdlib-inspect', 'skin-check':'stdlib-skin-check', 'bake': 'blender-bake', 'pivot': 'gltf-pivot'}[step]
 
 
 def _run_pivot(sandbox, staged, params):
@@ -1147,6 +1225,7 @@ def _outputs_bake(sandbox, params, result):
 
 
 _EXEC_STEPS = {
+    'skin-check': {'allowed': {'artifact','config'}, 'run': _run_skin_check, 'outputs': _outputs_skin_check},
     'pivot': {'allowed': {'mode','artifact'}, 'run': _run_pivot, 'outputs': _outputs_pivot},
     'bake': {'allowed': {'source', 'artifact', 'params'}, 'run': _run_bake, 'outputs': _outputs_bake},
     'inspect': {'allowed': {'artifact'}, 'run': _run_inspect, 'outputs': _outputs_inspect},

@@ -102,6 +102,13 @@ UV颜色诊断和一次局部权重候选已完成，见docs/2026-10-09-uv-skin-
 列接续：通用受限GLB权重读取器→engine/三入口报告契约→固定形变近景。
 不要再次跑旧腕部诊断或UV阈值网格来代替这些实现步骤。
 
+skin-check工具已接入：受限GLB解析（多sets/normalized整数/正确skin映射）、
+engine私有快照和原子报告、CLI/MCP/execute及缓存模块身份。独立规格/质量
+审查无blocker，补glTF版本/整数枚举strictness。真实三入口报告suspicious、
+698962顶点671/527同侧混合，原hash保持；初verifier tuple不符合JSON失败
+保留，continuation读取旧CLI/MCP报告后execute通过。新批次skin-check-tool。
+下一步固定关节形变和近景，仍不能接受现高模skin或声称碰撞安全。
+
 优先：工具适配及独立能力验证
 →分区/蒙皮审核与动作闸→全链文件与Blender帧
 → Studio矩阵逐项独立开发。重定向失败不能靠重复同算法搜索或降低阈值掩盖。

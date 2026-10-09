@@ -151,6 +151,10 @@ def build():
     def figura_inspect(task_root: str, artifact: str = "model.glb") -> dict:
         return engine.inspect(Task.open(Path(task_root)), artifact=artifact)
 
+    @app.tool(description='Read-only skin weight diagnostics with explicit config families and pairs. Successful execution does not accept skin, deformation or collision quality.')
+    def figura_skin_check(task_root: str, config: dict, artifact: str = 'model.glb') -> dict:
+        return engine.skin_check(Task.open(Path(task_root)),config,artifact)
+
     @app.tool(description="Export verified artifacts + provenance to a delivery "
               "folder. Refuses if inspection reported problems. format 'glb' is "
               "stdlib; 'fbx'/'obj'/'stl'/'usd' convert the verified snapshot in an "
