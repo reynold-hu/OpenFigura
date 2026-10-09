@@ -864,6 +864,19 @@ Work continues on branch `codex/3d-loop` (worktree
   to feed head-ROI → refine-texture end-to-end; result recorded below when
   it finishes. Suite: **591 passed**.
 
+- **End-to-end face refinement delivered** (same session, same task):
+  real pixal3d regeneration completed in **966.56 s** (faster than the
+  27-min precedent; 45 MB GLB + `.svviews` calibrated single view).
+  Chain: `render front --facing 180` (before) → `head_roi` (83,127 band
+  vertices, 11.9% coverage) → `refine-texture --roi-mask head-roi.png`
+  (5.96 s, atlas trust>0.5 = 0.2136) → `render` refined (after). Same
+  camera/samples/seed both renders. Face close-up: blank white eyes and
+  smeared brows BEFORE vs **irises, pupils and clean brow strokes AFTER**;
+  hair strands and the hairpin also gained definition.
+  Evidence: `.local/runs/2026-10-09-xiaoman-detail-review/face-before-after.png`
+  + task ledger `tasks/xiaoman-regen/provenance.json`. `visual_approval`
+  remains pending — this is the user's call.
+
 ## 2026-10-09 (late) — MediaPipe face-ROI chain landed (CPU, real evidence)
 
 - `backends/face_align.py` (id `mediapipe-face`): MediaPipe Tasks
