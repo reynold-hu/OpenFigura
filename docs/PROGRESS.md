@@ -924,3 +924,22 @@ Work continues on branch `codex/3d-loop` (worktree
   保留日志，隔离build成功，不改变基础venv。wheel内19文件哈希/三许可证/SOURCE/
   native源码核对通过。复审找到全局lib/忽略四源码问题，窄例外修复后确认入Git。
   最终复审无blocker。源包/许可/恢复路径记录third_party/faceverse-v4。
+
+## 2026-10-09 (night) — complex-character audit: silver-scarf & dark-knight
+
+- Same full chain on two harder golden inputs (preflight ok → real pixal3d
+  generate → head_roi → refine-texture → before/after renders), evidence
+  `.local/runs/2026-10-09-complex-characters/`:
+  silver-scarf generated in 1056 s, dark-knight in 1420 s (both pass,
+  ledgers in each task's provenance.json).
+- Close-range orthographic detail shots (head/torso/legs × 2 characters,
+  `details/*.png`, reproducible via `detail_shots.py`): the knight's gold
+  filigree, layered pauldrons and belt hardware survive close-up; the
+  grandmother's wrinkles, brow strokes, earrings and scarf fringe survive;
+  known blemish recorded honestly — slight dark smudging at her lash line.
+- Tooling lessons recorded: `blender file.glb` CLI args load as .blend
+  ("Unable to load the file") — GUI opens must use `--python open_model.py --`
+  with scene-clear + importer + view_all (script saved in the evidence dir);
+  the default-scene cube occludes imported models unless cleared first.
+- Visual approval remains the user's call; no quality claim is made beyond
+  the recorded renders.
