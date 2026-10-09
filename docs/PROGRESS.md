@@ -725,3 +725,17 @@ Work continues on branch `codex/3d-loop` (worktree
   源hash保持，没有修改原权重/碰撞区域/阈值，没有交付动画。visual pending。
   详见docs/2026-10-09-high-skin-audit.md。产品代码未变，本轮不重复全量测试；
   上轮409passed仅作为既有结果。下一步先手/裤腿区域约束和skin质量检查。
+
+## 2026-10-09 surface-distance skin constraints trial
+
+- 原高模/原神经权重的精确位置表面图CPU试验退出0、2.305s；没有模型编辑。
+  输入顶点顺序严格与native吻合，图471071顶点/1418702边/1连通分量。单分量
+  本身不证明局部手裤融合。Left/Right手腿混合点693/537，多数更近手种子；
+  神经>98%置信度不能当正确语义，故未接入自动权重修正。
+- 原rig中标出左手旁样本红球，以BlenderCPU16samples真实768×768正/侧/斜
+  裁景，退出0，root看图确认红标在裤面旁。某例表面更近手种子，因此直接
+  shortest-path判区域有风险。Right局部视觉尚未确认，没把主导骨名当语义真值。
+- 产物`.local/runs/2026-10-09-geodesic-skin-trial/`，graph/crop脚本、报告、
+  距离数组、日志与三帧有ledger/manifest/catalog；原高模与rig SHA保持。
+  未修改原权重/碰撞区域/阈值，无动画交付、visual pending。产品代码未变，
+  不重跑全量；下一步质量报告及原图/UV材质辅助种子审核。详见同名docs文档。
