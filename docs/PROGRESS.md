@@ -711,3 +711,17 @@ Work continues on branch `codex/3d-loop` (worktree
 - Root全量 **409 passed in30.48s**；同worktree/PYTHONPATH/venv测试命令，
   diff check通过。源模型、user golden、历史batch未覆盖；所有新产物固定.local。
   全模型精细度、可靠简化、碰撞安全人物和完整Studio仍未验收。
+
+## 2026-10-09 original high model skin audit
+
+- 无活动Blender/模型进程，未重复生成/MIA/旧IK。对原高模独立导入执行两侧
+  手腕30°形变探针；698962顶点、947962三角、52骨、未赋权0不代表蒙皮正确。
+  Left/Right腿髋主导顶点302/225个移动>2mm，真实前帧出现裤腿凸起。
+- 6个具体顶点追溯原始神经weights：位置误差≤6.76e-8，top4归一化权重误差
+  ≤2.98e-8。样本指尖权重52%–54%与腿骨混合已存在神经预测，不是绑定/
+  导出新引入。不是对所有微小串权重或全网格语义的结论。
+- 三脚本真实退出0；audit内部wall8.58s、CyclesCPU8samples，root看三张PNG。
+  批次`.local/runs/2026-10-09-high-skin-audit/`，ledger/manifest/catalog记录；
+  源hash保持，没有修改原权重/碰撞区域/阈值，没有交付动画。visual pending。
+  详见docs/2026-10-09-high-skin-audit.md。产品代码未变，本轮不重复全量测试；
+  上轮409passed仅作为既有结果。下一步先手/裤腿区域约束和skin质量检查。
