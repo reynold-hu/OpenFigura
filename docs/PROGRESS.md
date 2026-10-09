@@ -827,3 +827,16 @@ Work continues on branch `codex/3d-loop` (worktree
 - strain/render两命令exit0，原blend SHA前后保持；批次
   `.local/runs/2026-10-09-skin-strain-audit/`有ledger/manifest/catalog。
   生产代码未变，不重复568既有tests；模型/skin/collision仍未通过，visual pending。
+
+## 2026-10-09 face reconstruction open-source research
+
+- 用户要求找脸部细节还原方案。官方repo/README/license核对FLAME2023 Open、
+  MediaPipe/3DDFA、HRN、NextFace、FaceVerse、DetailGen3D、DECA/MICA/
+  INFERNO与LAM；结论、来源和实施验证见face-reconstruction-research文档。
+- 重要区别：FLAME2023 Open独立许可允许商用，旧FLAME/DECA/MICA研究限制
+  不解除；FLAME_PyTorch根MIT与文件头授权声明不一致，不能直接拷贝默认集成。
+  LAM weights NC/Gaussian非网格；HRN BFM资产许可单独核查，CUDA实现；
+  DetailGen官方load_mesh无条件.cuda，不能只看CPU分支宣称Mac可用。
+- 本地既有photo-paint投射已恢复瞳孔RGB但旧候选仍双嘴/侧缝，后续需要
+  landmark/visibility/faceROI约束，不原样重复旧试验。拟合模板与材质分别验证。
+  新人脸模型未下载/安装/推理，未承诺画面改善或显存下限，生产代码/源资产未变。

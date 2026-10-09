@@ -125,6 +125,13 @@ skin-probe已接backend/engine/CLI/MCP/execute，固定轴探针、冻结原始�
 面及邻接patch的原UV/材质与语义，区分权重错标和真实几何连接后再修。
 详见docs/2026-10-09-skin-strain-audit.md；截图要直接嵌入用户回复。
 
+用户新增重点：脸部细节差，已官方调研，见docs/2026-10-09-face-reconstruction-
+research.md。FLAME2023 Open单独开放/允许商用，旧模型/DECA/MICA/INFERNO
+依然研究限制；FLAME_PyTorch根MIT与文件头声明冲突需澄清。优先CPU原图
+脸ROI+landmark/visibility对齐投射和Open模板拟合验证；HRN/DetailGen为GPU
+可选。已有photo-paint旧候选仍双嘴/侧缝，不重复原样参数。新增方案均未实跑。
+头部改动后须重新验证颈接合/UV/蒙皮；当前裤面修复仍保留未完，不能替换目标。
+
 优先：工具适配及独立能力验证
 →分区/蒙皮审核与动作闸→全链文件与Blender帧
 → Studio矩阵逐项独立开发。重定向失败不能靠重复同算法搜索或降低阈值掩盖。
