@@ -943,3 +943,16 @@ Work continues on branch `codex/3d-loop` (worktree
   the default-scene cube occludes imported models unless cleared first.
 - Visual approval remains the user's call; no quality claim is made beyond
   the recorded renders.
+
+## 2026-10-09 — first human visual approvals issued
+
+- User reviewed the textured Material-Preview models in Blender GUI and the
+  face before/after evidence. Verdicts recorded verbatim, scope stated:
+  - xiaoman head-ROI face refinement: 「看着不错」→ face-refinement chain
+    visually approved for the Q-version xiaoman case.
+  - silver-scarf & dark-knight complex characters: 「质量还可以」then
+    「很好」on textured display → modeling quality visually approved for
+    these two cases at whole-body + close-up detail level.
+- These are `visual_approval: approved` for exactly the named cases; they
+  do not generalize to unseen inputs, and known blemishes (silver-scarf
+  lash-line smudging) remain documented above.
