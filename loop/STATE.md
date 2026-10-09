@@ -1,6 +1,8 @@
 # OpenFigura 3D 完整验收状态
 
 日期：2026-10-09（Asia/Shanghai）。**进行中，未达最终验收**。
+用户已关闭`openfigura-loop`自动化，工具确认PAUSED；不再因旧heartbeat自动
+继续开发。本聊天按用户手动指令推进，关闭自动化不代表最终模型验收完成。
 接手 main `f354678`；开发 checkout
 `/Users/reynoldhu/.codex/worktrees/openfigura-3d-loop`，分支 `codex/3d-loop`。
 
@@ -131,6 +133,13 @@ research.md。FLAME2023 Open单独开放/允许商用，旧模型/DECA/MICA/INFE
 脸ROI+landmark/visibility对齐投射和Open模板拟合验证；HRN/DetailGen为GPU
 可选。已有photo-paint旧候选仍双嘴/侧缝，不重复原样参数。新增方案均未实跑。
 头部改动后须重新验证颈接合/UV/蒙皮；当前裤面修复仍保留未完，不能替换目标。
+
+用户新守则：先研究和迁入成熟上游，再删减，少重写算法。FaceVerseV4、3DDFA、
+HRN、NextFace、FLAME_PyTorch已克隆到Local/Opensource，DetailGen原clone保留；
+MediaPipe固定commit稀疏检出人脸Python/C++/graph源码，避免整套无关平台内容。
+FaceVerseV4先完整28文件核hash迁入，再保留19、9文件归档移走；源码/三许可证/
+Sim3DR保留，仅删eager network import以隔离可选依赖。上游几何CPUsmoke通过，
+没有weights/照片到头部推理；规则见docs/engineering/upstream-reuse.md。
 
 优先：工具适配及独立能力验证
 →分区/蒙皮审核与动作闸→全链文件与Blender帧

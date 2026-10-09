@@ -222,6 +222,9 @@ __marimo__/
 # --- OpenFigura project rules ---
 # Local evidence catalog, runs, renders and diagnostic candidates.
 /.local/
+# Retain imported CPU renderer sources despite the global lib/ build-directory rule.
+!src/openfigura/_vendor/faceverse_v4/Sim3DR/lib/
+!src/openfigura/_vendor/faceverse_v4/Sim3DR/lib/**
 # Task workspaces: generated GLBs, renders and ledgers are evidence, not source.
 tasks/
 *.glb

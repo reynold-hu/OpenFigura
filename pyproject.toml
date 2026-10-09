@@ -33,4 +33,6 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "openfigura._vendor" = ["*.txt"]
+"openfigura._vendor.faceverse_v4" = ["LICENSE*", "README.md", "requirements.txt", "SOURCE.json"]
+"openfigura._vendor.faceverse_v4.Sim3DR" = ["lib/*.pyx", "lib/*.cpp", "lib/*.h", "readme.md"]
 "openfigura.backends" = ["*.gd", "*.txt"]

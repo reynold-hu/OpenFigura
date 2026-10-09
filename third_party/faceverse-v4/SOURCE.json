@@ -1,0 +1,143 @@
+{
+  "repository": "https://github.com/LizhenWangT/FaceVerse_v4",
+  "commit": "19c67cc4d7234b1ea7d55a185a2cb55fd49bb877",
+  "method": "whole checkout copied and SHA checked before subtraction",
+  "initial_files": 28,
+  "removed_files": [
+    "run.py",
+    "Sim3DR/Sim3DR_Cython.cp39-win_amd64.pyd",
+    "data/put_model_here",
+    "example/input/test.mp4",
+    "example/input/test.jpg",
+    "example/input/exmaple.gif",
+    "example/input/imagefolder/00002.jpg",
+    "example/input/imagefolder/00001.jpg",
+    "example/input/imagefolder/00000.jpg"
+  ],
+  "removed_archive": ".local/runs/2026-10-09-face-code-import/removed (primary checkout)",
+  "files": [
+    {
+      "path": "LICENSE",
+      "upstream_sha256": "f726d74d9df4062476c26b2d2d01fd74efe60cd87bed507d2488da1be718753e",
+      "vendored_sha256": "f726d74d9df4062476c26b2d2d01fd74efe60cd87bed507d2488da1be718753e",
+      "modified": false
+    },
+    {
+      "path": "requirements.txt",
+      "upstream_sha256": "fda585f783692968723ee71d0fb050c5d74e957667fae737db2a835ab47736c7",
+      "vendored_sha256": "fda585f783692968723ee71d0fb050c5d74e957667fae737db2a835ab47736c7",
+      "modified": false
+    },
+    {
+      "path": "README.md",
+      "upstream_sha256": "566e1e701f65e6da101bb86296c9ab08164200648880554b3425134569701e7d",
+      "vendored_sha256": "566e1e701f65e6da101bb86296c9ab08164200648880554b3425134569701e7d",
+      "modified": false
+    },
+    {
+      "path": "LICENSE_3DDFAV2",
+      "upstream_sha256": "4e8e329d78d0dbd3be980d979f773d0c554b5deed5276c12d0de442cfecc2c24",
+      "vendored_sha256": "4e8e329d78d0dbd3be980d979f773d0c554b5deed5276c12d0de442cfecc2c24",
+      "modified": false
+    },
+    {
+      "path": "LICENSE_Deep3DFaceRecon_pytorch",
+      "upstream_sha256": "bb3771fb0c09219af62e46cb9e349abc24b2b5cc73d812a1c46d1489b9bedd3c",
+      "vendored_sha256": "bb3771fb0c09219af62e46cb9e349abc24b2b5cc73d812a1c46d1489b9bedd3c",
+      "modified": false
+    },
+    {
+      "path": "faceversev4/FaceVerse_networks.py",
+      "upstream_sha256": "d7c19bf57075ede90bff42c39e6114b606dba1dbdb406dbe77af781823d0b94e",
+      "vendored_sha256": "d7c19bf57075ede90bff42c39e6114b606dba1dbdb406dbe77af781823d0b94e",
+      "modified": false
+    },
+    {
+      "path": "faceversev4/__init__.py",
+      "upstream_sha256": "77de9679dda313d5af9b0a7f58c67cb1fbaebe92d3f1baf31cecb135e3b1d4b5",
+      "vendored_sha256": "689e72c17a092893ece45234979949ec579d48ab0f8bb96920700ce4b9a18954",
+      "modified": true
+    },
+    {
+      "path": "faceversev4/FaceVerseModel_torch.py",
+      "upstream_sha256": "1d6e89c5491f07be2cdc46e0666d903a477b1cdafdcf5ca2a1e5f4e6292a655f",
+      "vendored_sha256": "1d6e89c5491f07be2cdc46e0666d903a477b1cdafdcf5ca2a1e5f4e6292a655f",
+      "modified": false
+    },
+    {
+      "path": "Sim3DR/renderer.py",
+      "upstream_sha256": "d801c56c9a131590c29e8a1b82b7033fa6c9953285c747ddc6b98232a1d7c3fc",
+      "vendored_sha256": "d801c56c9a131590c29e8a1b82b7033fa6c9953285c747ddc6b98232a1d7c3fc",
+      "modified": false
+    },
+    {
+      "path": "Sim3DR/_init_paths.py",
+      "upstream_sha256": "4a76d97e1c2ae8f4aa8cf955eac38ccf915f6c70f6479a7a1b21395f0a9c4dca",
+      "vendored_sha256": "4a76d97e1c2ae8f4aa8cf955eac38ccf915f6c70f6479a7a1b21395f0a9c4dca",
+      "modified": false
+    },
+    {
+      "path": "Sim3DR/Sim3DR.py",
+      "upstream_sha256": "02588f22e975256305270f3ad6b8c16dce17c9f041c89d9b2e8d9106d062e232",
+      "vendored_sha256": "02588f22e975256305270f3ad6b8c16dce17c9f041c89d9b2e8d9106d062e232",
+      "modified": false
+    },
+    {
+      "path": "Sim3DR/__init__.py",
+      "upstream_sha256": "2d98a54e1288ed1628992eb254b5ad333f1bb1215e46742b3bd0ab68d7180ffa",
+      "vendored_sha256": "2d98a54e1288ed1628992eb254b5ad333f1bb1215e46742b3bd0ab68d7180ffa",
+      "modified": false
+    },
+    {
+      "path": "Sim3DR/lighting.py",
+      "upstream_sha256": "3160fcf8668a3891a0abb1276267bd02a0890d1e53d93179546c114125388785",
+      "vendored_sha256": "3160fcf8668a3891a0abb1276267bd02a0890d1e53d93179546c114125388785",
+      "modified": false
+    },
+    {
+      "path": "Sim3DR/readme.md",
+      "upstream_sha256": "fa25121f13875857081b3792070b7fea783b17ca573a3e28702359734eefb385",
+      "vendored_sha256": "fa25121f13875857081b3792070b7fea783b17ca573a3e28702359734eefb385",
+      "modified": false
+    },
+    {
+      "path": "Sim3DR/setup.py",
+      "upstream_sha256": "9b97be149286eda4b9190e03ac024bef2252d46f3aa98ef3fcd76cb6f9a251df",
+      "vendored_sha256": "9b97be149286eda4b9190e03ac024bef2252d46f3aa98ef3fcd76cb6f9a251df",
+      "modified": false
+    },
+    {
+      "path": "Sim3DR/lib/rasterize.cpp",
+      "upstream_sha256": "148c5e3e48944666c9963a873f26c307ba03a90f09010518faa6f322a7d47daa",
+      "vendored_sha256": "148c5e3e48944666c9963a873f26c307ba03a90f09010518faa6f322a7d47daa",
+      "modified": false
+    },
+    {
+      "path": "Sim3DR/lib/rasterize.pyx",
+      "upstream_sha256": "3ce8d9caa59d5d0d28669f215f7fb22ea63fe1d7967230ff0f0bbfc01e4e2cb9",
+      "vendored_sha256": "3ce8d9caa59d5d0d28669f215f7fb22ea63fe1d7967230ff0f0bbfc01e4e2cb9",
+      "modified": false
+    },
+    {
+      "path": "Sim3DR/lib/rasterize.h",
+      "upstream_sha256": "f900d3e1a924c861a4f3ee4359b68b6c5ee0026a176d1ba506b2fa30fff54e8e",
+      "vendored_sha256": "f900d3e1a924c861a4f3ee4359b68b6c5ee0026a176d1ba506b2fa30fff54e8e",
+      "modified": false
+    },
+    {
+      "path": "Sim3DR/lib/rasterize_kernel.cpp",
+      "upstream_sha256": "5bed460d0e70bbe7c5cb74bcbfb497aa12d499b59f6e09ecffd07ada7a9e8e34",
+      "vendored_sha256": "5bed460d0e70bbe7c5cb74bcbfb497aa12d499b59f6e09ecffd07ada7a9e8e34",
+      "modified": false
+    }
+  ],
+  "patches": [
+    {
+      "path": "faceversev4/__init__.py",
+      "change": "remove eager network import so pure geometry decoder does not import OpenCV/torchvision",
+      "algorithm_changed": false
+    }
+  ],
+  "models_bundled": false,
+  "generation_verified": false
+}

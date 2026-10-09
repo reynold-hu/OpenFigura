@@ -840,3 +840,23 @@ Work continues on branch `codex/3d-loop` (worktree
 - 本地既有photo-paint投射已恢复瞳孔RGB但旧候选仍双嘴/侧缝，后续需要
   landmark/visibility/faceROI约束，不原样重复旧试验。拟合模板与材质分别验证。
   新人脸模型未下载/安装/推理，未承诺画面改善或显存下限，生产代码/源资产未变。
+
+## 2026-10-09 upstream-first code import and automation disabled
+
+- 用户明确关闭loop，automation_update确认openfigura-loop状态PAUSED，保留既有
+  配置；不再定时触发，不代表最终3D验收完成。STATE已记录仅按手动请求推进。
+- FaceVerseV4、3DDFA_V2、HRN、NextFace、FLAME_PyTorch源码克隆完成到桌面
+  Local/Opensource，DetailGen已有clone原样保留。逐repo commit在本地clones.json。
+  MediaPipe稀疏clone已核对脸部Python/C++/graph源码与LICENSE，另记mediapipe-clone.json。
+  FLAME实现许可冲突/其他NC预测器不默认迁入；weights与code分别核验。
+- FaceVerseV4 commit19c67cc4：先完整28文件复制到vendor并逐文件SHA核对，再
+  保留19上游文件、9文件按原相对路径移到主仓库.local/runs/2026-10-09-face-code-import/
+  removed。模型/眼嘴/投影/法线/光照、network和Sim3DR CPU源码及三份MIT保留；
+  原clone也保留。只有删eager network import的一行接线变更，算法未重写。
+- 实际已有可选CPU运行时torch2.1.2执行原上游五个旋转/眼旋转/投影/法线函数
+  smoke通过，无模型weights。Sim3DR未编译、照片→头部生成未验证，不做视觉
+  改善声明。AGENTS和docs/engineering/upstream-reuse.md确立先复用后删减守则。
+- Root全量 **571 passed in36.76s**；初wheel no-build-isolation缺setuptools退出2
+  保留日志，隔离build成功，不改变基础venv。wheel内19文件哈希/三许可证/SOURCE/
+  native源码核对通过。复审找到全局lib/忽略四源码问题，窄例外修复后确认入Git。
+  最终复审无blocker。源包/许可/恢复路径记录third_party/faceverse-v4。

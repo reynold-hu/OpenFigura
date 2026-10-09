@@ -46,6 +46,13 @@ to keep the community larger than any single fork.
 
 ## Attributed third-party source
 
+`src/openfigura/_vendor/faceverse_v4/` retains MIT FaceVerse V4 source from
+`19c67cc4d7234b1ea7d55a185a2cb55fd49bb877`, with the bundled MIT notices for
+3DDFA_V2 and Deep3DFaceRecon_pytorch. LICENSE/SOURCE files ship in the package.
+One documented patch removes an eager import; algorithms are not rewritten.
+No FaceVerse model assets or pretrained weights are bundled or presumed licensed
+by the code's MIT grant. Source and subtraction record: `third_party/faceverse-v4/`.
+
 `src/openfigura/_vendor/photo_paint.py` remains Apache-2.0, copyright 2026
 Bingeljell and image-to-3dlab contributors. It is vendored unchanged from
 commit `10e007b1998c5ffed0b09e16d4218c05a1803afb`. LICENSE/NOTICE ship

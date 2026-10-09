@@ -68,6 +68,14 @@ Before pushing: tests green, PROGRESS updated if anything was verified,
 `git log -1 --show-signature`-style DCO trailer present. Push only to
 `main` of the owner's repo when asked; never force-push shared history.
 
+## Reuse before new algorithms
+
+User policy: research fixed upstream checkouts in `Local/Opensource`, copy useful
+permitted code before subtraction, and retain provenance/licenses/removal archives.
+Do not reimplement an existing suitable algorithm by default. Keep new code to
+thin integration glue; document concrete obstacles before proposing a replacement.
+Follow `docs/engineering/upstream-reuse.md`; source import is not runtime/visual proof.
+
 ## Scope discipline
 
 This is a tool layer, not an agent. If a change starts looking like
