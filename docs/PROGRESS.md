@@ -814,3 +814,16 @@ Work continues on branch `codex/3d-loop` (worktree
   `.local/runs/2026-10-09-skin-probe-tool/`，source保持、manifest/catalog登记。
   更新docs/skin-quality.md和STATE；后续回到语义分界/蒙皮候选，不能只减
   数字或重标区域掩盖现高模缺陷。精细人物/可靠低模/碰撞/完整Studio未完成。
+
+## 2026-10-09 triangle strain localization
+
+- 不重复生成/绑定/IK或UV阈值网格，对既有真实skin-probe blend frames1/2/3
+  读取原三角面，筛rest边>1e-6、stretch>10且growth>.002世界单位。
+  左112/右83面，最大比值19.4458/18.1803；raw samples保留顶点原权重、
+  rest/posed坐标和三边长。编号属于Blender imported mesh，不是GLB accessor。
+- root看4张真实768CPU16sample红色overlay rest/posed帧，定位指尖旁裤面
+  撕裂；原mesh不修改，红覆盖不是修复，也不能证明手裤几何融合。尚需
+  UV/语义核对这些面及邻接区域，不能直接删面/切边或按主导骨改标签。
+- strain/render两命令exit0，原blend SHA前后保持；批次
+  `.local/runs/2026-10-09-skin-strain-audit/`有ledger/manifest/catalog。
+  生产代码未变，不重复568既有tests；模型/skin/collision仍未通过，visual pending。
