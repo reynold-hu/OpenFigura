@@ -739,3 +739,18 @@ Work continues on branch `codex/3d-loop` (worktree
   距离数组、日志与三帧有ledger/manifest/catalog；原高模与rig SHA保持。
   未修改原权重/碰撞区域/阈值，无动画交付、visual pending。产品代码未变，
   不重跑全量；下一步质量报告及原图/UV材质辅助种子审核。详见同名docs文档。
+
+## 2026-10-09 UV color skin diagnostic candidate
+
+- 一次UV颜色伪种子诊断与权重候选：原主导标签保留，腿髋顶点>2mm计数
+  302→38、225→30。但768同相机原/候选腕部近景仍有裤面尖刺，root看图
+  拒绝生产接入；颜色不是语义真值，未运行collision gate，没有动画交付。
+- 选择1045实际改1044，另1个原top4无手权重；独立verify重新导入及打开blend
+  检查positions/loopindices/UVhash/材质引用相同，无集合外变化、未赋权0，
+  权重和误差≤1.49e-7。不能据此声称全属性payload/custom normals字节相同。
+- 首候选脚本NPZ反复读取被TERM结束143，日志/原脚本保留；改一次加载后
+  wall9.522s。首次verify选择等于变化数断言失败，Blender却exit0，记录为fail；
+  no-op查明后最终verification成功，失败证据保留。未重复模型推理。
+- 批次`.local/runs/2026-10-09-uv-skin-trial/`有ledger/manifest/catalog、诊断
+  blend、全身3帧及4近景。source high/rig hash保持，visual pending。产品代码
+  未变不重复全量测试；详见同名文档。下一步skin质量工具，非同色阈值网格。
