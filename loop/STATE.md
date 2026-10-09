@@ -109,6 +109,15 @@ engine私有快照和原子报告、CLI/MCP/execute及缓存模块身份。独�
 保留，continuation读取旧CLI/MCP报告后execute通过。新批次skin-check-tool。
 下一步固定关节形变和近景，仍不能接受现高模skin或声称碰撞安全。
 
+skin-probe已接backend/engine/CLI/MCP/execute，固定轴探针、冻结原始正权重
+并集（非主导mask）、真实full/closeup及孤立关键帧blend。高模2腕30°新工具
+实跑13.82s，近景仍裤面撕裂；独立blend乱序播放resthash保持、样本误差
+≤1.49e-8，非碰撞pass。初worker并发取景修复前证据保留，冻结新阶段已复验。
+父目录symlink越界通过红测修复；最终validator/metadata新合成smoke通过，
+旧高模report经最终validator核对有效，不重跑高模。docs/skin-quality.md记录
+索引域/视角/统计范围和当前限制。下一步真正分界与蒙皮约束候选对照这些
+固定证据，可靠skin仍未通过，别再只拿数字下降当修复。
+
 优先：工具适配及独立能力验证
 →分区/蒙皮审核与动作闸→全链文件与Blender帧
 → Studio矩阵逐项独立开发。重定向失败不能靠重复同算法搜索或降低阈值掩盖。

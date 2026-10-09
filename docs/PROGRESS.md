@@ -791,3 +791,26 @@ Work continues on branch `codex/3d-loop` (worktree
 - Root全量 **518 passed in31.57s**；diff check通过，命令/代码hash/产物
   在`.local/runs/2026-10-09-skin-check-tool/`及catalog。docs/skin-quality.md
   更新真实支持范围；下一步固定形变与近景。全3D验收、人物蒙皮仍未通过。
+
+## 2026-10-09 fixed-pose skin-probe and actual Blender replay
+
+- 新blender-skin-probe backend/worker、engine、CLI/MCP/execute及registry完成。
+  单rest armature、显式骨/轴/角度/原正权重并集追踪，原标签/掩码冻结；
+  输出rest/full/closeup、位移峰值/分位数/样本与CONSTANT孤立时间轴blend。
+  标记皆为诊断，skin/collision acceptance false；2mm位移不是碰撞闸。
+- Backend TDD42、engine8用例：坏config/坏report/输入修改/未声明输出/父目录
+  symlink越界反例。独立spec/quality审查提出父目录越界和索引域metadata，
+  红→绿修复；最终focused50passed，无blocker。报告标明导入Blender mesh本地
+  索引；非rawGLB accessor。严格validator/metadata新合成smoke真Blender通过。
+- 原高模两腕30°通过execute得到7文件：第一次13.39s worker已加载时取景
+  修复落地；旧证据不改，冻结新worker/hash阶段13.82s复验。root看768两张
+  closeup，两侧裤面仍明显撕裂。跟踪union392405点、位移>.0024703/4561点，
+  包含正常手部微弱腿权重；不叫这么多个裤料错误，不与旧dominant计数混用。
+- Independent真实blend重开，frames[1,2,3,1,3,2]乱序：rest位置hash两次相同，
+  posed样本误差≤1.49e-8。review-playback.json保存实际argv/stdout/exit0/
+  hash。证明本诊断时间轴可重放，非全身动作/碰撞验收。保存camera为rest范围，
+  极端形变可能裁切；PNG full使用姿态边界。visual pending。
+- Root全量 **568 passed in33.76s**；diff check通过。主仓库批次
+  `.local/runs/2026-10-09-skin-probe-tool/`，source保持、manifest/catalog登记。
+  更新docs/skin-quality.md和STATE；后续回到语义分界/蒙皮候选，不能只减
+  数字或重标区域掩盖现高模缺陷。精细人物/可靠低模/碰撞/完整Studio未完成。

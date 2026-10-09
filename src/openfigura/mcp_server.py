@@ -155,6 +155,10 @@ def build():
     def figura_skin_check(task_root: str, config: dict, artifact: str = 'model.glb') -> dict:
         return engine.skin_check(Task.open(Path(task_root)),config,artifact)
 
+    @app.tool(description='Fixed bone deformation diagnostics with full frames, peak tracked-region closeups and diagnostic blend. Explicit probes/bones/track_groups required. No skin or collision acceptance.')
+    def figura_skin_probe(task_root: str, config: dict, artifact: str = 'model.glb') -> dict:
+        return engine.skin_probe(Task.open(Path(task_root)),config,artifact)
+
     @app.tool(description="Export verified artifacts + provenance to a delivery "
               "folder. Refuses if inspection reported problems. format 'glb' is "
               "stdlib; 'fbx'/'obj'/'stl'/'usd' convert the verified snapshot in an "

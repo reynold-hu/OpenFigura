@@ -226,6 +226,61 @@ def skin_check(task: Task, config: dict, artifact: str = 'model.glb') -> dict:
     return report
 
 
+def skin_probe(task: Task, config: dict, artifact: str = 'model.glb') -> dict:
+    """Produce isolated deformation diagnostics, never an accepted motion asset."""
+    import time
+    from openfigura.backends.skin_probe import validate_config
+    config=validate_config(config)
+    backend=registry.get('blender-skin-probe');caps=backend.capabilities()
+    if not caps.available:raise RuntimeError('skin probe unavailable: '+caps.reason)
+    model=_model(task,artifact);expected=sha256_file(model);started=time.monotonic()
+    output=task.root/'diagnostics'/('skin-probe-'+uuid.uuid4().hex)
+    evidence={'backend':backend.id,'input_sha256':expected,'source_artifact':artifact,
+              'config':config,'diagnostic_dir':str(output.relative_to(task.root)),
+              'accepted_for_delivery':False,'visual_approval':'pending'}
+    try:
+        if output.parent.is_symlink() or not output.parent.resolve().is_relative_to(task.root.resolve()):
+            raise ValueError('diagnostic parent must remain inside task without symlink')
+        output.parent.mkdir(parents=True,exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix='openfigura-probe-input-') as folder:
+            snapshot=Path(folder)/model.name;shutil.copy2(model,snapshot)
+            result=backend.probe(snapshot,output,config);evidence.update(result)
+            if sha256_file(snapshot)!=expected:raise RuntimeError('probe input snapshot modified')
+        if sha256_file(model)!=expected:raise RuntimeError('probe source changed')
+        report=result.get('report') or {}
+        if result.get('exit_code')!=0 or not result.get('produced') or report.get('status')!='complete':
+            raise RuntimeError('skin probe did not complete diagnostics')
+        if any(report.get(k) is not False for k in ['skin_quality_accepted','collision_checked','collision_accepted']):
+            raise RuntimeError('skin probe cannot accept skin or collisions')
+        if len(report.get('probes',[]))!=len(config['probes']):raise RuntimeError('missing probe results')
+        wanted={'skin-probe-report.json','skin-probe.blend','rest-full.png'}
+        for i in range(1,len(config['probes'])+1):wanted.update({f'probe-{i:03d}-full.png',f'probe-{i:03d}-closeup.png'})
+        files=result.get('files')
+        if not isinstance(files,list) or len(files)!=len(wanted) or set(files)!=wanted:
+            raise RuntimeError('missing or unexpected diagnostic outputs')
+        if output.is_symlink() or output.parent.is_symlink() or not output.resolve().is_relative_to(task.root.resolve()):
+            raise RuntimeError('diagnostic directory replaced or escaped task')
+        hashes={}
+        for name in sorted(wanted):
+            path=output/name
+            if path.is_symlink() or not path.is_file():raise RuntimeError('invalid diagnostic output')
+            hashes[str(path.relative_to(task.root))]=sha256_file(path)
+        if json.loads((output/'skin-probe-report.json').read_text())!=report:
+            raise RuntimeError('diagnostic report differs from worker result')
+        json.dumps(report,allow_nan=False)
+        evidence.update(status='pass',report=report,accepted_for_delivery=False,
+                        input_sha256=expected,config=config,visual_approval='pending',
+                        output_hashes=hashes,wall_seconds=time.monotonic()-started)
+    except Exception as exc:
+        # Retain partial diagnostics in their unique directory, never deliver them.
+        evidence.update(status='fail',error=str(exc),accepted_for_delivery=False,
+                        input_sha256=expected,config=config,visual_approval='pending',
+                        wall_seconds=time.monotonic()-started)
+        task.record('skin-probe',evidence);raise
+    task.record('skin-probe',evidence)
+    return evidence
+
+
 def _deliver(dest: Path, name: str, source: Path, expect_sha: str | None = None) -> None:
     """Atomically place one file in dest via a same-directory temp, re-hashing bytes."""
     temporary = None
@@ -957,7 +1012,7 @@ def _backend_version(backend_id: str) -> str:
     composite = {'unimate': ['blender-motion-gate'],
                  'export-snapshot': ['blender-formats']}.get(backend_id, [])
     identity['downstream'] = {name: _backend_version(name) for name in composite}
-    if backend_id == 'gltf-pivot':
+    if backend_id in {'gltf-pivot','blender-skin-probe'}:
         identity['container_reader_sha256'] = sha256_file(Path(__file__).with_name('glb_faces.py'))
     if backend_id == 'stdlib-skin-check':
         identity['diagnostic_modules'] = {name:sha256_file(Path(__file__).with_name(name))
@@ -975,7 +1030,8 @@ def _backend_version(backend_id: str) -> str:
                         'blender-rig-transfer': ['rig_transfer_worker.py'],
                         'blender-formats': ['format_export_worker.py'],
                         'blender-bake': ['bake_worker.py'],
-                        'blender-mesh-tools': ['mesh_tools_worker.py']}.get(backend_id, [])
+                        'blender-mesh-tools': ['mesh_tools_worker.py'],
+                        'blender-skin-probe':['skin_probe_worker.py']}.get(backend_id, [])
         identity['workers'] = {name: sha256_file(module.with_name(name))
                                for name in dependencies if module.with_name(name).is_file()}
         identity['declared_versions'] = {k: notes[k] for k in ('version','binary_version') if k in notes}
@@ -1053,6 +1109,22 @@ def _outputs_skin_check(sandbox, params, result):
     if path.is_symlink() or sha256_file(path)!=expected:
         raise RuntimeError('skin-check report changed before output declaration')
     return [_pair(sandbox,result['report_path'],'report')]
+
+
+def _run_skin_probe(sandbox, staged, params):
+    artifact=params.get('artifact','model.glb')
+    if artifact not in staged:raise ValueError('skin-probe artifact must name a declared input basename')
+    return skin_probe(sandbox,params.get('config'),artifact)
+
+
+def _outputs_skin_probe(sandbox, params, result):
+    outputs=[]
+    for rel,expected in result['output_hashes'].items():
+        path=sandbox.root/rel
+        if path.is_symlink() or sha256_file(path)!=expected:raise RuntimeError('diagnostic output changed')
+        kind='frame' if path.suffix=='.png' else 'blend' if path.suffix=='.blend' else 'report'
+        outputs.append(_pair(sandbox,rel,kind))
+    return outputs
 
 
 def _outputs_inspect(sandbox, params, result):
@@ -1196,7 +1268,7 @@ def _backend_for(step: str, params: dict) -> str:
         return value
     return {'rig': 'rigify', 'mesh': 'blender-mesh-tools', 'retarget': 'native-motion',
             'render': 'blender', 'export': 'export-snapshot', 'transfer_rig': 'blender-rig-transfer',
-            'inspect': 'stdlib-inspect', 'skin-check':'stdlib-skin-check', 'bake': 'blender-bake', 'pivot': 'gltf-pivot'}[step]
+            'inspect': 'stdlib-inspect', 'skin-check':'stdlib-skin-check', 'skin-probe':'blender-skin-probe', 'bake': 'blender-bake', 'pivot': 'gltf-pivot'}[step]
 
 
 def _run_pivot(sandbox, staged, params):
@@ -1225,6 +1297,7 @@ def _outputs_bake(sandbox, params, result):
 
 
 _EXEC_STEPS = {
+    'skin-probe': {'allowed': {'artifact','config'}, 'run': _run_skin_probe, 'outputs': _outputs_skin_probe},
     'skin-check': {'allowed': {'artifact','config'}, 'run': _run_skin_check, 'outputs': _outputs_skin_check},
     'pivot': {'allowed': {'mode','artifact'}, 'run': _run_pivot, 'outputs': _outputs_pivot},
     'bake': {'allowed': {'source', 'artifact', 'params'}, 'run': _run_bake, 'outputs': _outputs_bake},

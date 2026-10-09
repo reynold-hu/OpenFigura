@@ -1,7 +1,7 @@
 # 蒙皮质量检查：只读内核
 
 已提供 `skin-check` CLI、`figura_skin_check` MCP 和执行器同名步骤，共用engine。
-GLB读取器与只读内核完成；固定姿态形变与近景报告尚未接入。
+GLB读取器与只读内核完成；另有`skin-probe`固定姿态形变、近景与诊断时间轴。
 它不替代接触闸或美术认可，也不自动修正权重。
 
 ## 工具入口
@@ -103,9 +103,57 @@ Python tuple导致JSON约定拒绝，原日志保留；continuation读既有CLI/
 
 ## 下一实现小步
 
-1. 固定关节形变探针与近景输出：保存原标签/顶点集合比较，让极值与局部帧
-   成为证据；原区域/2mm接触闸另跑，未过不得交付动画。
-2. 明确语义种子与几何边界，再研究权重约束；不得靠减少统计数量当修复通过。
+1. 用已保存的固定探针、冻结集合与近景评估语义分界与权重候选；不得靠减少
+   统计数量当修复通过。
+2. 原区域/2mm接触闸另跑，未过不得交付动画；诊断probe不是安全动作。
+
+## skin-probe：形变与真实画面
+
+```sh
+openfigura skin-probe <task> --artifact model.glb --config probe-config.json
+```
+
+MCP为`figura_skin_probe(task_root, config, artifact)`，execute步骤为`skin-probe`，
+params为`config, artifact`并声明model AssetRef。三入口共用engine。
+
+```json
+{"probes":[{"bone":"mixamorig:LeftHand","axis":"X","degrees":30,
+             "track_groups":["mixamorig:LeftUpLeg","mixamorig:LeftLeg"]}],
+ "resolution":768,"samples":8,"crop_extent_ratio":0.2}
+```
+
+需要静态rest骨架的嵌入GLB；已有动画、外部贴图/buffer、shape keys、多armature
+或拓扑变更modifier拒绝。1–8个独立局部轴探针（X/Y/Z、非零±180°内），
+跟踪组必须在模型中有正权重；每次恢复原矩阵，保持原标签和冻结的**正权重
+分组并集**。这比按主导骨单标签的区域宽，不能把统计当真实解剖分区或与
+旧主导标签数量直接比较。报告给出取景、掩码hash、分位数、峰值和极值样本。
+
+顶点编号是**导入后的Blender mesh本地编号**，不是原GLB accessor编号。
+新版报告带`vertex_index_domain`；本轮高模运行报告在该纯metadata增补前生成，
+解释相同，后续严格validator已核对它仍有效。新字段在后续合成烟测实跑验证。
+位移>0.002是GLB世界单位诊断，不是接触闸pass，不改变碰撞margin。
+
+每次生成独立`diagnostics/skin-probe-<id>/`：机器报告、rest full PNG、每探针
+full/closeup PNG、`skin-probe.blend`。closeup定位跟踪集合中最大位移顶点，
+不能保证显示背面；全身PNG根据姿态重新取景。blend有rest及每个孤立探针
+关键帧、CONSTANT插值，用于检查时间轴；saved camera使用rest边界，巨大
+形变时应在Blender轨道视图检查，不能当所有播放帧都自动取景。
+
+接受字段全false、visual pending。失败产物保留为未交付诊断；engine私有输入
+快照/hash、输出文件验证及任务内目录约束，输出父目录symlink拒绝，防止越界。
+缓存身份包括backend、worker、Blender binary与共享GLB reader。
+
+真实高模两侧手腕30°在execute沙箱完成：7个产物，13.82s；root查看两张768
+近景，左右裤面撕裂仍明显。跟踪并集392405点，各侧>0.002位移4703/4561，
+这包括正常手部因微弱腿权重而被纳入的点，不能叫4703/4561个裤腿错误。
+第一次加载worker时取景修复恰好并发落地，先前13.39s证据保留；冻结后新
+hash阶段复验，未覆盖旧阶段。随后parent guard/report metadata/validator小修
+用合成烟测验证，既有高模报告通过最终validator，无再次高模渲染。
+
+独立重新打开真实blend，按[1,2,3,1,3,2]乱序播放：两次rest hash一致，姿态
+样本最大误差1.49e-8世界单位。证明该诊断时间轴可重放，不证明碰撞安全或
+人物可交付。批次`.local/runs/2026-10-09-skin-probe-tool/`，review-playback.json
+保存实际argv/stdout/exit/hash；源rig保持，美术pending。
 
 更可靠的语义分区与蒙皮约束仍在研究；此前UV颜色候选视觉不通过，不能用
 调诊断阈值、少报样本或换区域标签掩盖残余尖刺。

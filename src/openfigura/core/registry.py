@@ -61,6 +61,8 @@ def _bootstrap() -> None:
     register('blender-bake', BakeBackend, 'CPU Cycles high-to-low normal/AO baking')
     from openfigura.backends.glb_pivot import PivotBackend
     register('gltf-pivot', PivotBackend, 'static glTF root pivot translation with unchanged attributes')
+    from openfigura.backends.skin_probe import SkinProbeBackend
+    register('blender-skin-probe', SkinProbeBackend, 'fixed-pose deformation diagnostics with closeups; no skin or collision acceptance')
 
 
 _bootstrap()

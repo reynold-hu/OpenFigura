@@ -20,6 +20,11 @@ def main(argv: list[str] | None = None) -> int:
                                      description="local 3D asset production for agents")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
+    p = sub.add_parser('skin-probe',help='fixed bone deformation diagnostics with closeups; not accepted motion')
+    p.add_argument('task');p.add_argument('--artifact',default='model.glb');p.add_argument('--config',required=True)
+    p.set_defaults(func=lambda a:_print(engine.skin_probe(Task.open(Path(a.task)),
+        json.loads(Path(a.config).read_text(encoding='utf-8')),a.artifact)))
+
     p = sub.add_parser('skin-check',help='read-only weight diagnostics; does not accept deformation or collision quality')
     p.add_argument('task');p.add_argument('--artifact',default='model.glb');p.add_argument('--config',required=True)
     p.set_defaults(func=lambda a:_print(engine.skin_check(Task.open(Path(a.task)),
