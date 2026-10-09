@@ -27,7 +27,7 @@
 | `transfer_rig`（蒙皮转移，服务端确定性） | `transfer-rig`（重心权重转移） | partial：高低模转移/局域形变通过，不保证语义蒙皮正确 |
 | `auto_rig_mesh`（SkinTokens :8300, GPU≥14GB） | `autorig`（MIA CPU） | partial：不同上游，小满手腕仍失败 |
 | `convert_mesh_fbx`（Blender FBX + takes） | `export --format fbx` | partial：动画FBX真实产出，多takes编辑未复现 |
-| `move_mesh_pivot`（ground/centre，无损节点平移） | — | absent |
+| `move_mesh_pivot`（ground/centre，无损节点平移） | `pivot` / `figura_pivot` | partial：静态单场景GLB无损属性平移，CLI/MCP/execute与Blender实证；skin/动画等未支持 |
 | `export_mesh` | `export`（含 inspect 闸 + manifest） | reproduced（证据：foundation proof） |
 
 ## 2. 生成动作（actions.js，10 工具）

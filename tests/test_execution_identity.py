@@ -17,3 +17,10 @@ def test_composite_execution_identity_includes_gate_and_export_workers(monkeypat
     first = engine._backend_version('export-snapshot')
     changed.add('format_export_worker.py')
     assert engine._backend_version('export-snapshot') != first
+
+def test_pivot_identity_includes_shared_container_reader(monkeypatch):
+    changed=set()
+    monkeypatch.setattr(engine,'sha256_file',lambda p:'b'*64 if p.name in changed else 'a'*64)
+    first=engine._backend_version('gltf-pivot')
+    changed.add('glb_faces.py')
+    assert engine._backend_version('gltf-pivot')!=first

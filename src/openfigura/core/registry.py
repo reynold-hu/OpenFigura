@@ -59,6 +59,8 @@ def _bootstrap() -> None:
                                      format_export, rig_transfer)  # noqa: F401
     from openfigura.backends.bake import BakeBackend
     register('blender-bake', BakeBackend, 'CPU Cycles high-to-low normal/AO baking')
+    from openfigura.backends.glb_pivot import PivotBackend
+    register('gltf-pivot', PivotBackend, 'static glTF root pivot translation with unchanged attributes')
 
 
 _bootstrap()

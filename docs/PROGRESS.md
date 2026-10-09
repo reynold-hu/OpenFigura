@@ -685,3 +685,29 @@ Work continues on branch `codex/3d-loop` (worktree
   diff check通过。三条修复路线均未正式达标，不再同族删面试错；下一步先做
   源薄层/壳结构与属性约束简化的架构比较。完整路径/限制见
   `docs/2026-10-09-repair-trials.md`，所有试验catalog登记且不改历史manifest。
+
+## 2026-10-09 attribute-aware simplification and static pivot
+
+- 外部官方gltfpack v1.3 ARM64、release digest/MIT许可已核对。原配置CPU0.3865s，
+  947,962→87,494面，图像payload/nodes保留，但非流形2570→3263、重复322→926。
+  官方代码表明UV误差不加-sv权重0，原试验不能称完整UV属性优化。
+- 一次-sv新配置0.4454s，87,418面，非流形3257、重复930，边界仍0。root实看
+  material/clay帧；仍局部瑕疵/细节损失。两配置均拒绝，未接入生产后端，不
+  调阈值或重复ratio网格。详见gltfpack-plan，原模型hash均未变。
+- 完成静态pivot新能力：原始BIN/旧nodes/mesh/material/UV/normal不重编码，
+  精确解析默认场景实际引用顶点与层级变换；ground/center通过新增identity资产
+  根+平移子节点实现，旋转锚点正确。单场景静态FLOAT三角GLB限制明确。
+  CLI/MCP/execute共用engine，缓存包括共享container reader hash。
+- 独立复审发现并TDD修复：失败report隔离、发布冲突竞争者保护、非法index
+  byteStride拒绝、成功后的文件替换身份/hash核对。模型/报告预期SHA保持，
+  输出建AssetRef前复核；owned dev/ino来自发布前临时handle，非竞争文件。
+  最终独立复审62针对测试通过，无剩余blocker。
+- `.local/runs/2026-10-09-studio-pivot-tool/`：真实CLI ground、MCP center、
+  execute ground已验证。原BIN完全相同，原accessors/views/节点/材质/图像相同；
+  ground最低Y=0、水平中心=0、center三轴中心=0。初verifier误读stage_result
+  字段，continuation仅检查已有产物；复审后新tasks-review再次三接口实跑，
+  api-proof-review.json及真实Blender front/render-review-ledger可查。root看实际
+  frame无新增外观损坏；原白眼/口袋仍在，视觉认可pending。
+- Root全量 **409 passed in30.48s**；同worktree/PYTHONPATH/venv测试命令，
+  diff check通过。源模型、user golden、历史batch未覆盖；所有新产物固定.local。
+  全模型精细度、可靠简化、碰撞安全人物和完整Studio仍未验收。

@@ -177,6 +177,12 @@ def build():
                     artifact: str = "model.glb") -> dict:
         return engine.mesh(Task.open(Path(task_root)), operation, params, artifact=artifact)
 
+    @app.tool(description='Rebase a static GLB to ground (feet at glTF Y=0) or bounding-box centre. '
+              'Preserves original geometry/UV/normal/material bytes through a root translation. '
+              'Run before rigging; skin, animation, morph and unsupported scene layouts are refused.')
+    def figura_pivot(task_root: str, mode: str = 'ground', artifact: str = 'model.glb') -> dict:
+        return engine.pivot(Task.open(Path(task_root)),mode,artifact)
+
     @app.tool(description="Text-to-motion on a rigged GLB via an external generator "
               "(backend 'unimate': UniMate, MIT code but CC BY-NC 4.0 weights — every call "
               "must pass accept_nc_license=True explicitly and the acceptance is ledgered). "

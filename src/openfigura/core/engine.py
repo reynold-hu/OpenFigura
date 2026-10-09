@@ -772,6 +772,73 @@ def bake(task: Task, source: str, artifact: str, params: dict | None = None) -> 
     return evidence
 
 
+def pivot(task: Task, mode: str = 'ground', artifact: str = 'model.glb') -> dict:
+    """Rebase a static glTF asset to its ground or centre using root translation."""
+    if mode not in ('ground', 'center'):
+        raise ValueError('pivot mode must be ground or center')
+    model = _model(task, artifact)
+    if not model.is_file(): raise FileNotFoundError(model)
+    backend = registry.get('gltf-pivot')
+    caps = backend.capabilities()
+    if not caps.available: raise RuntimeError('pivot unavailable: ' + caps.reason)
+    out = task.artifact('model-pivot.glb')
+    if out.exists() or out.with_suffix('.pivot-report.json').exists():
+        raise FileExistsError('pivot candidate exists; use a fresh task')
+    evidence = {'backend':'gltf-pivot','method':'static glTF root translation',
+                'source_artifact':artifact,'input_sha256':sha256_file(model),
+                'mode':mode,'artifact':'artifacts/model-pivot.glb','visual_approval':'pending'}
+    owned = {}
+    try:
+        with tempfile.TemporaryDirectory(prefix='openfigura-pivot-input-') as folder:
+            snapshot = Path(folder) / model.name; shutil.copy2(model, snapshot)
+            result = backend.pivot(snapshot, out, mode); evidence.update(result)
+            owned = result.get('owned_artifacts') or {}
+            if sha256_file(snapshot) != evidence['input_sha256']:
+                raise RuntimeError('pivot backend modified input snapshot')
+        if result.get('exit_code') != 0 or not result.get('produced') or not out.is_file():
+            raise RuntimeError('pivot produced no valid candidate')
+        report = result.get('report') or {}
+        if report.get('attribute_bytes_preserved') is not True or report.get('mode') != mode:
+            raise RuntimeError('pivot lacks attribute-preservation evidence')
+        report_path = Path(result['report_path'])
+        report_path.resolve().relative_to(out.parent.resolve())
+        if not report_path.is_file(): raise RuntimeError('pivot report missing')
+        expected_hashes = {out: result.get('output_sha256'), report_path: result.get('report_sha256')}
+        for path, digest in expected_hashes.items():
+            info = path.lstat()
+            if (path.is_symlink() or owned.get(str(path.absolute())) != [info.st_dev,info.st_ino]
+                    or not isinstance(digest,str) or sha256_file(path) != digest):
+                raise RuntimeError('pivot publication identity or hash changed')
+        if report.get('output_sha256') != result.get('output_sha256') or json.loads(report_path.read_text()) != report:
+            raise RuntimeError('pivot publication report mismatch')
+        inspected = inspect_glb(out)
+        allowed = {'missing NORMAL attribute','missing TEXCOORD attribute','primitives present but no PBR material'}
+        if any(p not in allowed for p in inspected['problems']):
+            raise RuntimeError('pivot candidate failed inspection')
+        if sha256_file(model) != evidence['input_sha256']:
+            raise RuntimeError('pivot source changed during processing')
+        if sha256_file(out) != result['output_sha256'] or sha256_file(report_path) != result['report_sha256']:
+            raise RuntimeError('pivot publication changed during validation')
+        evidence.update(status='pass',output_sha256=result['output_sha256'])
+    except Exception as exc:
+        # Publication collisions belong to another writer. Quarantine only
+        # identities explicitly returned by our successful publisher.
+        candidates = []
+        for path in (out, out.with_suffix('.pivot-report.json')):
+            identity = owned.get(str(path.absolute()))
+            try:
+                info = path.lstat()
+                if not path.is_symlink() and identity == [info.st_dev,info.st_ino]:
+                    candidates.append(path)
+            except FileNotFoundError:
+                pass
+        rejected = _quarantine_files(task,candidates) if candidates else []
+        evidence.update(status='fail',error=str(exc),rejected_artifacts=rejected)
+        task.record('pivot',evidence); raise
+    task.record('pivot',evidence)
+    return evidence
+
+
 def mesh(task: Task, operation: str, params: dict | None = None,
          artifact: str = 'model.glb') -> dict:
     """Static-mesh processing in an isolated Blender process (original tools).
@@ -831,6 +898,8 @@ def _backend_version(backend_id: str) -> str:
     composite = {'unimate': ['blender-motion-gate'],
                  'export-snapshot': ['blender-formats']}.get(backend_id, [])
     identity['downstream'] = {name: _backend_version(name) for name in composite}
+    if backend_id == 'gltf-pivot':
+        identity['container_reader_sha256'] = sha256_file(Path(__file__).with_name('glb_faces.py'))
     try:
         backend = registry.get(backend_id)
         notes = backend.capabilities().notes or {}
@@ -1049,7 +1118,20 @@ def _backend_for(step: str, params: dict) -> str:
         return value
     return {'rig': 'rigify', 'mesh': 'blender-mesh-tools', 'retarget': 'native-motion',
             'render': 'blender', 'export': 'export-snapshot', 'transfer_rig': 'blender-rig-transfer',
-            'inspect': 'stdlib-inspect', 'bake': 'blender-bake'}[step]
+            'inspect': 'stdlib-inspect', 'bake': 'blender-bake', 'pivot': 'gltf-pivot'}[step]
+
+
+def _run_pivot(sandbox, staged, params):
+    return pivot(sandbox, params.get('mode','ground'), params.get('artifact','model.glb'))
+
+
+def _outputs_pivot(sandbox, params, result):
+    refs = [_pair(sandbox,'artifacts/model-pivot.glb','model'),
+            _pair(sandbox,'artifacts/model-pivot.pivot-report.json','report')]
+    for (relative, kind), key in zip(refs, ('output_sha256','report_sha256')):
+        if sha256_file(sandbox.root / relative) != result[key]:
+            raise RuntimeError('pivot publication changed before stage outputs')
+    return refs
 
 
 def _run_bake(sandbox, staged, params):
@@ -1065,6 +1147,7 @@ def _outputs_bake(sandbox, params, result):
 
 
 _EXEC_STEPS = {
+    'pivot': {'allowed': {'mode','artifact'}, 'run': _run_pivot, 'outputs': _outputs_pivot},
     'bake': {'allowed': {'source', 'artifact', 'params'}, 'run': _run_bake, 'outputs': _outputs_bake},
     'inspect': {'allowed': {'artifact'}, 'run': _run_inspect, 'outputs': _outputs_inspect},
     'generate': {'allowed': {'backend', 'params', 'force'}, 'run': _run_generate, 'outputs': _outputs_generate},

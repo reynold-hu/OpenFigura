@@ -20,6 +20,12 @@ def main(argv: list[str] | None = None) -> int:
                                      description="local 3D asset production for agents")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
+    p = sub.add_parser('pivot',help='rebase a static GLB to ground or centre without re-encoding attributes')
+    p.add_argument('task')
+    p.add_argument('--mode',choices=['ground','center'],default='ground')
+    p.add_argument('--artifact',default='model.glb')
+    p.set_defaults(func=lambda a:_print(engine.pivot(Task.open(Path(a.task)),a.mode,a.artifact)))
+
     p = sub.add_parser('bake', help='high-to-low tangent normal and AO bake in Blender')
     p.add_argument('task')
     p.add_argument('--source', required=True)
