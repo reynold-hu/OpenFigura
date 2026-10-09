@@ -96,6 +96,12 @@ UV颜色诊断和一次局部权重候选已完成，见docs/2026-10-09-uv-skin-
 下一步优先实现可审查skin质量报告工具（数值/不相邻骨族混合/覆盖/固定
 探针极值与真实近景），不是继续仅修计数。现原高模的可靠skin仍未通过。
 
+只读skin_quality内核已实现，32独立测试/复审无blocker。实际rig原始导出
+698962顶点报告LeftHand/LeftLeg671、RightHand/RightLeg527，suspicious，
+源hash未变。只内核，不是CLI/MCP/execute或形变/碰撞完整工具；docs/skin-quality.md
+列接续：通用受限GLB权重读取器→engine/三入口报告契约→固定形变近景。
+不要再次跑旧腕部诊断或UV阈值网格来代替这些实现步骤。
+
 优先：工具适配及独立能力验证
 →分区/蒙皮审核与动作闸→全链文件与Blender帧
 → Studio矩阵逐项独立开发。重定向失败不能靠重复同算法搜索或降低阈值掩盖。

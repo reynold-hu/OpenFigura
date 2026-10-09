@@ -754,3 +754,20 @@ Work continues on branch `codex/3d-loop` (worktree
 - 批次`.local/runs/2026-10-09-uv-skin-trial/`有ledger/manifest/catalog、诊断
   blend、全身3帧及4近景。source high/rig hash保持，visual pending。产品代码
   未变不重复全量测试；详见同名文档。下一步skin质量工具，非同色阈值网格。
+
+## 2026-10-09 read-only skin quality kernel
+
+- 新增core.skin_quality.analyze_weights只读stdlib内核：显式不重叠骨族/配对，
+  流式逐顶点权重，数值坏值/未赋权/和异常/未知骨/族质量混合与有限样本。
+  assessment只有unavailable/invalid/suspicious/no_flagged_conflicts；永不宣称
+  skin/collision accepted。不是完整skin-check verb，三入口和形变尚未接入。
+- TDD初缺module红测；实现后浮点精确相等测试失败，改为approx检查数值，
+  不舍入生产结果。独立review发现超大整数未捕获OverflowError，4红测后
+  修复，并明确坏行跳过范围与覆盖计数。复审32passed，无剩余blocker。
+- 真实原rig GLB的JOINTS_0/WEIGHTS_0数据698962顶点：同侧手/腿族混合
+  Left671、Right527，跨侧0，报告suspicious，源hash保持。exact-layout本地
+  验证脚本不是通用GLB解析支持。复审前/后报告、脚本、日志保留，未跑新动画。
+- Root全量 **441 passed in29.66s**；PYTHONPATH=src、主仓库venv执行，
+  diff check通过。批次`.local/runs/2026-10-09-skin-quality-kernel/`已manifest/
+  catalog登记，source与kernel哈希及命令在ledger，visual pending。完整范围和
+  接续解析/engine/CLI/MCP/execute/形变步骤见docs/skin-quality.md。
