@@ -77,4 +77,44 @@ class PhotoPaintBackend:
                 'limitations':['source lighting remains in RGB','unseen surfaces are not reconstructed','no geometry repair'],
                 'upstream_commit':'10e007b1998c5ffed0b09e16d4218c05a1803afb'}
 
+    def head_roi(self, model: Path, views: Path, output: Path,
+                 head_fraction: float = 0.18, expand: float = 0.08) -> dict:
+        """Project the model's head band into the single reference view and
+        write its convex silhouette as an ROI mask — for characters whose
+        stylized faces defeat landmark detectors."""
+        import numpy as np
+        from PIL import Image
+        from openfigura._vendor import photo_paint as pp
+        from openfigura.backends.face_align import convex_hull
+        if not 0.05 <= head_fraction <= 0.5:
+            raise ValueError('head_fraction must be in 0.05..0.5')
+        if not 0.0 <= expand <= 0.5:
+            raise ValueError('expand must be in 0..0.5')
+        positions, _uvs, _faces, _texture = pp.read_glb(model)
+        refs, scale = pp.load_views(views)
+        if len(refs) != 1:
+            raise ValueError(f'head ROI needs exactly one reference view; got {len(refs)}')
+        view = refs[0]
+        z = positions[:, 2]
+        band = positions[z >= z.max() - head_fraction * (z.max() - z.min())]
+        if len(band) < 10:
+            raise ValueError('head band too sparse to project')
+        x, y, depth = pp.project(pp.to_view_space(band, mesh_scale=scale), view)
+        front = depth > 1e-9
+        if int(front.sum()) < 10:
+            raise ValueError('head band projects in front of the camera in no part')
+        hull = convex_hull(zip(x[front], y[front]))
+        height, width = view.image.shape[:2]
+        cx = sum(p[0] for p in hull) / len(hull)
+        cy = sum(p[1] for p in hull) / len(hull)
+        factor = 1.0 + expand
+        polygon = [(min(max(cx + (px - cx) * factor, 0), width - 1),
+                    min(max(cy + (py - cy) * factor, 0), height - 1)) for px, py in hull]
+        from openfigura.backends.face_align import FaceAlignBackend
+        coverage = FaceAlignBackend().draw_mask(polygon, width, height, output)
+        return {'produced': True, 'view': view.name, 'image_size': [int(width), int(height)],
+                'head_band_vertices': int(front.sum()), 'hull_points': len(polygon),
+                'coverage': round(coverage, 4), 'geometry_unchanged': True}
+
+
 registry.register('photo-paint',PhotoPaintBackend,'visible source pixels -> BaseColor; optional CPU extra')

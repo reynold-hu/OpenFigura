@@ -145,6 +145,16 @@ def build():
         return engine.face_mask(Task.open(Path(task_root)), image=image,
                                 output=output, expand=expand)
 
+    @app.tool(description="Project the model's head band (top of the Z extent) into its "
+              "calibrated generation view and write the convex silhouette as an ROI mask PNG. "
+              "This is the stylized-character path where MediaPipe finds no face; feed the mask "
+              "to figura_refine_texture roi_mask so only the head is repainted. Geometry unchanged.")
+    def figura_head_roi(task_root: str, artifact: str = "model.glb", views: str | None = None,
+                        output: str = "head-roi.png", head_fraction: float = 0.18,
+                        expand: float = 0.08) -> dict:
+        return engine.head_roi(Task.open(Path(task_root)), artifact=artifact, views=views,
+                               output=output, head_fraction=head_fraction, expand=expand)
+
     @app.tool(description="Project calibrated RGBA reference pixels onto BaseColor. "
               "Preserves original model; produces model-refined.glb and a trust map. "
               "Does not fix geometry or recover physically correct albedo.")

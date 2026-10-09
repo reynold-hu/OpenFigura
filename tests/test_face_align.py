@@ -152,6 +152,72 @@ def test_executor_face_steps_chain(tmp_path, monkeypatch):
     assert any(o['kind'] == 'mask' for o in second['outputs'])
 
 
+def test_convex_hull_square_and_collinear():
+    from openfigura.backends.face_align import convex_hull
+    hull = convex_hull([(0, 0), (1, 0), (1, 1), (0, 1), (0.5, 0.5)])
+    assert sorted(map(tuple, map((lambda p: (round(p[0]), round(p[1]))), hull))) == [(0, 0), (0, 1), (1, 0), (1, 1)]
+    with pytest.raises(ValueError):
+        convex_hull([(0, 0), (1, 1), (2, 2)])
+
+
+class FakePhotoPaint:
+    id = 'photo-paint'
+    def __init__(self, fail=False):
+        self.fail = fail
+    def capabilities(self):
+        return Capabilities(True, hardware='cpu')
+    def head_roi(self, model, views, output, head_fraction, expand):
+        if self.fail:
+            raise ValueError('head band not visible')
+        Path(output).parent.mkdir(parents=True, exist_ok=True)
+        Path(output).write_bytes(b'\x89PNG mask')
+        return {'produced': True, 'head_band_vertices': 120, 'hull_points': 9,
+                'coverage': 0.16, 'image_size': [1010, 1010], 'geometry_unchanged': True,
+                'view': 'input.png'}
+
+
+def _svviews_task(tmp_path):
+    from PIL import Image
+    task = Task.create(tmp_path / 'tasks', name='hr')
+    make_minimal_glb(task.artifact('model.glb'))
+    views = task.artifact('model.svviews')
+    views.mkdir()
+    Image.new('RGBA', (64, 64), (9, 9, 9, 255)).save(views / 'input.png')
+    (views / 'transforms.json').write_text(json.dumps(
+        {'camera_angle_x': 0.6, 'mesh_scale': 1.0,
+         'frames': [{'file_path': 'input.png', 'name': 'input',
+                     'transform_matrix': [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1], [0, 0, 0, 1]]}]}))
+    return task
+
+
+def test_head_roi_verb_writes_mask_and_ledger(tmp_path, monkeypatch):
+    task = _svviews_task(tmp_path)
+    monkeypatch.setattr(registry, 'get', lambda name: FakePhotoPaint())
+    result = engine.head_roi(task)
+    assert result['status'] == 'pass' and result['coverage'] == 0.16
+    assert (task.root / 'input' / 'head-roi.png').is_file()
+    assert result['model_sha256'] == sha256_file(task.artifact('model.glb'))
+    assert Task.open(task.root).entries[-1]['step'] == 'head_roi'
+    with pytest.raises(FileExistsError):
+        engine.head_roi(task)
+
+
+def test_head_roi_requires_calibrated_views(tmp_path, monkeypatch):
+    task = Task.create(tmp_path / 'tasks', name='hr2')
+    make_minimal_glb(task.artifact('model.glb'))
+    monkeypatch.setattr(registry, 'get', lambda name: FakePhotoPaint())
+    with pytest.raises(FileNotFoundError, match='calibrated views'):
+        engine.head_roi(task)
+
+
+def test_head_roi_failure_is_recorded(tmp_path, monkeypatch):
+    task = _svviews_task(tmp_path)
+    monkeypatch.setattr(registry, 'get', lambda name: FakePhotoPaint(fail=True))
+    with pytest.raises(ValueError, match='not visible'):
+        engine.head_roi(task)
+    assert Task.open(task.root).entries[-1]['status'] == 'fail'
+
+
 HEAD = Path.home() / 'Desktop/OpenFigura/golden/cases/head-sculpt/input.png'
 
 

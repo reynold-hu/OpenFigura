@@ -1086,6 +1086,44 @@ def face_mask(task: Task, image: str | None = None, output: str = 'face-roi.png'
     return evidence
 
 
+def head_roi(task: Task, artifact: str = 'model.glb', views: str | None = None,
+             output: str = 'head-roi.png', head_fraction: float = 0.18,
+             expand: float = 0.08) -> dict:
+    """Project the model's head band into its calibrated generation view and
+    write the silhouette as an ROI mask for refine-texture. This is the
+    stylized-character path where landmark detectors legitimately find no face."""
+    backend = registry.get('photo-paint')
+    caps = backend.capabilities()
+    if not caps.available:
+        raise RuntimeError('head ROI unavailable: ' + caps.reason)
+    model = _model(task, artifact)
+    if not model.is_file():
+        raise FileNotFoundError(model)
+    views_dir = model.with_suffix('.svviews') if views is None else Path(views)
+    if not (views_dir / 'transforms.json').is_file():
+        raise FileNotFoundError(f'no calibrated views beside {artifact}; run generate first')
+    if Path(output).name != output or '\\' in output or not output.endswith('.png'):
+        raise ValueError('output must be a PNG filename inside input')
+    out = task.root / 'input' / output
+    if out.exists():
+        raise FileExistsError('head ROI mask exists; use a new output name')
+    evidence = {'backend': backend.id, 'source_artifact': artifact, 'operation': 'head-roi-projection',
+                'model_sha256': sha256_file(model),
+                'views_dir': str(views_dir), 'head_fraction': head_fraction, 'expand': expand,
+                'output': f'input/{output}', 'visual_approval': 'pending'}
+    try:
+        result = backend.head_roi(model, views_dir, out, head_fraction, expand)
+        if not result.get('produced') or not out.is_file():
+            raise RuntimeError('head ROI projection produced no mask')
+        evidence.update(result, status='pass')
+    except Exception as exc:
+        evidence.update(status='fail', error=str(exc))
+        task.record('head_roi', evidence)
+        raise
+    task.record('head_roi', evidence)
+    return evidence
+
+
 def _backend_version(backend_id: str) -> str:
     import hashlib
     import inspect as python_inspect
@@ -1364,6 +1402,17 @@ def _outputs_face_mask(sandbox, params, result):
     return [_pair(sandbox, f"input/{params.get('output', 'face-roi.png')}", 'mask')]
 
 
+def _run_head_roi(sandbox, staged, params):
+    return head_roi(sandbox, artifact=params.get('artifact', 'model.glb'),
+                    views=params.get('views'), output=params.get('output', 'head-roi.png'),
+                    head_fraction=params.get('head_fraction', 0.18),
+                    expand=params.get('expand', 0.08))
+
+
+def _outputs_head_roi(sandbox, params, result):
+    return [_pair(sandbox, f"input/{params.get('output', 'head-roi.png')}", 'mask')]
+
+
 def _backend_for(step: str, params: dict) -> str:
     if step in {'generate', 'autorig', 'animate'}:
         value = params.get('backend') if step != 'animate' else params.get('backend', 'unimate')
@@ -1372,7 +1421,7 @@ def _backend_for(step: str, params: dict) -> str:
         return value
     return {'rig': 'rigify', 'mesh': 'blender-mesh-tools', 'retarget': 'native-motion',
             'render': 'blender', 'export': 'export-snapshot', 'transfer_rig': 'blender-rig-transfer',
-            'inspect': 'stdlib-inspect', 'skin-check':'stdlib-skin-check', 'skin-probe':'blender-skin-probe', 'bake': 'blender-bake', 'pivot': 'gltf-pivot', 'face_landmarks': 'mediapipe-face', 'face_mask': 'mediapipe-face'}[step]
+            'inspect': 'stdlib-inspect', 'skin-check':'stdlib-skin-check', 'skin-probe':'blender-skin-probe', 'bake': 'blender-bake', 'pivot': 'gltf-pivot', 'face_landmarks': 'mediapipe-face', 'face_mask': 'mediapipe-face', 'head_roi': 'photo-paint'}[step]
 
 
 def _run_pivot(sandbox, staged, params):
@@ -1420,6 +1469,8 @@ _EXEC_STEPS = {
                      'outputs': _outputs_transfer_rig},
     'face_landmarks': {'allowed': {'image'}, 'run': _run_face_landmarks, 'outputs': _outputs_face_landmarks},
     'face_mask': {'allowed': {'image', 'output', 'expand'}, 'run': _run_face_mask, 'outputs': _outputs_face_mask},
+    'head_roi': {'allowed': {'artifact', 'views', 'output', 'head_fraction', 'expand'},
+                 'run': _run_head_roi, 'outputs': _outputs_head_roi},
 }
 
 

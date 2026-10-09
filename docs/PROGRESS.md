@@ -841,6 +841,29 @@ Work continues on branch `codex/3d-loop` (worktree
   landmark/visibility/faceROI约束，不原样重复旧试验。拟合模板与材质分别验证。
   新人脸模型未下载/安装/推理，未承诺画面改善或显存下限，生产代码/源资产未变。
 
+## 2026-10-09 (late) — full-body detail audit + head-ROI projection for stylized characters
+
+- User acceptance question: does a full-body character keep face and clothing
+  detail? Evidence rendered from the 10-09 xiaoman high-poly
+  (`xiaoman-generated-high.glb`, 947,962 tris, facing 180):
+  **clothing passes** (collar/piping/buttons/pocket legible in close crop),
+  **face fails** (eyes are blank spheres — the documented Pixal3D eye defect
+  plus atlas-share dilution). Composite:
+  `.local/runs/2026-10-09-xiaoman-detail-review/front-facing180-full-face-clothing.png`.
+- MediaPipe cannot fix stylized faces (xiaoman detects zero faces — proven
+  earlier today), so `head_roi` landed as the geometry path: project the
+  model's top-Z head band through the calibrated generation view
+  (`photo_paint.project`, reused upstream), convex-hull it (pure, tested
+  monotone-chain with degenerate guard), rasterise to an ROI mask. Verb +
+  executor step + CLI + MCP mirrors; real-data proof on the scifi bust +
+  its `.svviews`: 29,246 band vertices → 36-point hull → 16.23% coverage,
+  overlay visually confirms helmet+ horns captured
+  (`/tmp/headroi-task/overlay.png` during session).
+- A real xiaoman regeneration is running on this Mac (pixal3d available,
+  task `.local/runs/2026-10-09-xiaoman-detail-review/tasks/xiaoman-regen`)
+  to feed head-ROI → refine-texture end-to-end; result recorded below when
+  it finishes. Suite: **591 passed**.
+
 ## 2026-10-09 (late) — MediaPipe face-ROI chain landed (CPU, real evidence)
 
 - `backends/face_align.py` (id `mediapipe-face`): MediaPipe Tasks

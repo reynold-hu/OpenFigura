@@ -59,6 +59,31 @@ def polygon_from_landmarks(landmarks, width: int, height: int, indices=FACE_OVAL
     return [(int(round(x)), int(round(y))) for x, y in out]
 
 
+def convex_hull(points):
+    """Andrew's monotone chain on (x, y) pairs; returns CCW hull without repeats."""
+    pts = sorted({(float(x), float(y)) for x, y in points})
+    if len(pts) < 3:
+        raise ValueError('convex hull needs at least three distinct points')
+
+    def cross(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+    lower = []
+    for p in pts:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
+            lower.pop()
+        lower.append(p)
+    upper = []
+    for p in reversed(pts):
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
+            upper.pop()
+        upper.append(p)
+    hull = lower[:-1] + upper[:-1]
+    if len(hull) < 3:
+        raise ValueError('points are degenerate (collinear or duplicate)')
+    return hull
+
+
 class FaceAlignBackend:
     id = 'mediapipe-face'
     kind = 'generate'

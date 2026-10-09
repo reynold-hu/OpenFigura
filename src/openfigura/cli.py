@@ -155,6 +155,19 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(func=lambda a: _print(engine.face_mask(
         Task.open(Path(a.task)), image=a.image, output=a.output, expand=a.expand)))
 
+    p = sub.add_parser("head-roi", help="project the model's head band into its calibrated "
+                       "generation view; writes an ROI mask PNG for stylized characters "
+                       "where landmark detectors find no face")
+    p.add_argument("task")
+    p.add_argument("--artifact", default="model.glb")
+    p.add_argument("--views", default=None, help="calibrated views dir (default: <artifact>.svviews)")
+    p.add_argument("--output", default="head-roi.png")
+    p.add_argument("--head-fraction", type=float, default=0.18)
+    p.add_argument("--expand", type=float, default=0.08)
+    p.set_defaults(func=lambda a: _print(engine.head_roi(
+        Task.open(Path(a.task)), artifact=a.artifact, views=a.views, output=a.output,
+        head_fraction=a.head_fraction, expand=a.expand)))
+
     p = sub.add_parser("refine-texture", help="project calibrated reference pixels to a new GLB candidate")
     p.add_argument("task")
     p.add_argument("--views-dir", required=True)
