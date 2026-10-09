@@ -140,6 +140,21 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(func=lambda a: _print(engine.rig(Task.open(Path(a.task)),
         Path(a.calibration), skin_method=a.skin_method, artifact=a.artifact)))
 
+    p = sub.add_parser("face-landmarks", help="478-point MediaPipe facial landmarks on the staged "
+                       "input image (Apache-2.0 model must be user-fetched; never silent retry)")
+    p.add_argument("task")
+    p.add_argument("--image", default=None)
+    p.set_defaults(func=lambda a: _print(engine.face_landmarks(Task.open(Path(a.task)), image=a.image)))
+
+    p = sub.add_parser("face-mask", help="rasterise face-landmarks.json into an ROI mask PNG "
+                       "for refine-texture (suppresses hair/clothing bleed at side seams)")
+    p.add_argument("task")
+    p.add_argument("--image", default=None)
+    p.add_argument("--output", default="face-roi.png")
+    p.add_argument("--expand", type=float, default=0.06)
+    p.set_defaults(func=lambda a: _print(engine.face_mask(
+        Task.open(Path(a.task)), image=a.image, output=a.output, expand=a.expand)))
+
     p = sub.add_parser("refine-texture", help="project calibrated reference pixels to a new GLB candidate")
     p.add_argument("task")
     p.add_argument("--views-dir", required=True)

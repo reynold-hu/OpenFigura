@@ -1000,6 +1000,92 @@ def mesh(task: Task, operation: str, params: dict | None = None,
     return evidence
 
 
+def _first_input_image(task: Task, image: str | None) -> Path:
+    if image is not None:
+        if Path(image).name != image or '\\' in image:
+            raise ValueError('image must be a filename inside input')
+        return task.root / 'input' / image
+    candidates = [p for p in sorted((task.root / 'input').glob('*'))
+                  if p.suffix.lower() in {'.png', '.jpg', '.jpeg', '.webp'}
+                  and not p.name.startswith('face-roi')]
+    if not candidates:
+        raise FileNotFoundError('no staged input image; stage a reference first')
+    return candidates[0]
+
+
+def face_landmarks(task: Task, image: str | None = None) -> dict:
+    """478-point MediaPipe facial landmarks on a staged input; writes face-landmarks.json."""
+    backend = registry.get('mediapipe-face')
+    caps = backend.capabilities()
+    if not caps.available:
+        raise RuntimeError('face detection unavailable: ' + caps.reason)
+    path = _first_input_image(task, image)
+    if not path.is_file():
+        raise FileNotFoundError(f'input image {path.name} missing')
+    evidence = {'backend': backend.id, 'image': f'input/{path.name}',
+                'image_sha256': sha256_file(path),
+                'model_sha256': caps.notes.get('model_sha256'), 'visual_approval': 'pending'}
+    try:
+        detection = backend.detect(path)
+        evidence['faces'] = detection['faces']
+        if detection['faces'] == 0:
+            evidence.update(status='no-face',
+                            note='no face detected; stylized or profile input; not retried silently')
+            task.record('face_landmarks', evidence)
+            raise RuntimeError('no face detected; choose a clear frontal reference image')
+        payload = {**evidence, 'points': detection['points'],
+                   'landmarks': [[round(x, 6), round(y, 6), round(z, 6)]
+                                 for x, y, z in detection['landmarks']],
+                   'blendshapes': detection['blendshapes'], 'image_size': detection['image_size']}
+        (task.root / 'face-landmarks.json').write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+        evidence.update(status='pass', points=detection['points'],
+                        artifact='face-landmarks.json')
+    except Exception as exc:
+        if evidence.get('status') is None:
+            evidence.update(status='fail', error=str(exc))
+            task.record('face_landmarks', evidence)
+        raise
+    task.record('face_landmarks', evidence)
+    return evidence
+
+
+def face_mask(task: Task, image: str | None = None, output: str = 'face-roi.png',
+              expand: float = 0.06) -> dict:
+    """Rasterise the facial oval from face-landmarks.json into an ROI mask PNG."""
+    import math
+    from openfigura.backends.face_align import polygon_from_landmarks, FACE_OVAL
+    if isinstance(expand, bool) or not isinstance(expand, (int, float)) \
+            or not math.isfinite(expand) or not 0 <= expand <= 1:
+        raise ValueError('expand must be finite and in 0..1')
+    if Path(output).name != output or '\\' in output or not output.endswith('.png'):
+        raise ValueError('output must be a PNG filename inside input')
+    record = task.root / 'face-landmarks.json'
+    if not record.is_file():
+        staged = task.root / 'input' / 'face-landmarks.json'
+        if staged.is_file():
+            record = staged
+    if not record.is_file():
+        raise FileNotFoundError('run face-landmarks first')
+    data = json.loads(record.read_text(encoding='utf-8'))
+    if image is not None and data.get('image') != f'input/{Path(image).name}':
+        raise ValueError('face-landmarks.json is for a different image')
+    backend = registry.get('mediapipe-face')
+    width, height = data['image_size']
+    polygon = polygon_from_landmarks(data['landmarks'], width, height, FACE_OVAL, expand)
+    out = task.root / 'input' / output
+    if out.exists():
+        raise FileExistsError('ROI mask exists; use a new output name')
+    evidence = {'backend': backend.id, 'image': data['image'],
+                'landmarks_sha256': sha256_file(record), 'expand': expand,
+                'output': f'input/{output}', 'visual_approval': 'pending'}
+    coverage = backend.draw_mask(polygon, width, height, out)
+    evidence['coverage'] = round(coverage, 4)
+    evidence['status'] = 'pass'
+    task.record('face_mask', evidence)
+    return evidence
+
+
 def _backend_version(backend_id: str) -> str:
     import hashlib
     import inspect as python_inspect
@@ -1260,6 +1346,24 @@ def _outputs_transfer_rig(sandbox, params, result):
             _pair(sandbox, f'artifacts/{stem}.rig-transfer-report.json', 'report')]
 
 
+def _run_face_landmarks(sandbox, staged, params):
+    return face_landmarks(sandbox, image=params.get('image'))
+
+
+def _outputs_face_landmarks(sandbox, params, result):
+    return [_pair(sandbox, 'face-landmarks.json', 'report')]
+
+
+def _run_face_mask(sandbox, staged, params):
+    return face_mask(sandbox, image=params.get('image'),
+                     output=params.get('output', 'face-roi.png'),
+                     expand=params.get('expand', 0.06))
+
+
+def _outputs_face_mask(sandbox, params, result):
+    return [_pair(sandbox, f"input/{params.get('output', 'face-roi.png')}", 'mask')]
+
+
 def _backend_for(step: str, params: dict) -> str:
     if step in {'generate', 'autorig', 'animate'}:
         value = params.get('backend') if step != 'animate' else params.get('backend', 'unimate')
@@ -1268,7 +1372,7 @@ def _backend_for(step: str, params: dict) -> str:
         return value
     return {'rig': 'rigify', 'mesh': 'blender-mesh-tools', 'retarget': 'native-motion',
             'render': 'blender', 'export': 'export-snapshot', 'transfer_rig': 'blender-rig-transfer',
-            'inspect': 'stdlib-inspect', 'skin-check':'stdlib-skin-check', 'skin-probe':'blender-skin-probe', 'bake': 'blender-bake', 'pivot': 'gltf-pivot'}[step]
+            'inspect': 'stdlib-inspect', 'skin-check':'stdlib-skin-check', 'skin-probe':'blender-skin-probe', 'bake': 'blender-bake', 'pivot': 'gltf-pivot', 'face_landmarks': 'mediapipe-face', 'face_mask': 'mediapipe-face'}[step]
 
 
 def _run_pivot(sandbox, staged, params):
@@ -1314,6 +1418,8 @@ _EXEC_STEPS = {
                 'run': _run_animate, 'outputs': _outputs_animate},
     'transfer_rig': {'allowed': {'source', 'artifact', 'params'}, 'run': _run_transfer_rig,
                      'outputs': _outputs_transfer_rig},
+    'face_landmarks': {'allowed': {'image'}, 'run': _run_face_landmarks, 'outputs': _outputs_face_landmarks},
+    'face_mask': {'allowed': {'image', 'output', 'expand'}, 'run': _run_face_mask, 'outputs': _outputs_face_mask},
 }
 
 

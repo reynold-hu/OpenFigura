@@ -56,7 +56,7 @@ def _bootstrap() -> None:
     """Register built-in backends lazily so import errors stay per-backend."""
     from openfigura.backends import (pixal3d, blender, photo_paint, rigify, mia,
                                      native_motion, mesh_tools, motion_gate, unimate,
-                                     format_export, rig_transfer)  # noqa: F401
+                                     format_export, rig_transfer, face_align)  # noqa: F401
     from openfigura.backends.bake import BakeBackend
     register('blender-bake', BakeBackend, 'CPU Cycles high-to-low normal/AO baking')
     from openfigura.backends.glb_pivot import PivotBackend

@@ -129,6 +129,22 @@ def build():
         return engine.rig(Task.open(Path(task_root)), Path(calibration),
                           skin_method=skin_method, artifact=artifact)
 
+    @app.tool(description="MediaPipe FaceLandmarker (Tasks API, Apache-2.0 model) on a staged "
+              "input image: 478 landmarks + blendshapes to face-landmarks.json. Honest limits: "
+              "stylized or profile references may detect zero faces and that is recorded, "
+              "never retried silently. The model asset is user-fetched; its SHA-256 is required "
+              "and ledgered.")
+    def figura_face_landmarks(task_root: str, image: str | None = None) -> dict:
+        return engine.face_landmarks(Task.open(Path(task_root)), image=image)
+
+    @app.tool(description="Rasterise the facial oval from face-landmarks.json into an ROI mask "
+              "PNG sized to the reference image; feed it to figura_refine_texture roi_mask to keep "
+              "hair/clothing pixels out of face projections. Does not repair geometry.")
+    def figura_face_mask(task_root: str, image: str | None = None,
+                         output: str = "face-roi.png", expand: float = 0.06) -> dict:
+        return engine.face_mask(Task.open(Path(task_root)), image=image,
+                                output=output, expand=expand)
+
     @app.tool(description="Project calibrated RGBA reference pixels onto BaseColor. "
               "Preserves original model; produces model-refined.glb and a trust map. "
               "Does not fix geometry or recover physically correct albedo.")

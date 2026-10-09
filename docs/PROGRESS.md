@@ -841,6 +841,34 @@ Work continues on branch `codex/3d-loop` (worktree
   landmark/visibility/faceROI约束，不原样重复旧试验。拟合模板与材质分别验证。
   新人脸模型未下载/安装/推理，未承诺画面改善或显存下限，生产代码/源资产未变。
 
+## 2026-10-09 (late) — MediaPipe face-ROI chain landed (CPU, real evidence)
+
+- `backends/face_align.py` (id `mediapipe-face`): MediaPipe Tasks
+  FaceLandmarker, code+model Apache-2.0; model is user-fetched, never
+  committed, SHA-256 pinned (`64184e22…`) and written into every ledger
+  entry. Heavy imports stay inside methods — `openfigura backends` never
+  loads TFLite. Honest capability notes: realistic frontal faces only.
+- Engine verbs `face_landmarks` / `face_mask` + executor steps + CLI
+  (`face-landmarks`, `face-mask`) + MCP mirrors. Zero-face inputs are
+  recorded `status: no-face` and raise — never silently retried.
+  Mask = ordered FACE_OVAL loop rasterised (pure, unit-tested
+  expand/clip logic), coverage recorded as a number.
+- Real run (this Mac, CPU): golden `head-sculpt` → 478 landmarks
+  (blendshapes on), mask coverage 0.2419, and a human-checkable overlay
+  at `~/Desktop/openfigura-3d-loop-2026-10-08/face-line/face-overlay-preview.png`
+  — points sit on brows/iris/lips, the oval excludes ears/neck/hair.
+  Negative cases are also real: `xiaoman-front`, `hoodie-side`,
+  `dark-knight` detect zero faces (stylized/profile) — recorded, not
+  hidden. The mask is a drop-in `--roi-mask` for the existing
+  refine-texture path; the double-mouth before/after needs a calibrated
+  camera set and is the next step, not yet claimed.
+- Environment facts: `mediapipe==1.1.0` installs and runs on this
+  Python 3.14/arm64 venv (legacy `solutions` API removed; Tasks API +
+  fetched .task used). Suite: **587 passed** (includes the other
+  session's bake/pivot/skin-probe steps discovered during wiring —
+  my `_backend_for` patch initially missed because upstream text had
+  changed; caught by the failing executor test, not by eye).
+
 ## 2026-10-09 upstream-first code import and automation disabled
 
 - 用户明确关闭loop，automation_update确认openfigura-loop状态PAUSED，保留既有
