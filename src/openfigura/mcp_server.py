@@ -153,6 +153,24 @@ def build():
         return engine.face_expression_report(Task.open(Path(task_root)), image=image,
                                              min_score=min_score)
 
+    @app.tool(description="Landmark registration of the CC0 MakeHuman face units onto a "
+              "character: render landmarks + recorded orthographic camera + Umeyama fit. "
+              "Built-in acceptance gate: the jawOpen field must concentrate on the head band "
+              "(mean height fraction >= 0.75) or the alignment is refused and recorded.")
+    def figura_expression_align(task_root: str, artifact: str = "model.glb",
+                                view: str = "front") -> dict:
+        return engine.expression_align(Task.open(Path(task_root)), artifact=artifact, view=view)
+
+    @app.tool(description="Write ARKit-named morph targets (real, individually scrubable in "
+              "any DCC) onto the character from the registered CC0 face units, weighted by the "
+              "reference blendshape scores. Needs expression_align first; output GLB is "
+              "verified to carry exactly the channel count as morph primitives.")
+    def figura_expressions(task_root: str, artifact: str = "model.glb",
+                           output: str = "model-expressive.glb", min_score: float = 0.1,
+                           intensity: float = 1.0) -> dict:
+        return engine.expressions(Task.open(Path(task_root)), artifact=artifact,
+                                  output=output, min_score=min_score, intensity=intensity)
+
     @app.tool(description="Project the model's head band (top of the Z extent) into its "
               "calibrated generation view and write the convex silhouette as an ROI mask PNG. "
               "This is the stylized-character path where MediaPipe finds no face; feed the mask "

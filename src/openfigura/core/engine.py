@@ -18,7 +18,7 @@ from pathlib import Path
 
 from openfigura.core import registry
 from openfigura.core.contracts import AssetRef
-from openfigura.core.inspect import inspect_glb
+from openfigura.core.inspect import inspect_glb, gltf_document
 from openfigura.core.preflight import preflight
 from openfigura.core.task import Task, sha256_file
 from openfigura.core.workflow import Workflow
@@ -1168,6 +1168,175 @@ def face_expression_report(task: Task, image: str | None = None,
     return evidence
 
 
+def expression_align(task: Task, artifact: str = 'model.glb', view: str = 'front') -> dict:
+    """Register the CC0 hm08 face units onto a character via render landmarks.
+
+    Requires face_landmarks on the rendered view (not the reference photo)
+    and the camera manifest the render verb recorded. The acceptance gate is
+    part of the verb: jawOpen's transferred field must concentrate on the
+    character's head band, or the alignment is refused.
+    """
+    import numpy as np
+    from openfigura._vendor import photo_paint as pp
+    from openfigura.backends.makehuman_targets import (
+        load_pack, PACK_SHA256, pack_path, base_mesh_path)
+    from openfigura.backends.expression_field import (
+        load_obj_positions, dense_deltas, nearest_map, sample_field)
+    from openfigura.backends.expression_register import (
+        BASE_ANCHOR_CHANNELS, anchor_from_target, landmarks_to_pixel, project_pixel,
+        character_anchor, umeyama, gltf_to_blender_world)
+    record_path = next((c for c in (task.root / 'face-landmarks.json',
+                                    task.root / 'input' / 'face-landmarks.json') if c.is_file()), None)
+    if record_path is None:
+        raise FileNotFoundError('run face-landmarks on the rendered view first')
+    record = json.loads(record_path.read_text(encoding='utf-8'))
+    if not str(record.get('image', '')).endswith(f'/{view}.png') and record.get('image') != f'render/{view}.png':
+        raise ValueError(f'face-landmarks.json was computed on {record.get("image")!r}, not the {view} render')
+    model = _model(task, artifact)
+    if not model.is_file():
+        raise FileNotFoundError(model)
+    render_dir = task.root / 'render' if artifact == 'model.glb' else task.root / 'render' / model.stem
+    camera_file = next((c for c in [*(sorted(render_dir.rglob('camera.json')) if render_dir.is_dir() else []),
+                                    task.root / 'input' / 'camera.json',
+                                    task.root / 'camera.json'] if c.is_file()), None)
+    if camera_file is None:
+        raise FileNotFoundError('render carries no camera.json; re-render with the current build')
+    camera = json.loads(camera_file.read_text(encoding='utf-8')).get(view)
+    if not camera:
+        raise ValueError(f'camera.json has no {view} entry')
+    zip_path = pack_path('faceunits01')
+    base_mesh = base_mesh_path()
+    if not zip_path.is_file() or not base_mesh.is_file():
+        raise FileNotFoundError('CC0 faceunits pack or hm08 base mesh missing; see third_party/makehuman-faceunits')
+    targets = load_pack(zip_path, PACK_SHA256['faceunits01'])
+    base_positions = load_obj_positions(base_mesh)
+    positions, _, _, _ = pp.read_glb(model)
+    world = gltf_to_blender_world(positions)
+    pixels = landmarks_to_pixel([tuple(p) for p in record['landmarks']], record['image_size'])
+    source, destination, names = [], [], []
+    for name, channel in BASE_ANCHOR_CHANNELS.items():
+        source.append(anchor_from_target(base_positions, targets[channel].indices))
+        destination.append(character_anchor(project_pixel(*pixels[name], camera), world, camera))
+        names.append(name)
+    fit = umeyama(np.array(source).T, np.array(destination).T)
+    aligned = fit['scale'] * (base_positions @ np.array(fit['rotation']).T) + np.array(fit['translation'])
+    jaw = sample_field(dense_deltas(targets['jawOpen'], len(base_positions)),
+                       nearest_map(aligned, world))
+    magnitudes = np.linalg.norm(jaw, axis=1)
+    moved = np.where(magnitudes > 1e-4)[0]
+    up = int(np.argmax(world.max(axis=0) - world.min(axis=0)))
+    span = float(np.ptp(world[:, up])) or 1.0
+    height_fraction = float(((world[moved, up] - world[:, up].min()) / span).mean()) if len(moved) else 0.0
+    acceptance = {'moved_vertices': int(len(moved)), 'mean_height_fraction': round(height_fraction, 3),
+                  'threshold': 0.75}
+    evidence = {'backend': 'blender-expressions', 'artifact': artifact, 'view': view,
+                'model_sha256': sha256_file(model), 'landmarks_sha256': sha256_file(record_path),
+                'camera_sha256': sha256_file(camera_file), 'pack_sha256': PACK_SHA256['faceunits01'],
+                'anchors': names, 'fit': fit, 'acceptance': acceptance,
+                'artifact_out': 'expression-alignment.json'}
+    if not len(moved) or height_fraction < acceptance['threshold']:
+        evidence.update(status='fail',
+                        error=f'jawOpen field did not concentrate on the head band (mean height fraction {height_fraction:.2f})')
+        task.record('expression_align', evidence)
+        raise RuntimeError('expression alignment rejected by acceptance gate: '
+                           + evidence['error'])
+    (task.root / 'expression-alignment.json').write_text(
+        json.dumps(evidence, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+    evidence.update(status='pass')
+    task.record('expression_align', evidence)
+    return evidence
+
+
+def expressions(task: Task, artifact: str = 'model.glb', output: str = 'model-expressive.glb',
+                min_score: float = 0.1, intensity: float = 1.0) -> dict:
+    """Write ARKit-named morph targets onto the character from the registered
+    CC0 face units, weighted by the reference expression scores."""
+    import math
+    import numpy as np
+    from openfigura.backends.makehuman_targets import (
+        load_pack, PACK_SHA256, pack_path, base_mesh_path)
+    from openfigura.backends.expression_field import load_obj_positions
+    from openfigura.backends.expression_register import build_payload
+    if isinstance(min_score, bool) or not isinstance(min_score, (int, float)) \
+            or not math.isfinite(min_score) or not 0 <= min_score <= 1:
+        raise ValueError('min_score must be finite and in 0..1')
+    if isinstance(intensity, bool) or not isinstance(intensity, (int, float)) \
+            or not math.isfinite(intensity) or not 0 < intensity <= 2:
+        raise ValueError('intensity must be finite and in (0, 2]')
+    if Path(output).name != output or '\\' in output or not output.endswith('.glb'):
+        raise ValueError('output must be a GLB filename inside artifacts')
+    alignment_path = next((c for c in (task.root / 'expression-alignment.json',
+                                       task.root / 'input' / 'expression-alignment.json') if c.is_file()), None)
+    record_path = next((c for c in (task.root / 'face-landmarks.json',
+                                    task.root / 'input' / 'face-landmarks.json') if c.is_file()), None)
+    if alignment_path is None:
+        raise FileNotFoundError('run expression_align first')
+    if record_path is None:
+        raise FileNotFoundError('run face-landmarks first')
+    alignment = json.loads(alignment_path.read_text(encoding='utf-8'))
+    model = _model(task, artifact)
+    if not model.is_file():
+        raise FileNotFoundError(model)
+    if sha256_file(model) != alignment.get('model_sha256'):
+        raise ValueError('alignment was computed for different model bytes; re-run expression_align')
+    scores = {name: value for name, value in
+              json.loads(record_path.read_text(encoding='utf-8')).get('blendshapes', {}).items()
+              if name != '_neutral' and value >= min_score}
+    if not scores:
+        raise RuntimeError('no blendshape channel reaches min_score; nothing to transfer')
+    if len(scores) > 12:
+        scores = dict(sorted(scores.items(), key=lambda kv: -kv[1])[:12])
+    targets = load_pack(pack_path('faceunits01'), PACK_SHA256['faceunits01'])
+    missing = sorted(channel for channel in scores if channel not in targets)
+    if missing:
+        raise RuntimeError('channels without CC0 face units: ' + ', '.join(missing))
+    channels = sorted(scores)
+    base_positions = load_obj_positions(base_mesh_path())
+    deltas = {channel: (targets[channel].indices, targets[channel].deltas) for channel in channels}
+    payload = build_payload(base_positions, alignment['fit'], channels, deltas)
+    payload['scores'] = np.array([round(float(scores[c]) * intensity, 4) for c in channels], dtype=np.float32)
+    payload_path = task.root / 'expression-payload.npz'
+    np.savez_compressed(payload_path, **payload)
+    out = task.artifact(output)
+    if out.exists() or out.with_suffix('.expressions-report.json').exists():
+        raise FileExistsError('expressions candidate exists; use a new output name')
+    backend = registry.get('blender-expressions')
+    caps = backend.capabilities()
+    if not caps.available:
+        raise RuntimeError('expressions backend unavailable: ' + caps.reason)
+    before = (sha256_file(model), sha256_file(alignment_path))
+    evidence = {'backend': backend.id, 'source_artifact': artifact,
+                'input_sha256': before[0], 'alignment_sha256': before[1],
+                'channels': channels, 'weights': {c: round(float(scores[c]) * intensity, 4) for c in channels},
+                'min_score': min_score, 'intensity': intensity,
+                'artifact': str(out.relative_to(task.root)), 'visual_approval': 'pending'}
+    try:
+        result = backend.run(model, payload_path, out)
+        evidence.update(result)
+        if result['exit_code'] != 0 or not out.is_file():
+            raise RuntimeError(f"expressions exited {result['exit_code']}: "
+                               + (result.get('stderr_tail') or '')[-500:])
+        document = gltf_document(out)
+        primitives = document['meshes'][0]['primitives']
+        morph_count = len(primitives[0].get('targets', []))
+        names = (primitives[0].get('extras') or {}).get('targetNames') or \
+            (document['meshes'][0].get('extras') or {}).get('targetNames') or []
+        if morph_count != len(channels) or sorted(names) != channels:
+            raise RuntimeError(f'morph verification failed: {morph_count} targets '
+                               f'{names[:3]}… for {len(channels)} channels')
+        if sha256_file(model) != before[0] or sha256_file(alignment_path) != before[1]:
+            raise RuntimeError('expressions backend modified an input')
+        evidence.update(status='pass', output_sha256=sha256_file(out),
+                        morph_targets=morph_count, max_displacement=(result['report'] or {}).get(
+                            'morph_targets', [{}])[0].get('max_displacement'))
+    except Exception as exc:
+        evidence.update(status='fail', error=str(exc))
+        task.record('expressions', evidence)
+        raise
+    task.record('expressions', evidence)
+    return evidence
+
+
 def _backend_version(backend_id: str) -> str:
     import hashlib
     import inspect as python_inspect
@@ -1466,6 +1635,28 @@ def _outputs_face_expression_report(sandbox, params, result):
     return [_pair(sandbox, 'face-expression-report.json', 'report')]
 
 
+def _run_expression_align(sandbox, staged, params):
+    return expression_align(sandbox, artifact=params.get('artifact', 'model.glb'),
+                            view=params.get('view', 'front'))
+
+
+def _outputs_expression_align(sandbox, params, result):
+    return [_pair(sandbox, 'expression-alignment.json', 'report')]
+
+
+def _run_expressions(sandbox, staged, params):
+    return expressions(sandbox, artifact=params.get('artifact', 'model.glb'),
+                       output=params.get('output', 'model-expressive.glb'),
+                       min_score=params.get('min_score', 0.1),
+                       intensity=params.get('intensity', 1.0))
+
+
+def _outputs_expressions(sandbox, params, result):
+    stem = Path(params.get('output', 'model-expressive.glb')).stem
+    return [_pair(sandbox, f"artifacts/{stem}.glb", 'model'),
+            _pair(sandbox, f'artifacts/{stem}.expressions-report.json', 'report')]
+
+
 def _backend_for(step: str, params: dict) -> str:
     if step in {'generate', 'autorig', 'animate'}:
         value = params.get('backend') if step != 'animate' else params.get('backend', 'unimate')
@@ -1475,7 +1666,8 @@ def _backend_for(step: str, params: dict) -> str:
     return {'rig': 'rigify', 'mesh': 'blender-mesh-tools', 'retarget': 'native-motion',
             'render': 'blender', 'export': 'export-snapshot', 'transfer_rig': 'blender-rig-transfer',
             'inspect': 'stdlib-inspect', 'skin-check':'stdlib-skin-check', 'skin-probe':'blender-skin-probe', 'bake': 'blender-bake', 'pivot': 'gltf-pivot', 'face_landmarks': 'mediapipe-face', 'face_mask': 'mediapipe-face',
-            'face_expression_report': 'mediapipe-face', 'head_roi': 'photo-paint'}[step]
+            'face_expression_report': 'mediapipe-face', 'head_roi': 'photo-paint',
+            'expression_align': 'blender-expressions', 'expressions': 'blender-expressions'}[step]
 
 
 def _run_pivot(sandbox, staged, params):
@@ -1528,6 +1720,10 @@ _EXEC_STEPS = {
     'face_expression_report': {'allowed': {'image', 'min_score'},
                                'run': _run_face_expression_report,
                                'outputs': _outputs_face_expression_report},
+    'expression_align': {'allowed': {'artifact', 'view'}, 'run': _run_expression_align,
+                         'outputs': _outputs_expression_align},
+    'expressions': {'allowed': {'artifact', 'output', 'min_score', 'intensity'},
+                    'run': _run_expressions, 'outputs': _outputs_expressions},
 }
 
 

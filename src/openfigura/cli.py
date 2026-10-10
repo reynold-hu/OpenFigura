@@ -163,6 +163,25 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(func=lambda a: _print(engine.face_expression_report(
         Task.open(Path(a.task)), image=a.image, min_score=a.min_score)))
 
+    p = sub.add_parser("expression-align", help="register CC0 hm08 face units onto the "
+                       "character via render landmarks; acceptance gate must pass")
+    p.add_argument("task")
+    p.add_argument("--artifact", default="model.glb")
+    p.add_argument("--view", default="front")
+    p.set_defaults(func=lambda a: _print(engine.expression_align(
+        Task.open(Path(a.task)), artifact=a.artifact, view=a.view)))
+
+    p = sub.add_parser("expressions", help="write ARKit-named morph targets onto the character "
+                       "from registered CC0 face units, weighted by reference blendshape scores")
+    p.add_argument("task")
+    p.add_argument("--artifact", default="model.glb")
+    p.add_argument("--output", default="model-expressive.glb")
+    p.add_argument("--min-score", type=float, default=0.1)
+    p.add_argument("--intensity", type=float, default=1.0)
+    p.set_defaults(func=lambda a: _print(engine.expressions(
+        Task.open(Path(a.task)), artifact=a.artifact, output=a.output,
+        min_score=a.min_score, intensity=a.intensity)))
+
     p = sub.add_parser("head-roi", help="project the model's head band into its calibrated "
                        "generation view; writes an ROI mask PNG for stylized characters "
                        "where landmark detectors find no face")

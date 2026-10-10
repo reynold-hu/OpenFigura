@@ -1048,3 +1048,24 @@ Work continues on branch `codex/3d-loop` (worktree
   face_landmarks now accepts render/ paths and records the true relative
   path. Suite: **609 passed**. Productionizing as a verb + shape-key
   writer (morph targets instead of baked displacement) is next.
+
+## 2026-10-10 (late) — expression transfer productionized as verbs with morph verification
+
+- `expression_align` verb: render-landmark registration with a built-in
+  acceptance gate (jawOpen field must reach mean height-fraction ≥ 0.75 on
+  the character's head band) — refuses and records otherwise. Real run on
+  silver-scarf: scale 0.165, rms 0.048, acceptance 0.841/196,321 verts.
+- `expressions` verb + `blender-expressions` backend + shape-key worker:
+  writes ARKit-named morph targets (real, individually scrubable in any
+  DCC), weights from the photo's blendshape scores, then verifies the
+  exported GLB carries exactly the expected morph count and names before
+  pass. Real run: **12 morphs** (mouthSmile L/R 0.84/0.86, eyeSquint,
+  eyeBlink, browDown, …), 152 s, pure CPU.
+- Evidence `morphs-before-after.png`: smile visible (wider mouth, raised
+  cheeks, narrowed eyes), body/hair/scarf untouched. A first attempt failed
+  on a missing `gltf_document` import *after* the worker had run — the
+  ledger recorded the fail honestly; fixed, prior output preserved as
+  `attempt1-*`, clean rerun passed. Suite: **615 passed**.
+- Known limits on record: face-anchored similarity fit only (no non-rigid
+  warp); Q-version stylization still defeats MediaPipe upstream; morph
+  weights are applied at export and re-rendered through the importer.

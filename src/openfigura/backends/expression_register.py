@@ -93,6 +93,30 @@ def umeyama(source: np.ndarray, destination: np.ndarray) -> dict:
             'rms_residual': float(np.sqrt((residual ** 2).sum(axis=0).mean()))}
 
 
+def build_payload(base_positions: np.ndarray, fit: dict, channels: list,
+                  deltas_by_channel: dict, sigma: float = 0.02) -> dict:
+    """Assemble the worker npz arrays: aligned base + world-space channel fields.
+
+    `deltas_by_channel` maps channel -> (indices, deltas) in hm08 space; the
+    deltas are rotated and scaled by the fit so they live in character world
+    coordinates like `base_positions`.
+    """
+    rotation = np.asarray(fit['rotation'], dtype=float)
+    scale = float(fit['scale'])
+    translation = np.asarray(fit['translation'], dtype=float)
+    aligned_base = scale * (np.asarray(base_positions, dtype=float) @ rotation.T) + translation
+    fields = np.zeros((len(channels), len(aligned_base), 3), dtype=np.float64)
+    for index, channel in enumerate(channels):
+        indices, deltas = deltas_by_channel[channel]
+        dense = np.zeros((len(aligned_base), 3), dtype=float)
+        dense[list(indices)] = np.asarray(deltas, dtype=float)
+        fields[index] = scale * (dense @ rotation.T)
+    if fields.shape[1] != len(aligned_base):
+        raise ValueError('payload field length mismatch')
+    return {'base_al': aligned_base.astype(np.float32), 'fields': fields.astype(np.float32),
+            'channels': np.array(channels), 'sigma': np.float32(sigma)}
+
+
 def landmarks_to_pixel(landmarks, pixel_size) -> dict:
     """Pixel coordinates for the anchor landmarks from normalized MediaPipe points."""
     width, height = pixel_size

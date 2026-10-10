@@ -11,10 +11,23 @@ names — applying deltas to a character mesh is a separate, later step.
 from __future__ import annotations
 import io
 import json
+import os
 import re
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
+
+RUNTIME_DIR = Path.home() / 'Desktop/Local/Opensource/OpenFigura-runtimes/makehuman-expressions'
+
+
+def pack_path(pack: str) -> Path:
+    if pack not in PACK_SHA256:
+        raise ValueError(f'unknown pack {pack!r}; known: {sorted(PACK_SHA256)}')
+    return Path(os.environ.get('OPENFIGURA_MAKEHUMAN_' + pack.upper(), str(RUNTIME_DIR / (pack + '.zip'))))
+
+
+def base_mesh_path() -> Path:
+    return Path(os.environ.get('OPENFIGURA_MAKEHUMAN_BASE', str(RUNTIME_DIR / 'hm08_base.obj')))
 
 PACK_URLS = {
     'faceunits01': 'https://files.makehumancommunity.org/functional/faceunits01.zip',
