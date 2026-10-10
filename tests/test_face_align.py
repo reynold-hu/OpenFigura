@@ -218,6 +218,43 @@ def test_head_roi_failure_is_recorded(tmp_path, monkeypatch):
     assert Task.open(task.root).entries[-1]['status'] == 'fail'
 
 
+def test_face_expression_report_ranks_and_persists(tmp_path, monkeypatch):
+    task = _task_with_image(tmp_path)
+    monkeypatch.setattr(registry, 'get', lambda name: FakeFace(
+        {'faces': 1, 'points': 478, 'landmarks': fake_landmarks(),
+         'blendshapes': {'jawOpen': 0.91, 'eyeBlinkLeft': 0.55, 'mouthSmileLeft': 0.31,
+                         'browDownLeft': 0.02}, 'image_size': [64, 80]}))
+    result = engine.face_expression_report(task)
+    assert result['status'] == 'pass' and result['channels_active'] == 3
+    assert result['top5'][0] == {'name': 'jawOpen', 'score': 0.91}
+    report = json.loads((task.root / 'face-expression-report.json').read_text())
+    assert report['channels_total'] == 4 and report['threshold'] == 0.3
+    assert report['visual_approval'] == 'pending'
+    assert Task.open(task.root).entries[-1]['step'] == 'face_expression_report'
+
+
+def test_face_expression_report_threshold_and_validation(tmp_path, monkeypatch):
+    task = _task_with_image(tmp_path)
+    monkeypatch.setattr(registry, 'get', lambda name: FakeFace(
+        {'faces': 1, 'points': 478, 'landmarks': fake_landmarks(),
+         'blendshapes': {'jawOpen': 0.91, 'eyeBlinkLeft': 0.55}, 'image_size': [64, 80]}))
+    engine.face_expression_report(task, min_score=0.8)
+    assert json.loads((task.root / 'face-expression-report.json').read_text())['channels_active'] == 1
+    for bad in (True, -0.1, 1.5, float('nan')):
+        with pytest.raises(ValueError):
+            engine.face_expression_report(task, min_score=bad)
+
+
+def test_face_expression_report_without_landmarks_runs_detection(tmp_path, monkeypatch):
+    task = _task_with_image(tmp_path)
+    monkeypatch.setattr(registry, 'get', lambda name: FakeFace(
+        {'faces': 1, 'points': 478, 'landmarks': fake_landmarks(),
+         'blendshapes': {'jawOpen': 0.5}, 'image_size': [64, 80]}))
+    result = engine.face_expression_report(task)
+    assert (task.root / 'face-landmarks.json').is_file()
+    assert result["channels_active"] == 1
+
+
 HEAD = Path.home() / 'Desktop/OpenFigura/golden/cases/head-sculpt/input.png'
 
 

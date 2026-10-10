@@ -155,6 +155,14 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(func=lambda a: _print(engine.face_mask(
         Task.open(Path(a.task)), image=a.image, output=a.output, expand=a.expand)))
 
+    p = sub.add_parser("face-expression-report", help="rank MediaPipe ARKit blendshape scores "
+                       "from face-landmarks.json into a durable report (no new inference)")
+    p.add_argument("task")
+    p.add_argument("--image", default=None)
+    p.add_argument("--min-score", type=float, default=0.3)
+    p.set_defaults(func=lambda a: _print(engine.face_expression_report(
+        Task.open(Path(a.task)), image=a.image, min_score=a.min_score)))
+
     p = sub.add_parser("head-roi", help="project the model's head band into its calibrated "
                        "generation view; writes an ROI mask PNG for stylized characters "
                        "where landmark detectors find no face")

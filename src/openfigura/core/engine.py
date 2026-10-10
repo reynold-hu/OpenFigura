@@ -1124,6 +1124,45 @@ def head_roi(task: Task, artifact: str = 'model.glb', views: str | None = None,
     return evidence
 
 
+def face_expression_report(task: Task, image: str | None = None,
+                           min_score: float = 0.3) -> dict:
+    """Turn MediaPipe's 52 ARKit blendshape scores into a durable, readable report.
+
+    Data comes from the same detection run as face-landmarks.json; this verb
+    adds no model and no inference of its own.
+    """
+    import math
+    if isinstance(min_score, bool) or not isinstance(min_score, (int, float)) \
+            or not math.isfinite(min_score) or not 0 <= min_score <= 1:
+        raise ValueError('min_score must be finite and in 0..1')
+    record = task.root / 'face-landmarks.json'
+    if not record.is_file():
+        face_landmarks(task, image=image)
+    data = json.loads(record.read_text(encoding='utf-8'))
+    blendshapes = data.get('blendshapes') or {}
+    if not blendshapes:
+        raise RuntimeError('landmark record carries no blendshapes; nothing to report')
+    ranked = sorted(blendshapes.items(), key=lambda kv: -kv[1])
+    active = [(name, score) for name, score in ranked if score >= min_score]
+    report = {'schema_version': 1, 'image': data.get('image'),
+              'image_sha256': data.get('image_sha256'),
+              'model_sha256': data.get('model_sha256'), 'threshold': min_score,
+              'channels_total': len(ranked), 'channels_active': len(active),
+              'active': [{'name': n, 'score': s} for n, s in active],
+              'top5': [{'name': n, 'score': s} for n, s in ranked[:5]],
+              'interpretation': 'ARKit-style expression weights from the reference photo; '
+                                'not yet wired to any mesh morph target',
+              'visual_approval': 'pending'}
+    (task.root / 'face-expression-report.json').write_text(
+        json.dumps(report, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+    evidence = {'backend': 'mediapipe-face', 'status': 'pass',
+                'artifact': 'face-expression-report.json',
+                'landmarks_sha256': sha256_file(record),
+                'channels_active': len(active), 'top5': report['top5']}
+    task.record('face_expression_report', evidence)
+    return evidence
+
+
 def _backend_version(backend_id: str) -> str:
     import hashlib
     import inspect as python_inspect
@@ -1413,6 +1452,15 @@ def _outputs_head_roi(sandbox, params, result):
     return [_pair(sandbox, f"input/{params.get('output', 'head-roi.png')}", 'mask')]
 
 
+def _run_face_expression_report(sandbox, staged, params):
+    return face_expression_report(sandbox, image=params.get('image'),
+                                  min_score=params.get('min_score', 0.3))
+
+
+def _outputs_face_expression_report(sandbox, params, result):
+    return [_pair(sandbox, 'face-expression-report.json', 'report')]
+
+
 def _backend_for(step: str, params: dict) -> str:
     if step in {'generate', 'autorig', 'animate'}:
         value = params.get('backend') if step != 'animate' else params.get('backend', 'unimate')
@@ -1421,7 +1469,8 @@ def _backend_for(step: str, params: dict) -> str:
         return value
     return {'rig': 'rigify', 'mesh': 'blender-mesh-tools', 'retarget': 'native-motion',
             'render': 'blender', 'export': 'export-snapshot', 'transfer_rig': 'blender-rig-transfer',
-            'inspect': 'stdlib-inspect', 'skin-check':'stdlib-skin-check', 'skin-probe':'blender-skin-probe', 'bake': 'blender-bake', 'pivot': 'gltf-pivot', 'face_landmarks': 'mediapipe-face', 'face_mask': 'mediapipe-face', 'head_roi': 'photo-paint'}[step]
+            'inspect': 'stdlib-inspect', 'skin-check':'stdlib-skin-check', 'skin-probe':'blender-skin-probe', 'bake': 'blender-bake', 'pivot': 'gltf-pivot', 'face_landmarks': 'mediapipe-face', 'face_mask': 'mediapipe-face',
+            'face_expression_report': 'mediapipe-face', 'head_roi': 'photo-paint'}[step]
 
 
 def _run_pivot(sandbox, staged, params):
@@ -1471,6 +1520,9 @@ _EXEC_STEPS = {
     'face_mask': {'allowed': {'image', 'output', 'expand'}, 'run': _run_face_mask, 'outputs': _outputs_face_mask},
     'head_roi': {'allowed': {'artifact', 'views', 'output', 'head_fraction', 'expand'},
                  'run': _run_head_roi, 'outputs': _outputs_head_roi},
+    'face_expression_report': {'allowed': {'image', 'min_score'},
+                               'run': _run_face_expression_report,
+                               'outputs': _outputs_face_expression_report},
 }
 
 

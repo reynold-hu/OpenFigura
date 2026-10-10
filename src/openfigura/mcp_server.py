@@ -145,6 +145,14 @@ def build():
         return engine.face_mask(Task.open(Path(task_root)), image=image,
                                 output=output, expand=expand)
 
+    @app.tool(description="Rank the 52 ARKit-style blendshape scores already produced by "
+              "figura_face_landmarks into face-expression-report.json. Pure bookkeeping: "
+              "no new inference, no morph-target wiring yet.")
+    def figura_face_expression_report(task_root: str, image: str | None = None,
+                                      min_score: float = 0.3) -> dict:
+        return engine.face_expression_report(Task.open(Path(task_root)), image=image,
+                                             min_score=min_score)
+
     @app.tool(description="Project the model's head band (top of the Z extent) into its "
               "calibrated generation view and write the convex silhouette as an ROI mask PNG. "
               "This is the stylized-character path where MediaPipe finds no face; feed the mask "
