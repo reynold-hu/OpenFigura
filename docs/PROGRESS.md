@@ -3,6 +3,36 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-10 — Windows port fixes: POSIX paths, thread-safe ledger lock, cross-platform fake runtime (19→10)
+
+- Correction to the entry below (its item 2 characterization was imprecise):
+  the executor tests pass clean POSIX literals as INPUT refs; backslashes
+  entered only in production code — engine.py declared stage outputs via
+  `str(path.relative_to(root))`, then the AssetRef contract (contracts.py,
+  `'\\' in path` rule) correctly refused them on Windows. Fixed by
+  normalizing all 23 `str(...relative_to...)` sites in core/engine.py to
+  `.as_posix()` (identical bytes on POSIX, so macOS/Python behavior is
+  unchanged; established repo convention already used at engine.py:351+).
+  This also fixes the refine_texture `model.svviews\transforms.json`
+  ledger-key case and the latent render-stage variant.
+- core/task.py `_ledger_lock`: msvcrt byte-range locks are per-process, so
+  same-process threads raised OSError errno 36 instead of queueing (the
+  docstring promised threads). Added a keyed in-process threading.Lock in
+  front of the fd lock on both platforms (never nested; Task.record is the
+  only caller). POSIX flock semantics unchanged.
+- tests/test_pixal3d.py: the fake trellis-cli runtime was a shebang sh
+  script, non-executable on Windows (WinError 193). New `_fake_runtime`
+  helper writes the sh script on POSIX and a `.cmd` on Windows whose
+  `"%~dpn2_cutout.png"` matches the sh fake's `${2%.glb}_cutout.png` argv
+  contract (cutout lands next to the output glb, absolute argv2).
+- Result: `.venv\Scripts\python.exe -m pytest tests -q` → **10 failed,
+  588 passed, 5 skipped**, 28 s class of run; log
+  `.local/runs/2026-10-10-windows-pull/pytest-after-portfix.txt`. The
+  remaining 10 are all the symlink-guard tests failing at `os.symlink`
+  with WinError 1314 (fixture cannot build its scenario without symlink
+  privilege: enable Windows Developer Mode or run elevated — once enabled,
+  these guards execute for real on this box).
+
 ## 2026-10-10 — first Windows baseline on 83d0da5 (RTX 4060 box)
 
 - Adopted remote wholesale: `git fetch origin` showed main force-rewritten

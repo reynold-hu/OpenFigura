@@ -13,12 +13,30 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from openfigura.backends.pixal3d import Pixal3DBackend  # noqa: E402
 
 
+def _fake_runtime(tmp_path, body_posix: str, body_nt: str) -> Path:
+    """Cross-platform executable fake for the runtime binary.
+
+    POSIX: an extensionless sh script (as the real trellis-cli ships there).
+    Windows: CreateProcess cannot exec an extensionless script (WinError
+    193), but a .cmd file runs directly via cmd.exe — the fake keeps the
+    same argv contract: arg2 is the output glb path, and the cutout goes
+    next to it (the %~dpn2 expansion of `<path>.glb` matches `${2%.glb}`).
+    """
+    if os.name == "nt":
+        rt = tmp_path / "trellis-cli.cmd"
+        rt.write_text(body_nt)
+    else:
+        rt = tmp_path / "trellis-cli"
+        rt.write_text(body_posix)
+        rt.chmod(0o755)
+    return rt
+
+
 def _backend_with_env(tmp_path, runtime=True, models=True):
     rt = None
     if runtime:
-        rt = tmp_path / "trellis-cli"
-        rt.write_text("#!/bin/sh\nexit 0\n")
-        rt.chmod(0o755)
+        rt = _fake_runtime(tmp_path, "#!/bin/sh\nexit 0\n",
+                           "@echo off\r\nexit /b 0\r\n")
     md = tmp_path / "models-sv"
     if models:
         md.mkdir()
@@ -119,9 +137,10 @@ def test_matte_mode_falls_back_to_threshold(tmp_path):
 def test_prepare_input_mattes_only_when_needed(tmp_path):
     md, old = _backend_with_env(tmp_path)
     try:
-        rt = tmp_path / "trellis-cli"
-        rt.write_text('#!/bin/sh\nprintf x > "${2%.glb}_cutout.png"\nexit 0\n')
-        rt.chmod(0o755)
+        rt = _fake_runtime(
+            tmp_path,
+            '#!/bin/sh\nprintf x > "${2%.glb}_cutout.png"\nexit 0\n',
+            '@echo off\r\n>"%~dpn2_cutout.png" echo x\r\nexit /b 0\r\n')
         b = Pixal3DBackend()
         raw = tmp_path / "raw.png"
         _png(raw, color_type=2)

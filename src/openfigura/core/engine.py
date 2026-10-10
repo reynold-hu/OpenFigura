@@ -116,7 +116,7 @@ def generate(task: Task, backend_id: str, params: dict | None = None,
     if view_dir.is_dir():
         intermediate_files.extend(p for p in view_dir.rglob("*") if p.is_file())
     ledger["intermediate_hashes"] = {
-        str(p.relative_to(task.root / "artifacts")): sha256_file(p)
+        p.relative_to(task.root / "artifacts").as_posix(): sha256_file(p)
         for p in intermediate_files if p.is_file()}
     ledger["status"] = "pass"
     task.record("generate", ledger)
@@ -201,7 +201,7 @@ def skin_check(task: Task, config: dict, artifact: str = 'model.glb') -> dict:
             raise RuntimeError('skin-check report has invalid assessment')
         if report.get('skin_quality_accepted') is not False or report.get('collision_checked') is not False:
             raise RuntimeError('weight diagnostics cannot accept skin or collisions')
-        report.update(status='pass', config=config, report_path=str(output.relative_to(task.root)),
+        report.update(status='pass', config=config, report_path=output.relative_to(task.root).as_posix(),
                       backend='stdlib-skin-check', visual_approval='pending',
                       wall_seconds=time.monotonic()-started)
         payload=(json.dumps(report,indent=2,ensure_ascii=False,allow_nan=False)+'\n').encode()
@@ -236,7 +236,7 @@ def skin_probe(task: Task, config: dict, artifact: str = 'model.glb') -> dict:
     model=_model(task,artifact);expected=sha256_file(model);started=time.monotonic()
     output=task.root/'diagnostics'/('skin-probe-'+uuid.uuid4().hex)
     evidence={'backend':backend.id,'input_sha256':expected,'source_artifact':artifact,
-              'config':config,'diagnostic_dir':str(output.relative_to(task.root)),
+              'config':config,'diagnostic_dir':output.relative_to(task.root).as_posix(),
               'accepted_for_delivery':False,'visual_approval':'pending'}
     try:
         if output.parent.is_symlink() or not output.parent.resolve().is_relative_to(task.root.resolve()):
@@ -264,7 +264,7 @@ def skin_probe(task: Task, config: dict, artifact: str = 'model.glb') -> dict:
         for name in sorted(wanted):
             path=output/name
             if path.is_symlink() or not path.is_file():raise RuntimeError('invalid diagnostic output')
-            hashes[str(path.relative_to(task.root))]=sha256_file(path)
+            hashes[path.relative_to(task.root).as_posix()]=sha256_file(path)
         if json.loads((output/'skin-probe-report.json').read_text())!=report:
             raise RuntimeError('diagnostic report differs from worker result')
         json.dumps(report,allow_nan=False)
@@ -438,9 +438,9 @@ def refine_texture(task: Task, views_dir: Path, roi_mask: Path | None = None,
         shutil.copy2(roi_mask, mask)
         hashes['roi_mask'] = sha256_file(mask)
     evidence = {'backend': 'photo-paint', 'input_sha256': sha256_file(model),
-                'views_dir': str(staged.relative_to(task.root)),
+                'views_dir': staged.relative_to(task.root).as_posix(),
                 'reference_hashes': hashes, 'strength': strength,
-                'artifact': str(output.relative_to(task.root))}
+                'artifact': output.relative_to(task.root).as_posix()}
     try:
         result = backend.refine(model, staged, output, mask=mask, strength=strength)
         evidence.update(result)
@@ -509,7 +509,7 @@ def rig(task: Task, calibration: Path, skin_method: str = 'automatic',
     shutil.copy2(calibration, staged)
     evidence = {'backend':'rigify','source_artifact':artifact,'input_sha256':sha256_file(model),
                 'calibration_sha256':sha256_file(staged),'skin_method':skin_method,
-                'artifact':str(output.relative_to(task.root))}
+                'artifact':output.relative_to(task.root).as_posix()}
     try:
         result = backend.rig(model, staged, output, skin_method)
         evidence.update(result)
@@ -541,7 +541,7 @@ def _quarantine_candidate(task: Task, output: Path) -> list[str]:
     for path in files:
         dest = folder / path.name
         shutil.move(str(path), str(dest))
-        rejected.append(str(dest.relative_to(task.root)))
+        rejected.append(dest.relative_to(task.root).as_posix())
     return rejected
 
 
@@ -568,7 +568,7 @@ def autorig(task: Task, backend: str = 'mia', device: str = 'cpu', seed: int = 4
         raise RuntimeError('neural rig unavailable: '+caps.reason)
     evidence = {'backend':backend,'source_artifact':artifact,'input_sha256':sha256_file(model),
                 'device':device,'seed':seed,'query_chunk':query_chunk,
-                'artifact':str(output.relative_to(task.root)),'visual_approval':'pending'}
+                'artifact':output.relative_to(task.root).as_posix(),'visual_approval':'pending'}
     try:
         result = solver.autorig(model,output,device=device,seed=seed,query_chunk=query_chunk)
         evidence.update(result)
@@ -615,7 +615,7 @@ def retarget(task: Task, animation: Path, artifact: str = 'model-autorig.glb',
     shutil.copy2(animation,staged)
     evidence={'source_artifact':artifact,'input_sha256':sha256_file(model),
         'animation_sha256':sha256_file(staged),'frames':frames,'fps':fps,'visual_approval':'pending',
-        'artifact':str(output.relative_to(task.root))}
+        'artifact':output.relative_to(task.root).as_posix()}
     try:
         result=solver.retarget(model,staged,output,frames,fps);evidence.update(result)
         if not result.get('produced'):raise RuntimeError('retarget failed: '+result.get('stderr_tail','see logs'))
@@ -644,7 +644,7 @@ def _quarantine_files(task: Task, files: list[Path]) -> list[str]:
     for path in present:
         dest = folder / path.name
         shutil.move(str(path), str(dest))
-        moved.append(str(dest.relative_to(task.root)))
+        moved.append(dest.relative_to(task.root).as_posix())
     return moved
 
 
@@ -704,7 +704,7 @@ def animate(task: Task, prompt: str, backend: str = 'unimate', repetitions: int 
     evidence = {'backend': backend, 'source_artifact': artifact, 'input_sha256': sha256_file(model),
                 'prompt': prompt, 'repetitions': repetitions, 'cfg_scale': cfg_scale, 'seed': seed,
                 'weights_license_accepted': bool(accept_nc_license),
-                'artifact': str(out.relative_to(task.root)), 'visual_approval': 'pending'}
+                'artifact': out.relative_to(task.root).as_posix(), 'visual_approval': 'pending'}
     # External preprocessing receives a private copy, never the accepted source.
     snapshot = task.root / 'motion' / f'{backend}-input.glb'
     snapshot.parent.mkdir(parents=True, exist_ok=True)
@@ -747,9 +747,9 @@ def animate(task: Task, prompt: str, backend: str = 'unimate', repetitions: int 
             gate_report = workdir / f'gate-{clip.stem}.json'
             result = gate.gate(clip, gate_report)
             status = (result.get('report') or {}).get('status', 'unavailable')
-            verdicts.append({'clip': str(clip.relative_to(task.root)), 'status': status,
+            verdicts.append({'clip': clip.relative_to(task.root).as_posix(), 'status': status,
                              'exit_code': result['exit_code'],
-                             'report': str(gate_report.relative_to(task.root))})
+                             'report': gate_report.relative_to(task.root).as_posix()})
             if status == 'pass' and result['exit_code'] == 0 and delivered is None:
                 delivered = clip
         evidence['gate'] = verdicts
@@ -760,7 +760,7 @@ def animate(task: Task, prompt: str, backend: str = 'unimate', repetitions: int 
             raise RuntimeError('motion source modified during contact checks')
         shutil.copy2(delivered, out)
         evidence.update(status='pass', output_sha256=sha256_file(out),
-                        delivered_clip=str(delivered.relative_to(task.root)))
+                        delivered_clip=delivered.relative_to(task.root).as_posix())
     except Exception as exc:
         evidence.update(status='fail', error=str(exc),
                         rejected_artifacts=_quarantine_candidate(task, out))
@@ -801,7 +801,7 @@ def transfer_rig(task: Task, source: str, artifact: str = 'model.glb',
         raise FileExistsError('transfer candidate exists; use a new task')
     evidence = {'backend': backend.id, 'target_artifact': artifact, 'source_artifact': source,
                 'target_sha256': sha256_file(target), 'source_sha256': sha256_file(src),
-                'params': dict(params or {}), 'artifact': str(out.relative_to(task.root)),
+                'params': dict(params or {}), 'artifact': out.relative_to(task.root).as_posix(),
                 'visual_approval': 'pending'}
     try:
         result = backend.transfer(target, src, out, params or {})
@@ -972,7 +972,7 @@ def mesh(task: Task, operation: str, params: dict | None = None,
         raise FileExistsError('mesh candidate already exists; use a new task')
     evidence = {'backend': backend.id, 'source_artifact': artifact, 'operation': operation,
                 'input_sha256': sha256_file(model), 'params': dict(params or {}),
-                'artifact': str(out.relative_to(task.root)), 'visual_approval': 'pending'}
+                'artifact': out.relative_to(task.root).as_posix(), 'visual_approval': 'pending'}
     try:
         # Backends only receive a private input snapshot. Hash checks detect
         # mutations without sacrificing the accepted source to preprocessing.
@@ -1027,7 +1027,7 @@ def face_landmarks(task: Task, image: str | None = None) -> dict:
     path = _first_input_image(task, image)
     if not path.is_file():
         raise FileNotFoundError(f'input image {path.name} missing')
-    evidence = {'backend': backend.id, 'image': str(path.relative_to(task.root)),
+    evidence = {'backend': backend.id, 'image': path.relative_to(task.root).as_posix(),
                 'image_sha256': sha256_file(path),
                 'model_sha256': caps.notes.get('model_sha256'), 'visual_approval': 'pending'}
     try:
@@ -1309,7 +1309,7 @@ def expressions(task: Task, artifact: str = 'model.glb', output: str = 'model-ex
                 'input_sha256': before[0], 'alignment_sha256': before[1],
                 'channels': channels, 'weights': {c: round(float(scores[c]) * intensity, 4) for c in channels},
                 'min_score': min_score, 'intensity': intensity,
-                'artifact': str(out.relative_to(task.root)), 'visual_approval': 'pending'}
+                'artifact': out.relative_to(task.root).as_posix(), 'visual_approval': 'pending'}
     try:
         result = backend.run(model, payload_path, out)
         evidence.update(result)
@@ -1500,7 +1500,7 @@ def _outputs_render(sandbox, params, result):
     frames = sorted(p for p in (sandbox.root / 'render').rglob('*.png') if p.is_file())
     if not frames:
         raise RuntimeError('render produced no frames')
-    return [_pair(sandbox, str(p.relative_to(sandbox.root)), 'frame') for p in frames]
+    return [_pair(sandbox, p.relative_to(sandbox.root).as_posix(), 'frame') for p in frames]
 
 
 def _run_rig(sandbox, staged, params):
@@ -1547,7 +1547,7 @@ def _outputs_export(sandbox, params, result):
     if not files:
         raise RuntimeError('export produced no files')
     kind = {'.glb': 'model', '.json': 'report', '.png': 'frame'}
-    return [_pair(sandbox, str(p.relative_to(sandbox.root)),
+    return [_pair(sandbox, p.relative_to(sandbox.root).as_posix(),
                   kind.get(p.suffix.lower(), 'file')) for p in files]
 
 
@@ -1578,7 +1578,7 @@ def _run_animate(sandbox, staged, params):
 
 def _outputs_animate(sandbox, params, result):
     refs = [_pair(sandbox, 'artifacts/model-motion.glb', 'model')]
-    refs += [(str(p.relative_to(sandbox.root)), 'report')
+    refs += [(p.relative_to(sandbox.root).as_posix(), 'report')
              for p in sorted((sandbox.root / 'motion').rglob('gate-*.json'))]
     return refs
 
@@ -1691,7 +1691,7 @@ def _outputs_bake(sandbox, params, result):
     output = [_pair(sandbox, 'artifacts/model-baked.glb', 'model'),
               _pair(sandbox, 'artifacts/model-baked.blend', 'blend'),
               _pair(sandbox, 'artifacts/model-baked.bake-report.json', 'report')]
-    output += [(str(Path(p).relative_to(sandbox.root)), 'texture') for p in result['textures'].values()]
+    output += [(Path(p).relative_to(sandbox.root).as_posix(), 'texture') for p in result['textures'].values()]
     return output
 
 

@@ -16,6 +16,7 @@ import json
 import os
 import shutil
 import tempfile
+import threading
 import time
 import uuid
 from contextlib import contextmanager
@@ -35,10 +36,34 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+_THREAD_LOCKS: dict[str, threading.Lock] = {}
+_THREAD_LOCKS_GUARD = threading.Lock()
+
+
+def _thread_lock_for(lock_file: Path) -> threading.Lock:
+    """Process-local mutex keyed by the resolved lock-file path.
+
+    msvcrt.locking byte-range locks are per-PROCESS: a second thread of the
+    same process requesting the same range raises OSError EDEADLOCK (errno
+    36) instead of queueing, so on Windows an in-process mutex must sit in
+    front of the cross-process byte-range lock. POSIX flock already
+    serializes open file descriptions, but taking the same mutex keeps the
+    two platforms' semantics identical: threads queue, then the fd lock
+    spans processes. Never nested (Task.record is the only caller).
+    """
+    key = os.path.normcase(str(lock_file.resolve()))
+    with _THREAD_LOCKS_GUARD:
+        lock = _THREAD_LOCKS.get(key)
+        if lock is None:
+            lock = _THREAD_LOCKS[key] = threading.Lock()
+        return lock
+
+
 @contextmanager
 def _ledger_lock(root: Path):
     """Serialize local writers across independent processes and threads."""
-    with (root / '.provenance.lock').open('a+b') as handle:
+    lock_file = root / '.provenance.lock'
+    with _thread_lock_for(lock_file), lock_file.open('a+b') as handle:
         if os.name == 'nt':
             import msvcrt
             handle.seek(0, os.SEEK_END)
