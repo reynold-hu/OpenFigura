@@ -26,7 +26,16 @@ try:
         a=[n for n in names if n.startswith(('mixamorig:LeftHand','mixamorig:RightHand'))]
         b=[n for n in names if any(n.endswith(e) for e in
            ['Hips','Spine','Spine1','Spine2','Neck','Head','LeftUpLeg','LeftLeg','RightUpLeg','RightLeg'])]
-        report['regions']={'a':a,'b':b,'source':'auto-mixamorig'}
+        source='auto-mixamorig'
+        if not a or not b:
+            # This repo's own rig verb exports Rigify deform groups (DEF-*);
+            # hands vs. spine chain/pelvis/thighs/shins, same semantics as the
+            # mixamorig pattern. Found on the first RTX 4060 UniMate run, where
+            # auto-mixamorig alone left a rigified character ungateable.
+            a=[n for n in names if n.startswith(('DEF-hand.L','DEF-hand.R'))]
+            b=[n for n in names if n.startswith(('DEF-spine','DEF-pelvis','DEF-thigh','DEF-shin'))]
+            source='auto-def-rigify'
+        report['regions']={'a':a,'b':b,'source':source}
     if not a or not b:
         raise ValueError('region naming mismatch; pass explicit regions with deform-group names')
     last=int(cfg.get('last_frame') or scene.frame_end)

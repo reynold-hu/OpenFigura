@@ -203,6 +203,7 @@ class UnimateBackend:
         animated.mkdir(parents=True, exist_ok=False)
         for anim, char, cond, dtype in jobs:
             drive = base.run([str(blender), '-b', '--factory-startup', '--python-exit-code', '1',
+                              '--python', str(Path(__file__).with_name('unimate_numpy_compat.py')),
                               '--python', str(repo / 'data_process/mesh_animation/animate_motion.py'), '--',
                               '--dataset_type', dtype, '--anim_path', anim, '--char_path', char,
                               '--cond_path', cond, '--output_dir', str(animated), '--anim_mode', 'fk',

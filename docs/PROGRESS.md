@@ -3,6 +3,66 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-11 — first full Windows UniMate chain: sample pass, drive pass, gate honestly fails
+
+- Environment built from `docs/windows-gpu-run-guide.md` on the RTX 4060 box:
+  Miniconda (env `unimate`, py3.10, created `--override-channels -c
+  conda-forge` because the default-channel ToS gate silently killed the
+  first `conda create`); UniMate pinned commit fetched via gh-proxy mirror
+  and verified `git rev-parse HEAD` = b78c7807df7cf4231d4e67f8d0ece29c5e11025b;
+  weights from hf-mirror (checkpoint_step_150000.pt sha256
+  f991ddd87262c251f4681d18297a6163ab4f139daa28c86d5ef0a66771df7bc6, LICENSE
+  kept beside them); `HF_ENDPOINT=https://hf-mirror.com` persisted (T5
+  tokenizer download otherwise ConnectTimeouts — sampler-probe1/2.log).
+  Portable Blender 4.0.2 at C:\openfigura (upstream pins bpy 4.0; Blender
+  5.2 removed Action.fcurves — drive job stderr preserved).
+- Character: no rigged GLB existed on this box, so the rigify path ran
+  end-to-end first. Measured calibration v1 (Z-slice landmarks, tools in
+  `.local/runs/2026-10-10-windows-pull/tools/`): capsule bind 692,442/
+  692,442 vertices weighted, 35 deform joints, 18.01 s; OutwardGesture
+  frame-15 renders reviewed (limbs bend at the right places; chibi hands
+  remain pointy — no finger chains, as documented). `visual_approval`
+  stays pending.
+- UniMate adapter preflight refused the rigify export (11 joint-roots; it
+  requires exactly one). Fixed with a transform-compensated re-parent under
+  DEF-spine (world matrices verified bit-identical, worst diff 0.000e+00).
+  My one-off GLB writers initially left the header total_length stale —
+  upstream's strict reader refused it ("Bad GLB: file size doesn't match",
+  animate-run1 ledger); the engine's own lenient inspect had passed it.
+  Tools fixed and archived; repo code untouched by this issue.
+- First-run adapter/upstream findings, each fixed with the failure kept in
+  the ledger: (1) `base.run` decoded child UTF-8 through cp1252 and crashed
+  the reader thread — now explicit UTF-8/replace; (2) rig_preprocess is
+  subcommand-based ({run,verify}) — adapter now passes `run`; (3) drive
+  needs `OPENFIGURA_UNIMATE_BLENDER` (see above) — adapter override added;
+  (4) numpy-2 pickles in cond.npy/motions are unreadable by Blender 4.0's
+  numpy 1.x — shipped `unimate_numpy_compat.py` as a --python pre-script
+  instead of touching Blender's ABI or upstream's checkout; (5) Blender's
+  bundled python additionally needs loguru/tqdm/Motion/matplotlib/imageio
+  and a CPU torch (Motion's dep resolver pulled 2.14.1 whose DLL init fails
+  — pinned 2.5.1+cpu); (6) the contact gate's auto regions only matched
+  mixamorig names — extended with `auto-def-rigify` (DEF-hand vs
+  DEF-spine/pelvis/thigh/shin, same semantics).
+- Full chain, task win-motion6 (prompt "An object walks forward.", 3 reps,
+  NC license accepted and recorded, reviewed annotation reused):
+  rig_preprocess **pass** 58.4 s → sample **pass** on GPU → manifest
+  **pass** → drive **pass** ×3 (GLB+FBX each) → gate **fail ×3**: real
+  geometry, hands/sleeves intersect the thigh-pelvis region from frame 1
+  (250 rows, max 2851 crossing triangles, min distance ~0) → all three
+  clips quarantined to `artifacts/rejected/8bd32a2127f54c29affb9963953e1992/`.
+  No delivery. This is the ledger working as designed, not a crash.
+- Open decisions for the primary checkout (not unilaterally "fixed" here):
+  gate region semantics for arms-at-side characters (auto regions include
+  legs; the repo's own calibration contact_checks convention uses hand vs
+  torso only — animate currently ignores calibration regions); the
+  615-vs-603 suite-count reconciliation; Windows Developer Mode for the
+  10 symlink-guard tests; repo-wide EOL policy (LICENSE/.gitignore/NOTICE
+  blobs are stored CRLF upstream).
+- Evidence: `.local/runs/2026-10-10-windows-pull/` (animate-run1..7 logs,
+  sampler-probe1/2, drive-probe1/2, gate repair report, pytest-chain.txt
+  10F/588P/5S, freeze-*.txt ×3, nvidia-smi.txt, tools/). Task directories:
+  `C:\openfigura\work\win-tasks\` (win-xiaoman-pose, win-motion2..6).
+
 ## 2026-10-10 — Windows port fixes: POSIX paths, thread-safe ledger lock, cross-platform fake runtime (19→10)
 
 - Correction to the entry below (its item 2 characterization was imprecise):
