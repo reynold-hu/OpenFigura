@@ -956,3 +956,20 @@ Work continues on branch `codex/3d-loop` (worktree
 - These are `visual_approval: approved` for exactly the named cases; they
   do not generalize to unseen inputs, and known blemishes (silver-scarf
   lash-line smudging) remain documented above.
+
+## 2026-10-09 (late) — step-2 landscape research (decomposition / motion / expression)
+
+- New doc `docs/2026-10-09-decomposition-motion-expression-research.md`
+  with per-claim verification levels. Key verified facts: PartCrafter is
+  MIT and already cloned (inference needs CUDA ≥8GB); MediaPipe's 52 ARKit
+  blendshapes are already flowing through our `face_landmarks` output;
+  stylized faces (Q-xiaoman) defeat the blendshape route for the same
+  detection reason already recorded; SMPL-X-based motion models stay out
+  as default backends (research-tilted license).
+- Unverifiable tonight (GitHub API rate-limited + page gateway failing —
+  confirmed channel problem, not repo absence): HoloPart, LAM, ViTO,
+  GaussianAvatars licenses. Marked `[知]` in the doc, must re-check before
+  any integration claim.
+- Execution order agreed with the ledger: CPU-side blendshape report tool
+  → FLAME 2023 Open minimal fit validation → GPU queue (PartCrafter →
+  per-part rig → UniMate → gate).
