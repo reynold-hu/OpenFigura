@@ -21,3 +21,10 @@ mesh. Parser: `src/openfigura/backends/makehuman_targets.py` (thin glue,
 original code; MPFB2 itself is GPLv3 and is NOT linked — we only read CC0
 data files). Applying deltas to arbitrary character meshes (base-mesh
 correspondence + shape-key writer) is the next step, not yet claimed.
+
+## hm08 base mesh (positions for target indices)
+
+`makehuman/data/3dobjs/base.obj` from https://github.com/makehumancommunity/makehuman
+(master @ fetch time), 19,158 vertices / 18,486 faces, sha256 8e761e6624b8f545…
+Repo declares LICENSE.ASSETS.md (CC0 for assets). Cached outside git at
+`OpenFigura-runtimes/makehuman-expressions/hm08_base.obj`; hash verified on load.

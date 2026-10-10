@@ -98,3 +98,18 @@ CPU 侧现在能做的只有几何诊断类（boundary/组件统计，已有）�
   **不含表情目标文件**——expression targets 需从 MakeHuman 社区资产站
   无门槛下载。blendshape→shape keys 桥接（MediaPipe 52 分数 ×
   CC0 表情基）是下一个 CPU 工作日的主任务。
+
+## 7. 表情位移场实测：CC0 资产可用，配准是拦路虎（2026-10-10）
+
+- hm08 基网格（`makehuman/data/3dobjs/base.obj`，19158 顶点，CC0 仓库声明）
+  上 targets 解剖分层正确：eyeBlink y=7.3 > mouthSmile 6.9 > jawOpen 6.8；
+  jawOpen 平均位移 0.84cm、最大 3.87cm（分米制换算后合理）。
+- **但轴向包围盒配准实测失败**：银巾角色（721,075 顶点）上 jawOpen 只带动
+  250 个顶点且落在身高 71%（胸颈），eyeBlinkLeft 带动 0 个。风格化大头
+  比例与写实 hm08 无法靠 bbox 对齐——位移场会在错误位置生效。
+- 半成品 worker 已删除，不发布已知错位的管线。纯函数场模块
+  （expression_field：OBJ 解析/稠密化/KD 最近点/衰减/合成）保留，603 测试。
+- **配准的正解路径**（下次实施）：渲染角色正脸 → MediaPipe 2D 关键点 →
+  结合渲染深度反投影 3D 头部锚点（眼/鼻/颌）→ 用锚点对 hm08 头部子集做
+  相似变换配准 → 再进位移场。素材全在手上，工作量约一天；验收=配准后
+  jawOpen 顶点必须落在角色下颌带（height-frac >0.85 且空间聚集）。

@@ -17,7 +17,7 @@ dependencies = []
 
 [project.optional-dependencies]
 mcp = ["mcp>=1.2"]
-detail = ["numpy>=1.26", "Pillow>=10"]
+detail = ["numpy>=1.26", "Pillow>=10", "scipy>=1.11"]
 face = ["mediapipe>=1.1"]
 dev = ["openfigura[mcp]", "pytest>=8"]
 

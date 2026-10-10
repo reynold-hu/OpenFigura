@@ -1007,3 +1007,19 @@ Work continues on branch `codex/3d-loop` (worktree
   preserving original spelling. MPFB2 (GPLv3) is NOT linked — data-only.
 - Suite: **599 passed**. Next (not yet done): hm08 base-mesh correspondence
   + delta transfer onto character meshes + Blender shape-key writer.
+
+## 2026-10-10 — expression field math verified; registration is the blocker
+
+- hm08 base mesh (19,158 verts, CC0 repo license) carries the faceunits
+  with correct anatomy: eyeBlink y=7.3 above mouthSmile 6.9 above jawOpen
+  6.8; jawOpen mean 0.84 cm / max 3.87 cm — sane magnitudes.
+- Axis-aligned bbox registration onto the stylized silver-scarf character
+  FAILED as measured: jawOpen moved 250/721,075 verts at height-fraction
+  0.71 (chest, not jaw); eyeBlinkLeft moved zero. Stylized proportions do
+  not align with hm08 by bbox. The half-written worker was deleted rather
+  than shipped misaligned; pure field math (load/densify/KD-nearest/
+  falloff/compose) stays with tests. Suite: **603 passed**.
+- Concrete next path (documented in research doc §7): render character
+  front → MediaPipe 2D landmarks → depth-unproject head anchors →
+  similarity-fit hm08 head subset → re-run this same acceptance check
+  (moved verts must cluster at jaw band, height-fraction > 0.85).
