@@ -37,8 +37,13 @@ def which(tool: str) -> str | None:
 def run(argv: list[str], timeout_s: float | None = None,
         cwd: Path | None = None) -> CommandResult:
     start = time.monotonic()
+    # Explicit UTF-8 with replacement: Windows would otherwise decode child
+    # output through the locale codec (cp1252) and crash on UTF-8 box glyphs
+    # and progress bars emitted by external runtimes (first RTX 4060 run,
+    # 2026-10-11, masked the sampler's real stderr).
     proc = subprocess.run(argv, cwd=cwd, timeout=timeout_s,
-                          capture_output=True, text=True)
+                          capture_output=True, text=True,
+                          encoding="utf-8", errors="replace")
     wall = time.monotonic() - start
     return CommandResult(
         argv=list(argv), exit_code=proc.returncode, wall_seconds=round(wall, 2),

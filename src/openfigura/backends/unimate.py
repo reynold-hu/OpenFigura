@@ -68,6 +68,15 @@ class UnimateBackend:
         return repo, python, ckpt
 
     def blender_binary(self):
+        # Drive step is pinned to the Blender minor upstream was developed
+        # against (bpy==4.0.0 in requirements.txt); Blender 4.4+ removed the
+        # legacy Action.fcurves API the animator uses. OPENFIGURA_UNIMATE_BLENDER
+        # selects that binary for driving only; every other verb keeps the
+        # machine-default Blender. Found missing on the first RTX 4060 run
+        # (2026-10-11, drive job: "'Action' object has no attribute 'fcurves'").
+        override = os.environ.get('OPENFIGURA_UNIMATE_BLENDER')
+        if override:
+            return override
         from openfigura.backends.blender import BlenderBackend
         return BlenderBackend().binary()
 
@@ -107,7 +116,8 @@ class UnimateBackend:
                 'length': '60 frames @ 30 fps per clip (upstream config)',
                 'collision': 'upstream has no collision machinery; OpenFigura motion-gate decides pass',
                 'pipeline': 'selected Python: rig_preprocess -> inference.sample -> sample_manifest validation; detected Blender: animate_motion.py',
-                'drive_runtime': 'Blender uses its bundled Python and requires upstream animation dependencies; no conda activation or bare python shell calls.'}
+                'drive_runtime': 'Blender uses its bundled Python and requires upstream animation dependencies; no conda activation or bare python shell calls.',
+                'drive_blender': 'OPENFIGURA_UNIMATE_BLENDER overrides the drive-step Blender (upstream pins bpy 4.0; Blender 4.4+ removed Action.fcurves)'}
 
     def preflight_rig(self, path: Path) -> dict:
         return preflight_rig(path)
@@ -121,7 +131,10 @@ class UnimateBackend:
         asset = workdir / 'asset'
         samples = workdir / 'samples'
         steps = {}
-        pre = [str(python), '-m', 'data_process.rig_preprocess.cli', '--input', str(model),
+        # Upstream cli is subcommand-based ({run,verify}); verified against the
+        # b78c780 checkout on Windows 2026-10-10 (first run failed with
+        # "invalid choice" before this fix, recorded in animate-run1.log).
+        pre = [str(python), '-m', 'data_process.rig_preprocess', 'run', '--input', str(model),
                '--output_dir', str(asset), '--annotate', 'rule', '--formats', 'glb,fbx']
         if annotation:
             pre += ['--annotation', str(Path(annotation).resolve())]
