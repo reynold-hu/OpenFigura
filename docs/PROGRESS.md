@@ -3,6 +3,66 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-10 — first Windows baseline on 83d0da5 (RTX 4060 box)
+
+- Adopted remote wholesale: `git fetch origin` showed main force-rewritten
+  (email rewrite); `git cherry` proved all 15 pre-rewrite local commits are
+  patch-equivalent inside origin/main, so `git reset --hard origin/main`
+  loses nothing. HEAD `83d0da5`, verified `git log -1 --format=%H` =
+  83d0da5c6000f152e8b4617504ebc4deb6f68597.
+- Pre-existing conflicted state was an unresolved `git stash apply` of
+  "desktop-clone WIP before email rewrite" (markers `Updated upstream /
+  Stashed changes`, no MERGE_HEAD). The stash was kept (stash@{0}) and the
+  applied copies were additionally snapshotted to
+  `%TEMP%\opencode\pre-pull-wip-20261010\` before the reset.
+  `tests/test_golden_runner.py` was an untracked local leftover asserting a
+  `--jobs` flag that run_golden.py never had in git; removed, backup kept.
+- EOL trap, honestly recorded: the `reset --hard` ran while
+  `core.autocrlf=true` (global), leaving CRLF working files that git still
+  called clean via the stat cache; touching PROGRESS.md then committed a
+  whole-file CRLF blob (1091-line diff). Recovered byte-exactly with
+  `git restore --source=83d0da5 --staged --worktree docs/PROGRESS.md` and
+  re-added the entry; `git checkout-index -f -a` normalized the rest of the
+  worktree to LF. This is the recurrence `.gitattributes` above now pins
+  against for vendored sources.
+- Test baseline: `.venv\Scripts\python.exe -m pytest tests -q` (Python
+  3.14.2, `pip install -e ".[dev,detail]"`) → **19 failed, 579 passed,
+  5 skipped, 603 collected**, 28.08 s, exit 1. Logs:
+  `.local/runs/2026-10-10-windows-pull/pytest.txt` (pre-fix, 21 failed) and
+  `pytest-final.txt` (post-fix). Failures are five distinct causes:
+  1. **10× symlink-guard tests** die before asserting: `os.symlink` raises
+     WinError 1314 (no privilege; Developer Mode/admin not enabled).
+     Environment gap — the guards themselves are untested on Windows.
+  2. **6× "asset path must be a safe POSIX relative path"** from
+     engine.py:1785 (stages bake/export/skin-check×2/skin-probe/animate):
+     executor tests pass absolute Windows paths where the engine contract
+     wants POSIX relative. Real porting gap.
+  3. **1× WinError 193** in test_pixal3d: the fake backend fixture is a
+     shebang shell script, non-executable on Windows. Test-fixture gap.
+  4. **1× OSError Errno 36** in test_project_style concurrent clients:
+     core/task.py:49 `msvcrt.locking` byte-range locks are per-process, so
+     same-process contention raises instead of serializing like
+     `fcntl.flock`. Real product gap on Windows.
+  5. **1× KeyError 'model.svviews/transforms.json'** in test_refine_texture:
+     asset keys written with backslash separators on Windows. Real porting
+     gap.
+- Fixed on this box: test_faceverse_vendor hash mismatch root-caused to
+  global `core.autocrlf=true` + no `.gitattributes` (vendor files checked
+  out CRLF, hashes recorded against LF). Set repo-local
+  `git config core.autocrlf false`, re-checked-out `_vendor/faceverse_v4`
+  → those 3 tests pass. Repo should carry a `.gitattributes` pinning
+  `-text` for vendored sources so this cannot recur.
+- Ledger reconciliation open item: PROGRESS records **615 passed** at
+  95d4b89 and 83d0da5 adds no tests under `tests/`, yet this tree collects
+  603 here. 12 tests are not in git — presumed uncommitted Mac-side local
+  files; needs an inventory from that machine.
+- `openfigura backends` on this box, exit 0, honest: available = blender
+  5.2 + all blender-* gates + gltf-pivot + photo-paint + rigify + **pixal3d
+  CUDA runtime** (`C:\openfigura\runtime\pixal3d-0.10.1\trellis-cli.exe`);
+  unavailable with reasons = unimate (three OPENFIGURA_UNIMATE_* env vars
+  unset, see `docs/windows-gpu-run-guide.md`), mediapipe-face, mia,
+  native-motion.
+
 ## 2026-10-08 — asset/style contracts and durable workflow foundation
 
 - Source review: `docs/2026-10-08-ecosystem-deep-review.md`; added source-only

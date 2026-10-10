@@ -1,0 +1,6 @@
+# Vendored sources are hash-pinned provenance (SOURCE.json records exact
+# sha256 of upstream bytes). Any checkout-time EOL conversion silently
+# breaks the provenance tests — see the 2026-10-10 Windows autocrlf entry
+# in docs/PROGRESS.md. Keep these directories byte-exact on every platform.
+src/openfigura/_vendor/** -text
+third_party/** -text
