@@ -79,3 +79,22 @@ CPU 侧现在能做的只有几何诊断类（boundary/组件统计，已有）�
   全部为 `[知]` 级，明日复核后才能进对账矩阵。
 - GitHub API 限流 + raw/页面网关异常，非仓库不存在（TencentARC/LAM 的
   404 与已知事实矛盾，判定为通道问题）。
+
+## 6. 执行结果（同夜追加，全部真实）
+
+- **表情报告工具已落地**：`face_expression_report` 动词 + 执行器步骤 + CLI
+  `face-expression-report` + MCP `figura_face_expression_report`；纯账本，
+  不做新推理。真实运行 head-sculpt：@0.1 阈值 10 通道激活，
+  top5 = mouthPucker 0.73 / eyeSquintLeft 0.66 / eyeSquintRight 0.34 /
+  eyeLookUp L 0.31 / R 0.30——与雕塑表情吻合（撅嘴、眯眼、上视）。
+  证据 `.local/runs/2026-10-09-expression/`。594 测试通过。
+- **FLAME 2023 Open 获取路径实测**：`download_model.php?model=flame2023_open`
+  返回 404（下载需 MPI 站点注册，属预期门控）；许可页确认 CC 条款与商用
+  表述存在。**用户行动项**：注册 flame.is.tue.mpg.de 下载后由我们校验哈希
+  并入 manifest。
+- **无门控替代发现**：MPFB2（MakeHuman 系）本地评审记录确认
+  **代码 GPLv3 / 资产 CC0**（`mpfb-review-2026-10-04/LICENSE.*`），且与
+  FLAME 兼容；本地 mpfb-assets 子集含 skins/clothes/proxymeshes 但
+  **不含表情目标文件**——expression targets 需从 MakeHuman 社区资产站
+  无门槛下载。blendshape→shape keys 桥接（MediaPipe 52 分数 ×
+  CC0 表情基）是下一个 CPU 工作日的主任务。

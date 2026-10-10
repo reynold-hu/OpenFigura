@@ -973,3 +973,21 @@ Work continues on branch `codex/3d-loop` (worktree
 - Execution order agreed with the ledger: CPU-side blendshape report tool
   → FLAME 2023 Open minimal fit validation → GPU queue (PartCrafter →
   per-part rig → UniMate → gate).
+
+## 2026-10-09 (late) — expression report tool live; FLAME gate mapped
+
+- `face_expression_report` (verb + executor step + CLI + MCP): ranks the 52
+  ARKit blendshape scores already captured by `face_landmarks` into a
+  durable ledgered report; adds no inference. Real run on head-sculpt:
+  mouthPucker 0.73, eyeSquintLeft 0.66, eyeLookUp ~0.3 — matches the
+  sculpted expression. Evidence `.local/runs/2026-10-09-expression/`.
+  Suite: **594 passed**.
+- FLAME 2023 Open download is registration-gated (HTTP 404 on the direct
+  model URL; license page confirms CC terms) — recorded as a user action
+  item, not silently worked around.
+- Ungated alternative confirmed from local review records: MPFB2 /
+  MakeHuman ecosystem is code GPLv3 + assets CC0 and FLAME-compatible;
+  the local asset subset lacks expression target files, so the next CPU
+  step is fetching MakeHuman expression targets (no account needed) and
+  building the MediaPipe-blendshape → CC0-expression-base → Blender
+  shape-keys bridge.
