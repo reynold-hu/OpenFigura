@@ -69,6 +69,7 @@ camd = bpy.data.cameras.new('Cam'); cam = bpy.data.objects.new('Cam', camd)
 scene.collection.objects.link(cam); scene.camera = cam; camd.type = 'ORTHO'
 scene.frame_set(cfg.get("frame", 1))
 bpy.context.view_layer.update()
+cameras = {}
 for view, direction in cfg["views"].items():
     dirv = Vector(direction); dirv.rotate(Matrix.Rotation(rot, 3, 'Z'))
     dirv.normalize()
@@ -80,6 +81,11 @@ for view, direction in cfg["views"].items():
     scene.render.resolution_x = 720; scene.render.resolution_y = 900
     scene.render.filepath = cfg["out_dir"] + '/' + view + '.png'
     bpy.ops.render.render(write_still=True)
+    cameras[view] = {'center': list(center), 'ortho_scale': float(camd.ortho_scale),
+                     'resolution': [720, 900], 'camera_location': list(cam.location),
+                     'facing_deg': rot}
+import json as _json
+open(cfg["out_dir"] + '/camera.json', 'w', encoding='utf-8').write(_json.dumps(cameras, indent=2))
 print("OPENFIGURA_RENDER_DONE")
 '''
 

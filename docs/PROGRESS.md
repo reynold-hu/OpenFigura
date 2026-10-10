@@ -1023,3 +1023,28 @@ Work continues on branch `codex/3d-loop` (worktree
   front → MediaPipe 2D landmarks → depth-unproject head anchors →
   similarity-fit hm08 head subset → re-run this same acceptance check
   (moved verts must cluster at jaw band, height-fraction > 0.85).
+
+## 2026-10-10 (late) — CPU expression transfer PROVEN end-to-end
+
+- The registration path sketched yesterday now runs: render records its own
+  orthographic camera (`camera.json` from blender.py), MediaPipe detects on
+  the *rendered* silver-scarf character (478 landmarks, 52 blendshapes),
+  anchors come from CC0 target centroids (base) + back-projected landmarks
+  (character), Umeyama similarity fit (scale 0.165 — face-to-face, not
+  body-to-body, as stylized proportions require).
+- Two real bugs caught by evidence, not by eye: delta vectors must be
+  rotated+scaled by the fit (first attempt moved 25% of body height — the
+  crumpled-mesh render), and the glTF importer dedups vertices (721,075 →
+  713,386) so the nearest-neighbor map must be computed against imported
+  geometry (pure-numpy brute force inside Blender; scipy stays out).
+- Acceptance gate passed numerically: jawOpen field concentrates at
+  height-fraction 0.76-0.94 (was chest/0.71 with bbox alignment); max
+  composed offset 0.049 units (5.5% of body height). Visual proof
+  `expression-before-after.png`: neutral vs jawOpen 0.6 + smile 0.8 —
+  mouth opens, corners lift, cheeks wrinkle, body/hair/scarf untouched.
+  Pure CPU, ~2 min per transfer. `visual_approval` pending as always.
+- Repo side: `expression_register.py` (camera basis, pixel projection,
+  character anchors, Umeyama, landmark indices) with 6 new unit tests;
+  face_landmarks now accepts render/ paths and records the true relative
+  path. Suite: **609 passed**. Productionizing as a verb + shape-key
+  writer (morph targets instead of baked displacement) is next.

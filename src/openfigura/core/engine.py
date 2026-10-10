@@ -1002,9 +1002,14 @@ def mesh(task: Task, operation: str, params: dict | None = None,
 
 def _first_input_image(task: Task, image: str | None) -> Path:
     if image is not None:
-        if Path(image).name != image or '\\' in image:
-            raise ValueError('image must be a filename inside input')
-        return task.root / 'input' / image
+        candidate = Path(image)
+        if candidate.is_absolute() or '\\' in image or '..' in candidate.parts:
+            raise ValueError('image must be a task-relative path without ..')
+        if candidate.name != image:
+            folder = candidate.parts[0]
+            if folder not in {'input', 'render'}:
+                raise ValueError('image must live inside input/ or render/')
+        return task.root / candidate
     candidates = [p for p in sorted((task.root / 'input').glob('*'))
                   if p.suffix.lower() in {'.png', '.jpg', '.jpeg', '.webp'}
                   and not p.name.startswith('face-roi')]
@@ -1022,7 +1027,7 @@ def face_landmarks(task: Task, image: str | None = None) -> dict:
     path = _first_input_image(task, image)
     if not path.is_file():
         raise FileNotFoundError(f'input image {path.name} missing')
-    evidence = {'backend': backend.id, 'image': f'input/{path.name}',
+    evidence = {'backend': backend.id, 'image': str(path.relative_to(task.root)),
                 'image_sha256': sha256_file(path),
                 'model_sha256': caps.notes.get('model_sha256'), 'visual_approval': 'pending'}
     try:
@@ -1068,7 +1073,7 @@ def face_mask(task: Task, image: str | None = None, output: str = 'face-roi.png'
     if not record.is_file():
         raise FileNotFoundError('run face-landmarks first')
     data = json.loads(record.read_text(encoding='utf-8'))
-    if image is not None and data.get('image') != f'input/{Path(image).name}':
+    if image is not None and data.get('image') != str(Path(image)):
         raise ValueError('face-landmarks.json is for a different image')
     backend = registry.get('mediapipe-face')
     width, height = data['image_size']
