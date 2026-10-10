@@ -1069,3 +1069,23 @@ Work continues on branch `codex/3d-loop` (worktree
 - Known limits on record: face-anchored similarity fit only (no non-rigid
   warp); Q-version stylization still defeats MediaPipe upstream; morph
   weights are applied at export and re-rendered through the importer.
+
+## 2026-10-10 (night) — bake chain real run, morph intensity sweep, Windows guide
+
+- **Bake (L04 second half) real run**: 958,816-tri scifi high-poly baked onto
+  the 95,881-tri optimized low-poly through the executor `bake` step
+  (stage 675768a5): 1024² normal + AO in 5.69 s, UV hash preserved,
+  bounds-overlap guard passed. Maps verified non-degenerate: normal map
+  224,548 unique colours / 24.3% flat (background), AO spans 0–255.
+  First attempt died honestly on a path mistake (executor outputs live in
+  stages/, not artifacts/) — recorded, corrected via refs.
+- **Morph intensity sweep** (visual A/B for the user): same 12 ARKit morphs
+  at intensity 0.4 vs 1.0 vs neutral — face-crop pixels changed vs neutral:
+  6,062 → 18,789, monotonic as weights should be.
+  `morph-intensity-sweep.png`.
+- **Windows GPU guide** `docs/windows-gpu-run-guide.md`: two-env setup
+  (figura CLI + pinned UniMate py3.10 env), the three OPENFIGURA_UNIMATE_*
+  variables, animate flow incl. the review stop, PartCrafter manual recipe
+  with a `partcrafter-out/<character>/ + meta.json` ingest contract for the
+  future adapter, bring-back list, NC licence red lines, and an explicit
+  unverified checklist — first real Windows log beats ten pages of plan.
