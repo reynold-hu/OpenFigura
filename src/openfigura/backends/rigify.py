@@ -25,12 +25,12 @@ class RigifyBackend:
         binary=BlenderBackend().binary()
         cfg=output.with_suffix('.rig-config.json')
         cfg.write_text(json.dumps({'model':str(model.resolve()),'calibration':str(calibration.resolve()),
-                                  'output':str(output.resolve()),'skin_method':skin_method}))
+                                  'output':str(output.resolve()),'skin_method':skin_method}),encoding='utf-8')
         command=[binary,'-b','--factory-startup','--python-exit-code','1','--python',
                  str(Path(__file__).with_name('rigify_worker.py')),'--',str(cfg.resolve())]
         result=base.run(command,timeout_s=600)
-        output.with_suffix('.rig-stdout.log').write_text(result.stdout_tail)
-        output.with_suffix('.rig-stderr.log').write_text(result.stderr_tail)
+        output.with_suffix('.rig-stdout.log').write_text(result.stdout_tail,encoding='utf-8')
+        output.with_suffix('.rig-stderr.log').write_text(result.stderr_tail,encoding='utf-8')
         report=output.with_suffix('.rig-report.json')
         produced=result.ok and output.is_file() and report.is_file() and 'OPENFIGURA_RIG_DONE' in result.stdout_tail
         contact_report=output.with_suffix('.contact-report.json')

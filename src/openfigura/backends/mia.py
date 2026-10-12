@@ -42,8 +42,8 @@ class MiaBackend:
                                   'native':str(native.resolve()),'output':str(output.resolve()),**options}))
         worker=Path(__file__).with_name('mia_worker.py')
         result=base.run([str(python),str(worker),'--',str(cfg.resolve())],timeout_s=7200)
-        output.with_suffix('.neural-stdout.log').write_text(result.stdout_tail)
-        output.with_suffix('.neural-stderr.log').write_text(result.stderr_tail)
+        output.with_suffix('.neural-stdout.log').write_text(result.stdout_tail,encoding='utf-8')
+        output.with_suffix('.neural-stderr.log').write_text(result.stderr_tail,encoding='utf-8')
         report=native/'inference-report.json'
         fit=native/'fit-report.json'
         fit_evidence={'fit_validation':json.loads(fit.read_text())} if fit.is_file() else {}
@@ -52,8 +52,8 @@ class MiaBackend:
         metadata=json.loads(report.read_text())
         bind=base.run([binary,'-b','--factory-startup','--python-exit-code','1','--python',
             str(Path(__file__).with_name('neural_bind_worker.py')),'--',str(cfg.resolve())],timeout_s=600)
-        output.with_suffix('.bind-stdout.log').write_text(bind.stdout_tail)
-        output.with_suffix('.bind-stderr.log').write_text(bind.stderr_tail)
+        output.with_suffix('.bind-stdout.log').write_text(bind.stdout_tail,encoding='utf-8')
+        output.with_suffix('.bind-stderr.log').write_text(bind.stderr_tail,encoding='utf-8')
         binding=output.with_suffix('.bind-report.json')
         produced=bind.ok and output.is_file() and binding.is_file() and 'NEURAL_BIND_DONE' in bind.stdout_tail
         return {**metadata,'inference':result.ledger(),**bind.ledger(),'produced':produced,
