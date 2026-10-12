@@ -650,15 +650,28 @@ def _quarantine_files(task: Task, files: list[Path]) -> list[str]:
 
 def animate(task: Task, prompt: str, backend: str = 'unimate', repetitions: int = 3,
             cfg_scale: float = 3.0, seed: int = 42, artifact: str = 'model-autorig.glb',
-            annotation: str | None = None, accept_nc_license: bool = False) -> dict:
+            annotation: str | None = None, accept_nc_license: bool = False,
+            regions: dict | None = None) -> dict:
     """Text-to-motion via an external generator; the contact gate decides pass.
 
     The backend never self-certifies: every generated clip is re-imported and
     run through the same regional contact evaluator the retarget gate uses.
     Only a gated clip is delivered, and licence acceptance is explicit per
     call because UniMate's released checkpoints are CC BY-NC 4.0.
+
+    regions optionally pins the gate's contact pair ({'a': [...], 'b': [...]},
+    deform-group names) instead of the backend's auto-derivation — a human
+    decision, recorded verbatim in the ledger. Characters whose rest pose
+    hangs hands past the hips cannot clear the strict auto pattern without
+    this, and silently loosening the auto pattern for everyone would be the
+    framework hiding an acceptance choice from the caller.
     """
     import math
+    if regions is not None and (not isinstance(regions, dict) or set(regions) != {'a', 'b'}
+            or not all(isinstance(v, list) and v
+                       and all(isinstance(s, str) and s.strip() for s in v)
+                       for v in regions.values())):
+        raise ValueError("regions must be {'a': [deform group names], 'b': [deform group names]}, both non-empty")
     if type(accept_nc_license) is not bool:
         raise ValueError('accept_nc_license must be a boolean, explicitly true to accept')
     if not isinstance(prompt, str) or not prompt.strip():
@@ -705,6 +718,8 @@ def animate(task: Task, prompt: str, backend: str = 'unimate', repetitions: int 
                 'prompt': prompt, 'repetitions': repetitions, 'cfg_scale': cfg_scale, 'seed': seed,
                 'weights_license_accepted': bool(accept_nc_license),
                 'artifact': out.relative_to(task.root).as_posix(), 'visual_approval': 'pending'}
+    if regions is not None:
+        evidence['gate_regions'] = {'a': list(regions['a']), 'b': list(regions['b'])}
     # External preprocessing receives a private copy, never the accepted source.
     snapshot = task.root / 'motion' / f'{backend}-input.glb'
     snapshot.parent.mkdir(parents=True, exist_ok=True)
@@ -745,7 +760,7 @@ def animate(task: Task, prompt: str, backend: str = 'unimate', repetitions: int 
                     or structural['joint_count'] != report['joint_count']):
                 raise RuntimeError('generated motion clip failed skin/animation inspection')
             gate_report = workdir / f'gate-{clip.stem}.json'
-            result = gate.gate(clip, gate_report)
+            result = gate.gate(clip, gate_report, regions=regions)
             status = (result.get('report') or {}).get('status', 'unavailable')
             verdicts.append({'clip': clip.relative_to(task.root).as_posix(), 'status': status,
                              'exit_code': result['exit_code'],

@@ -83,9 +83,11 @@ class FakeGate:
     def __init__(self, statuses):
         self.statuses = list(statuses)
         self.n = 0
+        self.seen_regions = []
     def gate(self, clip, report_path, regions=None, margin=0.002):
         status = self.statuses[min(self.n, len(self.statuses) - 1)]
         self.n += 1
+        self.seen_regions.append(regions)
         report = {'status': status, 'summary': {'crossing_rows': 0 if status == 'pass' else 1}}
         Path(report_path).write_text(json.dumps(report), encoding='utf-8')
         return {'exit_code': 0, 'report': report, 'report_path': str(report_path), 'stderr_tail': ''}
@@ -122,6 +124,41 @@ def test_gate_selects_only_passing_clip_and_records_provenance(tmp_path, monkeyp
     verdicts = result['gate']
     assert [v['status'] for v in verdicts] == ['fail', 'pass']
     assert all(Path(task.root / v['report']).is_file() for v in verdicts)
+
+
+def test_explicit_regions_pass_to_gate_and_ledger(tmp_path, monkeypatch):
+    task = rigged_task(tmp_path)
+    _, gate = wire(monkeypatch, ['clip-0.glb'], ['pass'])
+    regions = {'a': ['DEF-hand.L', 'DEF-hand.R'], 'b': ['DEF-spine', 'DEF-pelvis.L']}
+    result = engine.animate(task, 'An object walks.', accept_nc_license=True, regions=regions)
+    assert result['status'] == 'pass'
+    assert gate.seen_regions == [regions]              # verbatim to the gate
+    assert result['gate_regions'] == regions           # recorded in the ledger
+    assert Task.open(task.root).entries[-1]['gate_regions'] == regions
+
+
+def test_default_regions_is_auto_derivation(tmp_path, monkeypatch):
+    task = rigged_task(tmp_path)
+    _, gate = wire(monkeypatch, ['clip-0.glb'], ['pass'])
+    engine.animate(task, 'An object walks.', accept_nc_license=True)
+    assert gate.seen_regions == [None]                 # None → backend auto-derives
+    assert 'gate_regions' not in Task.open(task.root).entries[-1]
+
+
+@pytest.mark.parametrize('bad', [
+    {'a': ['x']},                                       # missing b
+    {'a': ['x'], 'b': ['y'], 'c': []},                  # extra key
+    {'a': [], 'b': ['y']},                              # empty region
+    {'a': ['x'], 'b': ['  ']},                          # blank name
+    {'a': 'x', 'b': 'y'},                               # not lists
+    'not-a-dict',
+])
+def test_malformed_regions_rejected_before_backend(tmp_path, monkeypatch, bad):
+    task = rigged_task(tmp_path)
+    wire(monkeypatch, ['clip-0.glb'], ['pass'])
+    with pytest.raises(ValueError, match='regions'):
+        engine.animate(task, 'An object walks.', accept_nc_license=True, regions=bad)
+    assert not (task.root / 'motion').exists()          # stopped before the backend ran
 
 
 def test_all_clips_rejected_quarantines_and_fails(tmp_path, monkeypatch):

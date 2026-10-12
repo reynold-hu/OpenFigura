@@ -237,10 +237,14 @@ def main(argv: list[str] | None = None) -> int:
                    help="reviewed joint-label/facing JSON from rig_preprocess")
     p.add_argument("--accept-nc-license", action="store_true",
                    help="opt in to CC BY-NC 4.0 checkpoints for this call (recorded)")
+    p.add_argument("--regions", default=None,
+                   help="contact-gate region file: JSON {'a':[...],'b':[...]} deform-group names; "
+                        "pins the pair instead of backend auto-derivation (recorded verbatim)")
     p.set_defaults(func=lambda a: _print(engine.animate(
         Task.open(Path(a.task)), a.prompt, backend=a.backend, repetitions=a.repetitions,
         cfg_scale=a.cfg_scale, seed=a.seed, artifact=a.artifact, annotation=a.annotation,
-        accept_nc_license=a.accept_nc_license)))
+        accept_nc_license=a.accept_nc_license,
+        regions=json.loads(Path(a.regions).read_text(encoding="utf-8")) if a.regions else None)))
 
     p = sub.add_parser("mesh", help="static mesh op in isolated Blender "
                        "(segment/optimize/retopo/collision/uv)")
