@@ -102,7 +102,7 @@ class FaceAlignBackend:
                                 reason=f'model sha256 mismatch: {digest[:16]} != expected {MODEL_SHA256[:16]}')
         probe = subprocess.run([sys.executable, '-c',
                                 'from mediapipe.tasks.python import vision;print("MP_OK")'],
-                               capture_output=True, text=True, timeout=120)
+                               capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
         ok = probe.returncode == 0 and 'MP_OK' in probe.stdout
         reason = '' if ok else 'mediapipe Tasks API import failed: ' + (probe.stderr or probe.stdout or '')[-300:]
         return Capabilities(ok, hardware='cpu', reason=reason,

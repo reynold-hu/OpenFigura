@@ -48,7 +48,7 @@ class ExpressionsBackend:
             argv = [binary, '-b', '--factory-startup', '--python-exit-code', '1', '--python',
                     str(Path(__file__).with_name('expressions_worker.py')), '--', str(config)]
             started = time.monotonic()
-            proc = subprocess.run(argv, capture_output=True, text=True, timeout=3600)
+            proc = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=3600)
             ledger = base.CommandResult(argv, proc.returncode, round(time.monotonic() - started, 2),
                                         (proc.stdout or '')[-4000:], (proc.stderr or '')[-4000:]).ledger()
         report = None

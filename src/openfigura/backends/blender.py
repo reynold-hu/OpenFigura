@@ -123,7 +123,7 @@ class BlenderBackend:
         start = time.monotonic()
         proc = subprocess.run([binary, "-b", "--factory-startup", "--python-exit-code", "1", "--python-expr",
                                _SCRIPT, "--", cfg_path],
-                              capture_output=True, text=True, timeout=3600)
+                              capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=3600)
         result = base.CommandResult(argv=[binary, "-b", "--factory-startup", "--python-exit-code", "1",
                                           "--python-expr", "<render script>"],
                                     exit_code=proc.returncode,

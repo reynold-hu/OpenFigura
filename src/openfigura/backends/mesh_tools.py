@@ -78,7 +78,7 @@ class MeshToolsBackend:
             config = Path(folder) / 'config.json'; config.write_text(json.dumps(cfg), encoding='utf-8')
             argv = [binary, '-b', '--factory-startup', '--python-exit-code', '1', '--python', str(Path(__file__).with_name('mesh_tools_worker.py')), '--', str(config)]
             started = time.monotonic()
-            proc = subprocess.run(argv, capture_output=True, text=True, timeout=3600)
+            proc = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=3600)
             ledger = base.CommandResult(argv=argv, exit_code=proc.returncode, wall_seconds=round(time.monotonic()-started, 2), stdout_tail=(proc.stdout or '')[-4000:], stderr_tail=(proc.stderr or '')[-4000:]).ledger()
         report = None
         if report_path.is_file():
