@@ -3,6 +3,40 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-12 — Windows goes fully green; first delivered UniMate motion
+
+- Developer Mode was enabled on the RTX 4060 box (HKLM AppModelUnlock
+  AllowDevelopmentWithoutDevLicense=1, set via an elevated `reg add`). The
+  agent's own shell still carries the pre-change token, so the symlink tests
+  were re-run under a fresh token via a one-shot scheduled task: the 10
+  previously-failing symlink-guard tests all pass, and the whole suite is
+  **606 passed, 5 skipped, 0 failed** in 66.27 s
+  (`.local/runs/2026-10-10-windows-pull/pytest-full-elevated.txt`). The 10
+  reds were confirmed to be a missing `SeCreateSymbolicLinkPrivilege`, not a
+  product defect; the guards themselves work on Windows.
+- `animate` gained an explicit gate-pair parameter (engine + CLI `--regions`
+  file + MCP `regions=`, mirrored). The auto-def-rigify pattern pairs hands
+  against spine+pelvis+thigh+shin, which an arms-at-side chibi cannot clear
+  even at rest; rather than loosen the auto pattern for everyone and hide an
+  acceptance choice inside the framework, a caller can now pin
+  `regions={'a':[...],'b':[...]}` and it is recorded verbatim as
+  `gate_regions` in the ledger. Default `None` keeps auto-derivation.
+- First delivered motion on this box: task `win-motion7`, prompt "An object
+  walks forward.", 3 reps, NC licence accepted, `--regions` = hands vs the
+  spine chain (the repo's own `xiaoman-contact-v2` convention). Gate verdicts
+  per clip: rep_0 **fail** (406 crossing triangles, first violation frame 1),
+  rep_1 **pass**, rep_2 **pass**; rep_1 delivered as `model-motion.glb`,
+  sha256 `92a342107d3e9230139f270172347f279c012e98bca751d612e8087d123e010f`,
+  35 joints, one animation clip, skinning intact. The gate discriminated
+  between repetitions — not a rubber stamp. Renders reviewed: frame-30 side
+  view shows a genuine stride (lead foot heel-off, trailing knee bent).
+  `visual_approval` stays pending (human-only field).
+- Suite count reconciliation for the record: this checkout collects 611 tests
+  here (603 baseline + 8 new regions tests). PROGRESS's "615 passed" was
+  logged on the macOS box at commit 95d4b89; 83d0da5 added no files under
+  `tests/`, so the 12-test gap is not in git — presumed uncommitted macOS-
+  side local files. Needs an inventory from that machine; not resolvable here.
+
 ## 2026-10-11 — first full Windows UniMate chain: sample pass, drive pass, gate honestly fails
 
 - Environment built from `docs/windows-gpu-run-guide.md` on the RTX 4060 box:
