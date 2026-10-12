@@ -31,6 +31,26 @@ proves it. Intentions live in `ROADMAP.md`, not here.
   between repetitions — not a rubber stamp. Renders reviewed: frame-30 side
   view shows a genuine stride (lead foot heel-off, trailing knee bent).
   `visual_approval` stays pending (human-only field).
+- Second gate-passing delivery: task `win-motion9`, prompt "An object raises
+  both arms high.", `--regions` = hands vs the three core spine bones (the
+  exact `xiaoman-contact-v2` set). Gate: rep_0 fail, rep_1 **pass** (sha256
+  `1d1c0249c0def7de4dec5081d08630b64549a8305ce272fb49478d0584931230`), rep_2
+  fail — again only one of three repetitions cleared the gate.
+- Two findings this surfaced, both honest:
+  1. The `auto-def-rigify` pattern (hands vs spine+pelvis+thigh+shin) is
+     **unsatisfiable for a capsule-skinned arms-at-side chibi**: the rest
+     pose already has hand vertices bleeding into the thigh region, so every
+     clip fails at `first_violation: frame 1` before any motion — confirmed
+     on `win-motion8` (raise-arms, auto regions, all three reps fail at
+     frame 1). This is why an explicit human-pinned pair is needed, not a
+     bug in the evaluator.
+  2. Passing the contact gate is **not** visual acceptance. The delivered
+     raise-arms clip clears the geometry gate but its frame-30 render shows
+     severe capsule deformation (large stretched triangles dragged across
+     the back by the raised arm). The walk (win-motion7) deforms cleanly.
+     `visual_approval` remains pending and a human reviewing these would
+     very likely reject win-motion9 on deformation despite its gate pass —
+     which is exactly the two-gate separation the project intends.
 - Suite count reconciliation for the record: this checkout collects 611 tests
   here (603 baseline + 8 new regions tests). PROGRESS's "615 passed" was
   logged on the macOS box at commit 95d4b89; 83d0da5 added no files under
