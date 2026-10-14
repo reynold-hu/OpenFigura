@@ -3,6 +3,45 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-14 — MIA neural autorigging runs on Windows CUDA; skinning quality jumps past capsule
+
+- Installed Make-It-Animatable v1 (source commit `8fb51382ff6da556cdb95cc03a48200603f3a493`,
+  repo `jasongzy/Make-It-Animatable`) in a dedicated conda env `mia`
+  (py3.11.17, conda-forge). Checkpoints fetched from `jasongzy/Make-It-Animatable`
+  via hf-mirror, sha256: joints_coarse `389e18f9…`, joints `595587ab…`,
+  bw `8ff6abc9…` (1.375 GB). `data/Mixamo/bones.fbx` derived from the author's
+  public `data/Standard Run.fbx` by keeping the 52 canonical joints and
+  dropping 13 end bones + animation (Blender round-trip, 0 missing) — not a
+  placeholder.
+- Windows wheel gotchas, all resolved with real logs (`mia-deps*.log`):
+  download.pytorch.org resets mid-transfer (WinError 10054 / curl 56) so the
+  2.47 GB torch wheel came from the SJTU mirror via a `--http1.1 -C -` resume
+  loop; `torch-cluster 1.6.3+pt21cu121` and `pytorch3d 0.7.7+pt2.1.2cu121`
+  are prebuilt wheels (no CUDA-extension compile); `timm`/`tensorboard`
+  silently pulled torch 2.14.1, breaking the 2.1.2-built wheels, fixed with
+  `pip install --force-reinstall --no-deps` of the pinned cu121 torch +
+  torchvision. Probe `MIA_READY 2.1.2+cu121 CUDA True` on the RTX 4060.
+- `openfigura autorig --backend mia --device cuda` results:
+  - scifi-stride: pass, 52 bones, 769,437/769,437 weighted, mapping error 0,
+    top-4 mass 96.06%, 50 s.
+  - xiaoman (f322b90d): **pass**, 52 bones, 692,442 weighted, error 0, top-4
+    mass 99.69%, 42 s. Note: the 2026-10-08 trial recorded MIA *failing* the
+    3% continuity gate on the accepted chibi `f0c2798f`; this is a different
+    generation and it cleared the gate on CUDA. Not a claim that every chibi
+    passes — just that this one did.
+- UniMate motion on the MIA rig (mixamorig names pass preflight directly: 52
+  joints, 1 root, no duplicates — no re-parent hack needed):
+  - walk, explicit regions (hands vs spine/neck/head): **pass, all 3 reps
+    cleared the gate** (capsule walk passed only 1 of 3); delivered
+    `win-motion-mia3/artifacts/model-motion.glb` sha `20dbdfe7…`.
+  - raise-arms: auto-mixamorig gate rejected all 3 (hands reach the head
+    region — a real contact), but the driven clip renders a clean arms-overhead
+    pose with an **intact torso/back**, versus the capsule raise-arms
+    (win-motion9) which tore large stretched triangles across the back.
+- Honest residual limits: source hand geometry (pixal3d small fused hands)
+  still looks crude after neural skinning — MIA predicts weights, it cannot
+  fix bad hand topology; `visual_approval` stays pending on all outputs.
+
 ## 2026-10-12 — Windows goes fully green; first delivered UniMate motion
 
 - Developer Mode was enabled on the RTX 4060 box (HKLM AppModelUnlock
