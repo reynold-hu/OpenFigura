@@ -15,12 +15,14 @@ class FakeFormats:
 
     def __init__(self, available=True, reason='', exit_code=0, produce=True):
         self.available, self.reason, self.exit_code, self.produce = available, reason, exit_code, produce
+        self.seen_options = None
 
     def capabilities(self):
         return Capabilities(self.available, reason=self.reason,
                             notes={'formats': 'glb,fbx,obj,stl,usd' if self.available else 'glb'})
 
-    def convert(self, snapshot, converted, fmt):
+    def convert(self, snapshot, converted, fmt, options=None):
+        self.seen_options = options
         report_path = converted.with_name(converted.stem + f'.{fmt}-report.json')
         report_path.write_text(json.dumps({'format': fmt, 'warnings': ['test warning'],
                                            'visual_approval': 'pending'}))
@@ -111,8 +113,8 @@ def test_obj_delivery_contains_material_and_texture_dependencies(tmp_path, monke
     from openfigura.backends.format_export import FormatExportBackend
     task = task_with_glb(tmp_path)
     class WithDependencies(FakeFormats):
-        def convert(self, snapshot, converted, fmt):
-            result = super().convert(snapshot, converted, fmt)
+        def convert(self, snapshot, converted, fmt, options=None):
+            result = super().convert(snapshot, converted, fmt, options)
             mtl = converted.with_suffix('.mtl')
             mtl.write_text('newmtl Surface\nmap_Kd textures/albedo.png\n')
             image = converted.parent / 'textures' / 'albedo.png'
@@ -138,3 +140,64 @@ def test_operator_probe_names_include_obj_stl(tmp_path, monkeypatch):
     monkeypatch.setattr(FormatExportBackend, '_probe', lambda self: {'fbx': True, 'obj_export': True,
                                                                   'stl_export': True, 'usd_export': True})
     assert set(FormatExportBackend().capabilities().notes['formats'].split(',')) == {'glb','fbx','obj','stl','usd'}
+
+
+def test_unknown_fbx_preset_rejected_before_backend(tmp_path, monkeypatch):
+    task = task_with_glb(tmp_path)
+    def explode(name):
+        raise AssertionError('invalid preset must fail before the backend is touched')
+    monkeypatch.setattr(registry, 'get', explode)
+    with pytest.raises(ValueError, match='unknown fbx preset'):
+        engine.export(task, tmp_path / 'out', fmt='fbx', options={'fbx_preset': 'maya'})
+
+
+def test_fbx_preset_requires_fbx_format(tmp_path, monkeypatch):
+    task = task_with_glb(tmp_path)
+    def explode(name):
+        raise AssertionError('preset must fail before the backend is touched')
+    monkeypatch.setattr(registry, 'get', explode)
+    with pytest.raises(ValueError, match='requires --format fbx'):
+        engine.export(task, tmp_path / 'out', fmt='glb', options={'fbx_preset': 'blender'})
+
+
+def test_unknown_export_option_rejected(tmp_path):
+    task = task_with_glb(tmp_path)
+    with pytest.raises(ValueError, match='unknown export option'):
+        engine.export(task, tmp_path / 'out', fmt='fbx', options={'texture_packaging': 'zip'})
+
+
+def test_fbx_preset_resolves_axes_and_is_ledgered(tmp_path, monkeypatch):
+    task = task_with_glb(tmp_path)
+    fake = FakeFormats()
+    monkeypatch.setattr(registry, 'get', lambda name: fake)
+    manifest = engine.export(task, tmp_path / 'out', fmt='fbx',
+                             options={'fbx_preset': 'unreal'})
+    assert fake.seen_options['fbx'] == {'axis_forward': 'X', 'axis_up': 'Z',
+                                        'bake_space_transform': True}
+    assert manifest['export_options']['preset'] == 'unreal'
+    assert manifest['export_options']['preset_verified'] == 'convention-only'
+    entry = Task.open(task.root).entries[-1]
+    assert entry['export_options']['preset'] == 'unreal'
+
+
+def test_fbx_preset_default_export_is_unchanged(tmp_path, monkeypatch):
+    task = task_with_glb(tmp_path)
+    fake = FakeFormats()
+    monkeypatch.setattr(registry, 'get', lambda name: fake)
+    manifest = engine.export(task, tmp_path / 'out', fmt='fbx')
+    assert fake.seen_options is None
+    assert 'export_options' not in manifest
+
+
+def test_cli_rejects_preset_with_non_fbx_format(tmp_path, monkeypatch):
+    task = task_with_glb(tmp_path)
+    monkeypatch.setattr(registry, 'get', lambda name: FakeFormats())
+    code = main(['export', str(task.root), '--dest', str(tmp_path / 'out'),
+                 '--format', 'glb', '--fbx-preset', 'blender'])
+    assert code == 1
+    assert not (tmp_path / 'out').exists()
+
+
+def test_cli_rejects_unknown_preset_name():
+    with pytest.raises(SystemExit):
+        main(['export', 'x', '--dest', 'y', '--format', 'fbx', '--fbx-preset', 'maya'])

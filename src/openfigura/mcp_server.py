@@ -214,10 +214,14 @@ def build():
     @app.tool(description="Export verified artifacts + provenance to a delivery "
               "folder. Refuses if inspection reported problems. format 'glb' is "
               "stdlib; 'fbx'/'obj'/'stl'/'usd' convert the verified snapshot in an "
-              "isolated Blender and ship a machine report naming what each format drops.")
+              "isolated Blender and ship a machine report naming what each format drops. "
+              "fbx_preset authors a named engine orientation (blender/godot/unity/unreal); "
+              "the manifest records the resolved axes and which claims are import-verified.")
     def figura_export(task_root: str, dest: str, format: str = "glb",
-                      artifact: str = "model.glb") -> dict:
-        return engine.export(Task.open(Path(task_root)), Path(dest), fmt=format, artifact=artifact)
+                      artifact: str = "model.glb", fbx_preset: str | None = None) -> dict:
+        options = {'fbx_preset': fbx_preset} if fbx_preset else None
+        return engine.export(Task.open(Path(task_root)), Path(dest), fmt=format,
+                             artifact=artifact, options=options)
 
     @app.tool(description="Skeleton and skin-weight transfer from a rigged GLB onto a "
               "matching static GLB of the same character (isolated Blender; rest-pose "
@@ -232,10 +236,19 @@ def build():
     @app.tool(description="Static mesh operation in an isolated Blender process: "
               "segment | optimize (decimate) | retopo (QuadriFlow) | collision (convex hulls) | uv "
               "(smart project). Preserves the source, emits <stem>-<operation>.glb plus a machine "
-              "report. Retopo/UV replace topology or UVs: texture rebake required, no bake here.")
+              "report. Retopo/UV replace topology or UVs: texture rebake required, no bake here. "
+              "use_case fills retopo target_faces / optimize ratio from a named budget "
+              "(see figura_presets) only when params leave them unset; resolved values are ledgered.")
     def figura_mesh(task_root: str, operation: str, params: dict | None = None,
-                    artifact: str = "model.glb") -> dict:
-        return engine.mesh(Task.open(Path(task_root)), operation, params, artifact=artifact)
+                    artifact: str = "model.glb", use_case: str | None = None) -> dict:
+        return engine.mesh(Task.open(Path(task_root)), operation, params,
+                           artifact=artifact, use_case=use_case)
+
+    @app.tool(description="Read the use-case default table (game/animation/print/vr_ar/"
+              "product_display/general) with each budget's stated basis and the operations "
+              "that apply it. Data only: nothing executes.")
+    def figura_presets() -> dict:
+        return engine.presets()
 
     @app.tool(description='Rebase a static GLB to ground (feet at glTF Y=0) or bounding-box centre. '
               'Preserves original geometry/UV/normal/material bytes through a root translation. '

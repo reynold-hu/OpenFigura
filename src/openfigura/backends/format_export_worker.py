@@ -24,10 +24,20 @@ if fmt in ('obj','usd'):
         image.filepath=image.filepath_raw
 if fmt=='fbx':
     addon_utils.enable('io_scene_fbx',default_set=False)
-    bpy.ops.export_scene.fbx(filepath=str(out),object_types={'ARMATURE','MESH'},
-                             bake_anim=True,add_leaf_bones=False,
-                             path_mode='COPY',embed_textures=True)
+    exporter={'filepath':str(out),'object_types':{'ARMATURE','MESH'},
+              'bake_anim':True,'add_leaf_bones':False,
+              'path_mode':'COPY','embed_textures':True}
+    requested=cfg.get('exporter_options') or {}
+    properties=bpy.ops.export_scene.fbx.get_rna_type().properties
+    for key,value in requested.items():
+        if key not in properties:
+            raise ValueError('this Blender build has no FBX exporter option '+key)
+        exporter[key]=value
+    bpy.ops.export_scene.fbx(**exporter)
     warnings.append('FBX carries armature+skin+sampled animation; cameras/lights dropped; textures embedded.')
+    if requested:
+        warnings.append('FBX orientation authored with '+', '.join(f'{k}={v}' for k,v in sorted(requested.items()))
+                        +'; verify in the target engine before shipping.')
 elif fmt=='obj':
     bpy.ops.wm.obj_export(filepath=str(out),path_mode='RELATIVE')
     warnings.append('OBJ is static evaluated geometry plus a material library: skin weights, animation and PBR links are not carried.')
@@ -46,6 +56,7 @@ else:
     raise ValueError('unsupported format')
 report={'format':fmt,'source':source,'warnings':warnings,'bytes':out.stat().st_size,
         'axis':'Blender Z-up conversion handled by each exporter',
+        'exporter_options':cfg.get('exporter_options') or {},
         'visual_approval':'pending'}
 report['dependencies']=sorted(p.relative_to(out.parent).as_posix() for p in out.parent.rglob('*')
                               if p.is_file() and p.resolve() not in before_files

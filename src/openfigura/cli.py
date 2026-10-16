@@ -253,9 +253,16 @@ def main(argv: list[str] | None = None) -> int:
                    choices=["segment", "optimize", "retopo", "collision", "uv"])
     p.add_argument("--params", default="{}", help="JSON object of operation parameters")
     p.add_argument("--artifact", default="model.glb")
+    from openfigura.core.presets import USE_CASES
+    p.add_argument("--use-case", default=None, choices=sorted(USE_CASES),
+                   help="fill retopo target_faces / optimize ratio from a named use-case "
+                        "budget when the params do not set them (resolved values are ledgered)")
     p.set_defaults(func=lambda a: _print(engine.mesh(
         Task.open(Path(a.task)), a.operation, json.loads(_json_arg(a.params)),
-        artifact=a.artifact)))
+        artifact=a.artifact, use_case=a.use_case)))
+
+    p = sub.add_parser("presets", help="read use-case face budgets and each value's stated basis")
+    p.set_defaults(func=lambda a: _print(engine.presets()))
 
     p = sub.add_parser("execute", help="run one verb under a durable stage record "
                        "with hash-verified inputs and outputs")
@@ -273,6 +280,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--artifact", default="model.glb")
     p.add_argument("--dest", required=True)
     p.add_argument("--format", default="glb", choices=["glb", "fbx", "obj", "stl", "usd"])
+    from openfigura.core.export_presets import FBX_PRESETS
+    p.add_argument("--fbx-preset", default=None, choices=sorted(FBX_PRESETS),
+                   help="named FBX orientation (requires --format fbx); "
+                        "each preset records which claims are verified")
     p.set_defaults(func=_cmd_export)
 
     args = parser.parse_args(argv)
@@ -314,7 +325,9 @@ def _cmd_render(args) -> None:
 
 
 def _cmd_export(args) -> None:
-    _print(engine.export(Task.open(Path(args.task)), Path(args.dest), fmt=args.format, artifact=args.artifact))
+    options = {'fbx_preset': args.fbx_preset} if args.fbx_preset else None
+    _print(engine.export(Task.open(Path(args.task)), Path(args.dest), fmt=args.format,
+                         artifact=args.artifact, options=options))
 
 
 if __name__ == "__main__":

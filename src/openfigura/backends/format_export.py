@@ -66,7 +66,7 @@ class FormatExportBackend:
                             notes={'formats': ','.join(['glb'] + formats), 'binary': binary,
                                    'usdz': 'not exposed by this Blender build'})
 
-    def convert(self, model: Path, output: Path, fmt: str) -> dict:
+    def convert(self, model: Path, output: Path, fmt: str, options: dict | None = None) -> dict:
         model, output = Path(model).resolve(), Path(output).resolve()
         if fmt not in self.EXTENSIONS:
             raise ValueError(f"unsupported format {fmt!r}; known: {sorted(self.EXTENSIONS)}")
@@ -74,6 +74,9 @@ class FormatExportBackend:
             raise ValueError('refusing to overwrite output or source')
         if not model.is_file():
             raise FileNotFoundError(model)
+        options = dict(options or {})
+        if fmt != 'fbx' and options:
+            raise ValueError('exporter options are only supported for fbx')
         binary = self.binary()
         if not binary:
             raise RuntimeError('blender unavailable')
@@ -82,7 +85,7 @@ class FormatExportBackend:
         if report_path.exists():
             raise ValueError('refusing to overwrite existing report')
         cfg = {'model': str(model), 'output': str(output), 'format': fmt,
-               'report': str(report_path)}
+               'report': str(report_path), 'exporter_options': options.get('fbx') or {}}
         with tempfile.TemporaryDirectory(prefix='openfigura-fmt-') as folder:
             config = Path(folder) / 'config.json'
             config.write_text(json.dumps(cfg), encoding='utf-8')
@@ -112,6 +115,7 @@ class FormatExportBackend:
                 raise RuntimeError('missing format dependency: ' + relative)
             sidecars.append({'relative_path': relative, 'path': str(path), 'sha256': sha256_file(path)})
         return {'backend': self.id, 'format': fmt, **ledger, 'sidecars': sidecars,
+                'options': options,
                 'output': str(output), 'report_path': str(report_path), 'report': report}
 
 

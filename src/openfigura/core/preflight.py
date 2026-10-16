@@ -1,14 +1,17 @@
 """Deterministic input-quality preflight: cheap header-level checks that
 predict generation failure before a 27-minute backend run is wasted.
 
-Stdlib only (PNG/JPEG headers). Pixel-level checks (foreground coverage,
-matte edge quality) are v0.2 items behind the `vision` extra; until then
-those constraints are documented warnings, not silent guesses.
+Stdlib only (PNG/JPEG headers). The mirror-symmetry section decodes the PNG
+alpha channel (see ``symmetry.py``) for a bounded silhouette measurement;
+everything else stays header-level. Pixel-level matte checks (foreground
+coverage, edge quality) remain documented warnings, not silent guesses.
 """
 from __future__ import annotations
 
 import struct
 from pathlib import Path
+
+from . import symmetry as _symmetry
 
 MIN_EDGE = 512          # below this, 1024-res generation invents detail
 GOOD_EDGE = 1024        # matches res default; source below it upscales noise
@@ -53,17 +56,20 @@ def read_image_info(path: Path) -> dict | None:
 
 
 def preflight(path: Path) -> dict:
-    """Returns {ok, errors, warnings, info}. errors => refuse to generate."""
+    """Returns {ok, errors, warnings, info, symmetry}. errors => refuse to generate."""
     path = Path(path)
     errors: list[str] = []
     warnings: list[str] = []
     if not path.is_file():
         return {"ok": False, "errors": [f"input not found: {path}"],
-                "warnings": [], "info": None}
+                "warnings": [], "info": None,
+                "symmetry": {"status": "unavailable", "reason": "input not found"}}
     info = read_image_info(path)
     if info is None:
         return {"ok": False, "errors": ["unsupported format: use PNG (alpha preferred) or JPEG"],
-                "warnings": [], "info": None}
+                "warnings": [], "info": None,
+                "symmetry": {"status": "unavailable",
+                             "reason": "unsupported format: symmetry measurement supports PNG"}}
     short = min(info["width"], info["height"])
     aspect = max(info["width"], info["height"]) / short
     if short < MIN_EDGE:
@@ -84,4 +90,12 @@ def preflight(path: Path) -> dict:
     if info["bytes"] > MAX_BYTES:
         warnings.append(f"{info['bytes'] >> 20} MiB input: unusually large, check it is not "
                         "a raw upscaled export with fabricated detail")
-    return {"ok": not errors, "errors": errors, "warnings": warnings, "info": info}
+    symmetry = _symmetry.measure_symmetry(path)
+    if symmetry.get("status") == "measured":
+        if symmetry.get("label") == "no-subject":
+            warnings.append("alpha channel is fully transparent: check the matte before generating")
+        elif symmetry.get("label") == "asymmetric":
+            warnings.append(f"silhouette asymmetric (mirror IoU {symmetry['mirror_iou']:.3f}): "
+                            "mirror-based edits will need per-side work; advisory, not an error")
+    return {"ok": not errors, "errors": errors, "warnings": warnings, "info": info,
+            "symmetry": symmetry}

@@ -296,9 +296,36 @@ def _deliver(dest: Path, name: str, source: Path, expect_sha: str | None = None)
             temporary.unlink()
 
 
-def export(task: Task, dest: Path, fmt: str = "glb", artifact: str = "model.glb") -> dict:
+def _resolve_export_options(fmt: str, options: dict | None) -> dict | None:
+    """Validate caller options and resolve an fbx preset to explicit exporter arguments."""
+    if options is None:
+        return None
+    if not isinstance(options, dict):
+        raise ValueError('export options must be a JSON object')
+    unknown = set(options) - {'fbx_preset'}
+    if unknown:
+        raise ValueError(f'unknown export option(s): {sorted(unknown)}')
+    preset_name = options.get('fbx_preset')
+    if preset_name is None:
+        return None
+    if fmt != 'fbx':
+        raise ValueError('fbx_preset requires --format fbx')
+    from openfigura.core.export_presets import FBX_PRESETS
+    preset = FBX_PRESETS.get(preset_name)
+    if preset is None:
+        raise ValueError(f"unknown fbx preset {preset_name!r}; known: {sorted(FBX_PRESETS)}")
+    return {'preset': preset_name,
+            'fbx': {k: preset[k] for k in
+                    ('axis_forward', 'axis_up', 'bake_space_transform')},
+            'preset_target': preset['target'], 'preset_verified': preset['verified'],
+            'preset_note': preset['note']}
+
+
+def export(task: Task, dest: Path, fmt: str = "glb", artifact: str = "model.glb",
+           options: dict | None = None) -> dict:
     if fmt not in SUPPORTED_FORMATS:
         raise ValueError(f"format {fmt!r} unsupported; supported: {list(SUPPORTED_FORMATS)}")
+    resolved_options = _resolve_export_options(fmt, options)
     glb = _model(task, artifact)
     report_path = task.root / ("inspect.json" if artifact == "model.glb" else glb.stem + "-inspect.json")
     if not glb.is_file():
@@ -340,7 +367,7 @@ def export(task: Task, dest: Path, fmt: str = "glb", artifact: str = "model.glb"
                 conversion_root /= Path(output_name).stem + '-bundle'
                 conversion_root.mkdir()
             converted = conversion_root / f'{Path(output_name).stem}.{backend.EXTENSIONS[fmt]}'
-            conversion = backend.convert(snapshot, converted, fmt)
+            conversion = backend.convert(snapshot, converted, fmt, resolved_options)
             if conversion['exit_code'] != 0 or not converted.is_file() or not conversion.get('report'):
                 raise RuntimeError(f"format conversion {fmt} exited {conversion['exit_code']}: "
                                    + (conversion.get('stderr_tail') or '')[-400:])
@@ -367,6 +394,8 @@ def export(task: Task, dest: Path, fmt: str = "glb", artifact: str = "model.glb"
             manifest_extra = {'primary': primary, 'converted_sha256': sha256_file(dest / primary),
                               'conversion_warnings': conversion['report'].get('warnings', []),
                               'dependency_sha256': dependency_hashes}
+            if resolved_options:
+                manifest_extra['export_options'] = resolved_options
         else:
             manifest_extra = None
     if saved_report is not None:
@@ -968,8 +997,55 @@ def pivot(task: Task, mode: str = 'ground', artifact: str = 'model.glb') -> dict
     return evidence
 
 
+def presets() -> dict:
+    """Read the use-case default table with each value's stated basis."""
+    from openfigura.core.presets import PRESET_OPERATIONS, USE_CASES
+    return {'schema_version': 1, 'operations': list(PRESET_OPERATIONS),
+            'use_cases': USE_CASES,
+            'application': 'mesh retopo/optimize fill these budgets only when the '
+                           'caller left target_faces/ratio unset; resolved values are ledgered'}
+
+
+def _resolve_use_case_defaults(operation: str, use_case: str | None,
+                               params: dict, model: Path) -> tuple[dict, dict, dict]:
+    """Fill preset budgets for retopo/optimize; returns (params, defaults, meta)."""
+    from openfigura.core.presets import PRESET_OPERATIONS, USE_CASES
+    if use_case is None:
+        return params, {}, {}
+    if use_case not in USE_CASES:
+        raise ValueError(f"unknown use case {use_case!r}; known: {sorted(USE_CASES)}")
+    if operation not in PRESET_OPERATIONS:
+        raise ValueError(f'use_case defaults apply to {list(PRESET_OPERATIONS)}, not {operation!r}')
+    preset = USE_CASES[use_case]
+    target = preset['retopo_target_faces']
+    resolved: dict = {}
+    params = dict(params)
+    if target is not None and operation == 'retopo' and params.get('target_faces') is None:
+        params['target_faces'] = target
+        resolved['target_faces'] = {'value': target, 'basis': preset['basis'],
+                                    'use_case': use_case}
+    if target is not None and operation == 'optimize' and params.get('ratio') is None:
+        try:
+            current = inspect_glb(model)['triangles']
+        except (ValueError, KeyError, IndexError) as exc:
+            raise RuntimeError('cannot derive an optimize ratio: source GLB cannot be inspected') from exc
+        if not isinstance(current, int) or current <= 0:
+            raise RuntimeError('cannot derive an optimize ratio: source has zero triangles')
+        ratio = min(1.0, target / current)
+        if ratio >= 1.0:
+            resolved['ratio'] = {'value': 1.0, 'basis': 'source already within the use-case budget',
+                                 'use_case': use_case, 'source_triangles': current}
+        else:
+            resolved['ratio'] = {'value': round(ratio, 6), 'basis': 'computed target/source from the GLB',
+                                 'use_case': use_case, 'source_triangles': current,
+                                 'target_faces': target}
+        params['ratio'] = resolved['ratio']['value']
+    return params, resolved, {'use_case': use_case, 'basis': preset['basis'],
+                              'note': preset['note']}
+
+
 def mesh(task: Task, operation: str, params: dict | None = None,
-         artifact: str = 'model.glb') -> dict:
+         artifact: str = 'model.glb', use_case: str | None = None) -> dict:
     """Static-mesh processing in an isolated Blender process (original tools).
 
     Deterministic candidate name '<artifact stem>-<operation>.glb' so the
@@ -982,19 +1058,24 @@ def mesh(task: Task, operation: str, params: dict | None = None,
     model = _model(task, artifact)
     if not model.is_file():
         raise FileNotFoundError('nothing to process; run generate first')
+    params, resolved_defaults, use_case_meta = _resolve_use_case_defaults(
+        operation, use_case, dict(params or {}), model)
     out = task.artifact(f'{model.stem}-{operation}.glb')
     if out.exists() or out.with_suffix('.mesh-report.json').exists():
         raise FileExistsError('mesh candidate already exists; use a new task')
     evidence = {'backend': backend.id, 'source_artifact': artifact, 'operation': operation,
-                'input_sha256': sha256_file(model), 'params': dict(params or {}),
+                'input_sha256': sha256_file(model), 'params': params,
                 'artifact': out.relative_to(task.root).as_posix(), 'visual_approval': 'pending'}
+    if use_case is not None:
+        evidence['use_case'] = use_case_meta
+        evidence['resolved_defaults'] = resolved_defaults
     try:
         # Backends only receive a private input snapshot. Hash checks detect
         # mutations without sacrificing the accepted source to preprocessing.
         with tempfile.TemporaryDirectory(prefix='openfigura-mesh-input-') as folder:
             snapshot = Path(folder) / model.name
             shutil.copy2(model, snapshot)
-            result = backend.process(snapshot, out, operation, params or {})
+            result = backend.process(snapshot, out, operation, params)
             evidence.update(result)
             if sha256_file(snapshot) != evidence['input_sha256']:
                 raise RuntimeError('mesh backend modified input snapshot')
@@ -1553,8 +1634,9 @@ def _outputs_retarget(sandbox, params, result):
 
 
 def _run_export(sandbox, staged, params):
+    options = {'fbx_preset': params['fbx_preset']} if params.get('fbx_preset') else None
     return export(sandbox, sandbox.root / 'delivery', fmt=params.get('fmt', 'glb'),
-                  artifact=params.get('artifact', 'model.glb'))
+                  artifact=params.get('artifact', 'model.glb'), options=options)
 
 
 def _outputs_export(sandbox, params, result):
@@ -1571,7 +1653,8 @@ def _run_mesh(sandbox, staged, params):
     if not isinstance(operation, str) or not operation.strip():
         raise ValueError("params['operation'] is required")
     return mesh(sandbox, operation, _dict_param(params, 'params'),
-                artifact=params.get('artifact', 'model.glb'))
+                artifact=params.get('artifact', 'model.glb'),
+                use_case=params.get('use_case'))
 
 
 def _outputs_mesh(sandbox, params, result):

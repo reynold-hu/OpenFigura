@@ -55,6 +55,10 @@ openfigura preflight ref.png
 #    errors  => stop; crop to one view / matte / upscale is NOT a fix,
 #               re-source the image. See docs/input-quality.md.
 #    warnings => decide consciously; record your reasoning to the user.
+#    `symmetry` reports a mirror-IoU of the PNG alpha silhouette when the
+#    file decodes (JPEG/no-alpha/oversized report status=unavailable with a
+#    reason, never a guess). Advisory: `asymmetric` adds a warning, not an
+#    error. Thresholds are OpenFigura heuristics (see core/symmetry.py).
 #    Human needs a good source image? Point them at docs/input-guide.md
 #    (ready-to-paste prompts for commercial text-to-image models).
 
@@ -80,6 +84,11 @@ openfigura render tasks/hero-idle --samples 32
 
 # 6. Deliver
 openfigura export tasks/hero-idle --dest dist/
+#    Engine-bound delivery: `--format fbx --fbx-preset godot|unity|unreal|blender`
+#    writes an FBX authored for that engine's axes/units. The manifest records
+#    the resolved exporter arguments and each preset's verification status
+#    (`blender` and `godot` are import-verified on this repo's machines;
+#    `unity`/`unreal` are documented conventions — verify in the target engine).
 ```
 
 Every step appends to `tasks/hero-idle/provenance.json`: command, exit
@@ -142,6 +151,23 @@ set your tool timeout accordingly.
 - Input contract: [`input-quality.md`](input-quality.md)
 - Regression suite: [`../golden/README.md`](../golden/README.md)
 - Working *on* the repo: [`../AGENTS.md`](../AGENTS.md)
+
+## Mesh budgets and use cases
+
+`openfigura presets` / `figura_presets` reads the use-case table
+(`game / animation / print / vr_ar / product_display / general`) with each
+budget's stated basis — data only, nothing executes. Apply one with:
+
+```sh
+openfigura mesh TASK --operation retopo   --use-case game   # target_faces=20000 if unset
+openfigura mesh TASK --operation optimize --use-case game   # ratio = 20000/current, computed from the GLB
+```
+
+Rules (enforced, tested): explicit `--params` always win; `optimize` derives
+its ratio from the source triangle count, never from a guess; `print`/`general`
+set no implicit budget; the ledger records the resolved values and which basis
+they came from. Use-case defaults apply to `retopo`/`optimize` only and fail
+closed elsewhere.
 
 ## Texture refinement and experimental rigging
 

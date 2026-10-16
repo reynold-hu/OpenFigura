@@ -27,6 +27,65 @@ proves it. Intentions live in `ROADMAP.md`, not here.
 - `.local/catalog.json` created indexing the six delivered motions by sha and
   the three evidence zips (gitignored local ledger, per AGENTS.md).
 
+## 2026-10-16 — borrow batch: preflight symmetry, FBX presets, use-case budgets
+
+From the Tripo reverse manual §8.1 (all four items). Evidence root:
+`.local/runs/2026-10-16-borrow-batch/`. **630 tests pass** (`python -m
+pytest tests -q`).
+
+- **Preflight symmetry**: stdlib PNG-alpha decoder + mirror IoU
+  (`core/symmetry.py`); JPEG/no-alpha/>8MP report `unavailable` with a reason,
+  never a guess; `asymmetric` adds an advisory warning only. Real mattes:
+  dark-knight 2492² measured roughly-symmetric IoU 0.9424 in 1.12 s;
+  xiaoman-front 2464² asymmetric 0.8784 in 2.07 s
+  (`preflight-dark-knight-matte.out`, `preflight-xiaoman-front-matte.out`).
+  Thresholds are declared OpenFigura heuristics, not authority.
+- **FBX presets**: `export --format fbx --fbx-preset blender|godot|unity|unreal`
+  resolves axes/bake args from `core/export_presets.py`; manifest records the
+  resolved arguments + per-preset verification status. Blender round-trip and
+  Godot 4.7.2 import verified (`delivery3-*`, `godot-final.json`): godot-preset
+  FBX AABB matches the GLB control exactly (delta 0.0); manual-axis negative
+  control permutes dims (discriminating). `unity`/`unreal` remain
+  convention-only and say so. **Caught a real bug during evidence**: the first
+  table authored scale 100 + CUSTOM; measurement showed bake_space_transform
+  already converts meter numbers to cm — the fix lands on measured args, and
+  the note explains the failure mode.
+- **Use-case budgets**: `core/presets.py` (6 use cases with stated bases:
+  `vendor-claim` only where Tripo's published ≤50k budget is the anchor),
+  `presets`/`figura_presets` verb, `mesh --use-case` filling retopo
+  `target_faces` / optimize `ratio` only when unset, resolved values ledgered.
+  Real runs: optimize(game) on 30,000-tri bunny → ratio 0.666667 → exactly
+  20,000 triangles out (2.14 s); retopo(game) passed target_faces=20000 into
+  the pipeline, QuadriFlow still CANCELLED and the watertight remesh
+  (70,024 tri, UVs replaced, requires rebake) was kept — same honest limitation
+  as the 2026-10-08 entry, now with the budget plumbing verified.
+- No changes to generation backends or existing artifacts; sources under
+  `src/openfigura/` touched: `core/symmetry.py`, `core/presets.py` (new),
+  `core/export_presets.py` (new), `core/preflight.py`, `core/engine.py`,
+  `backends/format_export.py`, `backends/format_export_worker.py`, `cli.py`,
+  `mcp_server.py`.
+
+## 2026-10-16 — Tripo Studio browser-side reverse (REA), manual + borrow list
+
+- Ran REA (local HEAD `180ba03bf`, npm 6.5.0 lacks `capture.limits`) with a
+  dedicated Chrome 155 profile against `https://studio.tripo3d.ai/zh`.
+  Evidence in `.local/runs/2026-10-16-tripo-studio-reverse/`: passive inspect,
+  connect-mode scenario capture (295 requests with response bodies,
+  SHA-256 `79c57ed9…`), `export-web-scripts` (142 scripts, manifest
+  `ec5370f6…`), `analyze-javascript-application` (140 files, 228 modules,
+  `a571cc23…`), home screenshot `9e837a50…`.
+- Extracted from the bundle (static): 51 `/v2/studio/*` paths, 43-item credits
+  table (`Segmentation:40`, `Rigging:20`, `EditMesh:50`…), model versions
+  v1.0–v3.1 + `Nexus-v2.0-20260801` (Smart Mesh = P2 preview campaign),
+  skeleton types, 9 DCC bridge ports (60600–60690), use-case presets
+  (`gaming/animation/3d_printing/…`, default `face_limit` 2e6), gated
+  `forge3d` Agentic Canvas chunks (`AccessService/GetAccess` allow-check).
+- Unverified and stated as such: anything behind login; terms text still
+  unread; headless launch hits Cloudflare 403+Turnstile on a fresh profile.
+- Deliverables: `docs/2026-10-16-tripo-studio-reverse-manual.md` (evidence
+  chain, full feature/API/credits maps, borrow list §8); parity doc §10 补记.
+  No OpenFigura code changed by this entry.
+
 ## 2026-10-14 — MIA neural autorigging runs on Windows CUDA; skinning quality jumps past capsule
 
 - Installed Make-It-Animatable v1 (source commit `8fb51382ff6da556cdb95cc03a48200603f3a493`,
@@ -269,7 +328,6 @@ proves it. Intentions live in `ROADMAP.md`, not here.
   unavailable with reasons = unimate (three OPENFIGURA_UNIMATE_* env vars
   unset, see `docs/windows-gpu-run-guide.md`), mediapipe-face, mia,
   native-motion.
-
 ## 2026-10-08 — asset/style contracts and durable workflow foundation
 
 - Source review: `docs/2026-10-08-ecosystem-deep-review.md`; added source-only
