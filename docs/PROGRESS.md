@@ -3,6 +3,30 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-16 — MIA-rigged character delivers a four-motion set on Windows GPU
+
+- Reused the MIA neural rig of xiaoman `f322b90d` (52 mixamorig joints, single
+  root, passes UniMate preflight directly) and drove UniMate for four prompts,
+  explicit gate regions hands-vs-spine/neck/head, 3 reps each, NC licence
+  accepted per call. All four delivered a gated clip:
+  - walk `win-motion-mia3` sha `20dbdfe7…` (3/3 reps pass)
+  - wave `mia-wave` sha `9918a268…` (2/3 pass — gate rejected one rep)
+  - jump `mia-jump` sha `2d89dc0e…` (3/3 pass)
+  - turn `mia-turn` sha `b21132d7…` (3/3 pass)
+  - idle `mia-idle` sha `1e65996a…` (3/3 pass)
+- Visual review of frame-30 renders: legs/torso deform cleanly; the residual
+  artifacts are (a) loose-pajama underarm stretch on arm-raising motions and
+  (b) crude hands inherited from the pixal3d source geometry — neither is a
+  rigging fault. Jump's frame-1 camera bounds clip the airborne body (render
+  framing, not motion). `visual_approval` remains pending on every clip.
+- Batch runner + per-motion logs under `.local/runs/2026-10-10-windows-pull/`
+  (run_batch.py, animate-mia-*.log, mia-motion-batch.txt). A first PowerShell
+  batch attempt failed entirely on the non-ASCII repo path (`桌面` mangled by
+  `powershell -File`) — replaced with a Python runner using absolute paths;
+  recorded because it is the same Windows path trap as AGENTS.md notes.
+- `.local/catalog.json` created indexing the six delivered motions by sha and
+  the three evidence zips (gitignored local ledger, per AGENTS.md).
+
 ## 2026-10-14 — MIA neural autorigging runs on Windows CUDA; skinning quality jumps past capsule
 
 - Installed Make-It-Animatable v1 (source commit `8fb51382ff6da556cdb95cc03a48200603f3a493`,
