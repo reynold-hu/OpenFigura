@@ -3,6 +3,26 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-17 — face-aware preflight and the 80-point face rubric
+
+- Added optional `preflight --face` / `figura_preflight(face=True)` backed by
+  `core/face_metrics.py`: MediaPipe FaceLandmarker gives a face bbox,
+  face-pixel fraction and `estimated_face_px_at_1024`, plus a border-crop
+  check. Off by default because model load costs ~5 s; missing mediapipe,
+  Pillow/NumPy or the model reports `unavailable`; decoded-but-undetected
+  returns `no_face` without a warning. Six new tests; full suite 630 passed.
+- Baseline measured on the golden inputs (`.local/runs/2026-10-17-face-baseline/`):
+  `head-sculpt` 431.6 px at 1024 (755 px face short side), `silver-scarf`
+  100.3 px (244.5 px); the stylized/helmet/profile/prop cases return
+  `no_face` — a real limitation of the realistic-face detector, recorded
+  rather than patched with a guessed box.
+- Wrote `docs/2026-10-17-face-quality-rubric.md`: five dimensions scored
+  0–20 (proportion, layout, detail, texture, usability), 80 = deliverable
+  with no dimension below 10, blind A/B procedure, human-only approval.
+  No golden case has an accepted 80-point baseline yet.
+- Usage/skill/ROADMAP updated; next steps: face ROI texture A/B, texel-density
+  audit, Windows GPU geometry comparison.
+
 ## 2026-10-17 — print-check phase 2: orientation metrics + optional CPU wall proxy
 
 - `print-check` now reports overhang area (configurable `overhang_angle_deg`,

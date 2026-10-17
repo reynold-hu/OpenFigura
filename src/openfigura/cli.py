@@ -196,8 +196,11 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("preflight", help="input-quality checks, no generation")
     p.add_argument("image")
+    p.add_argument("--face", action="store_true",
+                   help="also run the optional MediaPipe face check (~5 s, needs the face extra "
+                        "and the user-fetched model)")
     from openfigura.core.preflight import preflight as _pf
-    p.set_defaults(func=lambda a: _print(_pf(Path(a.image))))
+    p.set_defaults(func=lambda a: _print(_pf(Path(a.image), face=a.face)))
 
     p = sub.add_parser("render", help="GLB -> neutral multi-view frames")
     p.add_argument("task")

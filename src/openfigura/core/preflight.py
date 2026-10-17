@@ -55,21 +55,27 @@ def read_image_info(path: Path) -> dict | None:
     return info
 
 
-def preflight(path: Path) -> dict:
-    """Returns {ok, errors, warnings, info, symmetry}. errors => refuse to generate."""
+def preflight(path: Path, face: bool = False) -> dict:
+    """Returns {ok, errors, warnings, info, symmetry, face}. errors => refuse.
+
+    ``face=True`` runs the optional MediaPipe face check (CLI ``--face``); it
+    loads an Apache-2.0 model and takes a few seconds, so it is off by default.
+    """
     path = Path(path)
     errors: list[str] = []
     warnings: list[str] = []
     if not path.is_file():
         return {"ok": False, "errors": [f"input not found: {path}"],
                 "warnings": [], "info": None,
-                "symmetry": {"status": "unavailable", "reason": "input not found"}}
+                "symmetry": {"status": "unavailable", "reason": "input not found"},
+                "face": {"status": "not_requested"}}
     info = read_image_info(path)
     if info is None:
         return {"ok": False, "errors": ["unsupported format: use PNG (alpha preferred) or JPEG"],
                 "warnings": [], "info": None,
                 "symmetry": {"status": "unavailable",
-                             "reason": "unsupported format: symmetry measurement supports PNG"}}
+                             "reason": "unsupported format: symmetry measurement supports PNG"},
+                "face": {"status": "not_requested"}}
     short = min(info["width"], info["height"])
     aspect = max(info["width"], info["height"]) / short
     if short < MIN_EDGE:
@@ -97,5 +103,17 @@ def preflight(path: Path) -> dict:
         elif symmetry.get("label") == "asymmetric":
             warnings.append(f"silhouette asymmetric (mirror IoU {symmetry['mirror_iou']:.3f}): "
                             "mirror-based edits will need per-side work; advisory, not an error")
+    face_report = {"status": "not_requested"}
+    if face:
+        from . import face_metrics
+        face_report = face_metrics.measure(path)
+        if face_report.get("status") == "measured":
+            estimated = face_report.get("estimated_face_px_at_1024")
+            if isinstance(estimated, (int, float)) and estimated < face_metrics.SMALL_FACE_PX:
+                warnings.append(f"face region is ~{estimated:.0f}px at 1024 res: facial features "
+                                "may blur; crop closer or upscale the head")
+            if face_report.get("touches_border"):
+                warnings.append("face touches the image border: the reference is cropped; "
+                                "generation will complete the missing side")
     return {"ok": not errors, "errors": errors, "warnings": warnings, "info": info,
-            "symmetry": symmetry}
+            "symmetry": symmetry, "face": face_report}

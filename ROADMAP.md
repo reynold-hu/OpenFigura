@@ -60,6 +60,18 @@ evidence:
       ledger records host class because same-seed parity across machines
       is not guaranteed
 
+## Face quality track (80-point target, started 2026-10-17)
+
+- [x] Optional face-region preflight (`preflight --face`): estimated face
+      pixels at 1024, border cropping; mediapipe/model missing reports
+      `unavailable`, stylized art reports `no_face` without inventing a box.
+- [x] Human 80-point rubric and face baseline metrics:
+      `docs/2026-10-17-face-quality-rubric.md` (no accepted baseline yet).
+- [ ] Face ROI texture refinement A/B: landmarks + face-mask/head-roi +
+      3/4-view projection, scored with the rubric.
+- [ ] Face texel-density audit; decide local 4K atlas or second material.
+- [ ] TripoSG/Hi3DGen face-geometry comparison on the Windows box.
+
 ## v0.4 — a face on the tool
 
 - [ ] localhost web UI (React): task browser, render gallery, ledger

@@ -59,6 +59,9 @@ openfigura preflight ref.png
 #    file decodes (JPEG/no-alpha/oversized report status=unavailable with a
 #    reason, never a guess). Advisory: `asymmetric` adds a warning, not an
 #    error. Thresholds are OpenFigura heuristics (see core/symmetry.py).
+#    `--face` adds the optional MediaPipe check (~5 s; face extra + model):
+#    estimated face pixels at 1024 res and border cropping. Stylized/profile
+#    art may report no_face; that is not an error.
 #    Human needs a good source image? Point them at docs/input-guide.md
 #    (ready-to-paste prompts for commercial text-to-image models).
 

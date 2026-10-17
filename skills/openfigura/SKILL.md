@@ -21,6 +21,8 @@ accelerators and report `unavailable` with a reason when missing.
 ## One workflow
 
 1. `openfigura preflight ref.png` — errors stop; warnings are decisions.
+   Add `--face` for realistic portraits: it estimates the face size at 1024
+   and warns about cropping (stylized art may report `no_face`; not an error).
 2. `openfigura new ref.png -o tasks/ --name asset`
 3. `openfigura generate tasks/asset --backend pixal3d --seed 42` — long run;
    use a generous timeout and never fake completion.

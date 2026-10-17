@@ -77,9 +77,9 @@ def build():
     @app.tool(description="Deterministic input-quality checks (resolution, alpha, "
               "aspect, format). Run BEFORE figura_generate; errors mean generation "
               "would waste a long run. Warnings are advisory.")
-    def figura_preflight(image_path: str) -> dict:
+    def figura_preflight(image_path: str, face: bool = False) -> dict:
         from openfigura.core.preflight import preflight
-        return preflight(Path(image_path))
+        return preflight(Path(image_path), face=face)
 
     @app.tool(description="Environment self-check: OS/arch/RAM/disk/GPU probe, "
               "backend availability, and a tiered verdict (ready/capable/blocked). "
