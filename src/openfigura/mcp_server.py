@@ -41,15 +41,6 @@ def build():
                             'maps': maps if maps is not None else ['normal','ao'],
                             'cage_extrusion': cage_extrusion, 'ray_distance': ray_distance})
 
-    @app.tool(description='Validate and record project pixel dimensions, palette, '
-              'outline, shading, FPS and anchor. Does not generate pixels or approve visual quality.')
-    def figura_set_style(task_root: str, spec: dict) -> dict:
-        return engine.set_style(Task.open(Path(task_root)), spec)
-
-    @app.tool(description='Read latest validated project pixel style or explicit unset status.')
-    def figura_project_style(task_root: str) -> dict:
-        return engine.project_style(Task.open(Path(task_root)))
-
     @app.tool(description='Persist a workflow request for later execution. '
               'This foundation API does not start a backend or claim model generation.')
     def figura_workflow_submit(task_root: str, request: dict) -> dict:

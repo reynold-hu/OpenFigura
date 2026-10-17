@@ -18,8 +18,12 @@ this file is intent, not evidence.
 The animation toolchain, one verb at a time, each with a real render as
 evidence:
 
-- [ ] `retopo` — Quadriflow quad remesh + triangle target (Blender backend)
-- [ ] `bake` — normal/texture transfer high→low poly
+- [x] `retopo` / `mesh` — triangle target + watertight path verified on real
+      meshes (2026-10-08); QuadriFlow still cancels on generated meshes and
+      that is recorded, not hidden. `mesh --use-case` budgets ledgered
+      (2026-10-16).
+- [x] `bake` — normal/AO transfer high→low poly, real 958k→96k chain
+      (2026-10-10)
 - [x] Experimental calibrated `rig` — explicit basic-human Rigify bone data,
       automatic skinning failure and opt-in approximate weights; real chibi GLB
       animation reimport and Godot proof. No general autorig/finger claim.
@@ -28,13 +32,12 @@ evidence:
 - [x] Experimental native `retarget` — Godot motion transfer, Blender IK and
       compulsory integer-frame hand/body checks; corrected clip only
 - [ ] Further neural/manual joint fitting and validated production skinning
-- [ ] `skin-check` — weight visualization + deformation render at fixed
-      pose set; automatic report of suspected bad regions (eyes, fingers,
-      shoulders)
-- [ ] `animate` — import open mocap (CMU/LAFAN1) or hand-authored actions,
-      Godot real-frame verification
-- [ ] `generate` end-to-end through the framework (real pixal3d run, not
-      the borrowed tarotist-repo artifact)
+- [x] `skin-check` / `skin-probe` — read-only weight diagnostics and fixed-pose
+      deformation probes with real tool-level evidence (2026-10-09)
+- [x] Experimental `animate` (UniMate, NC-gated) — real gated clips delivered
+      (2026-10-12/14); open mocap import (CMU/LAFAN1) still pending
+- [x] `generate` end-to-end through the framework — real pixal3d runs recorded
+      (966.56 s regeneration; golden-input chains)
 
 ## v0.3 — the moat is the spec
 
@@ -64,13 +67,68 @@ evidence:
 - No cloud uploads, ever, from the core. Privacy is the product.
 - No training our own 3D model; we integrate the best open ones.
 
+## Rejected after the 2026-10-16 Tripo feature review
+
+Formally rejected, with the evidence chain in
+`docs/2026-10-16-tripo-studio-feature-review.md` §13.4. Do not re-propose
+these without new evidence:
+
+- Conversational agent panel / node-graph canvas (Astra, forge3d). The user's
+  own agent plus the `figura_*` tool surface is the interface; UI is not a
+  goal. `review`-style approval semantics already exist as `visual_approval`.
+- Cloud refinement products (Pro Refine-style), cloud motion libraries,
+  video-to-motion services — any pipeline that uploads the user's art.
+- Credits / paywall / quota mechanics and A/B or telemetry infrastructure
+  (session replay, marketing pixels) — contrary to the privacy promise.
+- The 9-DCC plugin/bridge matrix — files + one Blender-verified path instead.
+- Multi-view image input generation — single-view contract stands
+  (docs/2026-10-07-tripo-parity-analysis.md §2.1).
+- Text-to-3D on cloud models; revisit only if a local text-conditioned
+  backend is integrated.
+- 8K textures as a scheduled goal; first prove 4K is meaningful
+  (parity doc §2.3).
+
+## Rejected after the 2026-10-16 Meshy/Hi3D review
+
+Evidence: `docs/2026-10-16-meshy-hi3d-feature-review.md`. Same rule: no
+re-proposal without new evidence.
+
+- AI video generation (Meshy's text/image-to-video via fal.ai et al.) — not a
+  3D asset toolchain capability and cloud-only.
+- Physical-product commerce and print-on-demand (Meshy Creative Lab, Hi3D
+  Maker Workshop ordering), contest/community gamification, desktop chat
+  clients, cloud agent sessions — service/business surfaces, not tooling.
+- DCC *and slicer* plugin matrices (Bambu Studio, OrcaSlicer, Cura,
+  Creality, Elegoo, Lychee, Unity/Unreal/Roblox/3ds Max/Blender) — files
+  plus one Blender-verified path.
+- Sparc3D code/weights (Math Magic gate: "code may be released upon
+  approval"); do not obtain or vendor them.
+
+## Proposed after the Meshy/Hi3D review (needs human sign-off)
+
+- [ ] `print-check` — local printability report (non-manifold/open edges,
+      zero-area/duplicate faces, min wall thickness, overhang angle, bed
+      contact, build-volume fit) reusing inspect + pymeshlab; report only,
+      no auto-repair claim. Highest value borrow from both platforms.
+- [ ] `--dry-run` / plan preview for long workflows: print the planned steps
+      and rough budgets before executing (Meshy CLI's `make --dry-run`
+      pattern, without credits).
+- [ ] Split/color preview: split a GLB into parts by material/vertex-color
+      clustering and emit per-part files + assembly notes; connectors
+      (mortise/ball joints) stay out of scope until split is proven.
+- [ ] Hi3DGen CUDA trial as a geometry backend (MIT code, normal-bridging,
+      TRELLIS-finetuned); needs an NVIDIA box, spconv/xformers and normal
+      evidence. Not a Mac capability.
+
 ## Independent integrations after 3DGenStudio review
 
 - [ ] Persistent external jobs and per-GPU resource scheduling (CPU workers separate)
 - [ ] ComfyUI adapter with versioned workflows and explicit local endpoints
-- [ ] UV, editable quad retopology and high/low normal/material baking
+- [x] UV (smart project + quality metrics), triangle-decimate retopo and
+      high/low normal/AO baking — done as `mesh uv` / `mesh retopo` / `bake`;
+      editable quad retopology stays unsolved and honestly recorded
 - [ ] Skin/animation transfer preserving existing GLB buffers and materials
 - [ ] SkinTokens and MoCapAnything trials on suitable NVIDIA GPU; no GPU result yet
-- [ ] Multi-view albedo/PBR refinement and optional asset version workbench
+- [ ] Single-view albedo/PBR refinement evolution (multi-view input is rejected above)
 
 Priorities and source/permission boundaries: `docs/2026-10-08-3dgenstudio-review.md`.

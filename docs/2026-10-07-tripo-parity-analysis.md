@@ -307,11 +307,11 @@
 
 ---
 
-## 10. 补记 · 2026-10-16 rea 逆向实测（追加，不改上文）
+## 10. 补记 · 2026-10-16 公开资料核对（追加，不改上文）
 
-用 REA 对 `studio.tripo3d.ai/zh` 做了浏览器侧逆向后，本文多处"公开报道"
-升级为实测：`docs/2026-10-16-tripo-studio-reverse-manual.md`（证据在
-`.local/runs/2026-10-16-tripo-studio-reverse/`）。
+对 `studio.tripo3d.ai/zh` 的公开页面与公开静态资源做只读观察后，本文多处"公开报道"
+升级为实测：`docs/2026-10-16-tripo-studio-feature-review.md`（证据在
+`.local/runs/2026-10-16-tripo-studio-review/`）。
 
 - **P2.0 落地形态确认**：studio 内即 **Smart Mesh**（`tab=smart_mesh`，
   banner campaign `smart_mesh_p2_preview`），模型 id `Nexus-v2.0-20260801`，

@@ -25,7 +25,6 @@ from pathlib import Path
 from typing import Any
 
 from .contracts import AssetRef
-from .style import StyleSpec
 
 
 def sha256_file(path: Path) -> str:
@@ -131,12 +130,6 @@ class Task:
                 raise ValueError('task identity changed while recording')
             self.entries = latest.entries + [{"step": step, "utc": time.time(), **data}]
             self._flush()
-
-    def record_style(self, spec: StyleSpec) -> None:
-        """Record declared style requirements, without a quality verdict."""
-        if not isinstance(spec, StyleSpec):
-            raise TypeError('spec must be a StyleSpec')
-        self.record('style', {'style_spec': spec.to_dict()})
 
     def record_asset(self, ref: AssetRef) -> None:
         """Only append an asset whose task-local bytes match its reference."""

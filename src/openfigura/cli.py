@@ -49,16 +49,6 @@ def main(argv: list[str] | None = None) -> int:
         {'resolution': a.resolution, 'samples': a.samples, 'maps': a.maps,
          'cage_extrusion': a.cage_extrusion, 'ray_distance': a.ray_distance})))
 
-    p = sub.add_parser('set-style', help='validate and record a project pixel style spec')
-    p.add_argument('task')
-    p.add_argument('--spec', required=True)
-    p.set_defaults(func=lambda a: _print(engine.set_style(
-        Task.open(Path(a.task)), json.loads(Path(a.spec).read_text(encoding='utf-8')))))
-
-    p = sub.add_parser('project-style', help='read the latest validated pixel style spec')
-    p.add_argument('task')
-    p.set_defaults(func=lambda a: _print(engine.project_style(Task.open(Path(a.task)))))
-
     p = sub.add_parser('workflow-submit', help='persist a stage request; does not execute a backend')
     p.add_argument('task')
     p.add_argument('--spec', required=True)

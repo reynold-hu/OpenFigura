@@ -3,6 +3,85 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-16 — Meshy AI and Hi3D (hi3d.ai) public feature and algorithm survey
+
+Evidence root: `.local/runs/2026-10-16-meshy-hi3d-review/`
+(per-file sha256 in each `fetch-log.tsv`). Deliverable:
+`docs/2026-10-16-meshy-hi3d-feature-review.md`.
+
+- **Meshy**: Next.js/Turbopack app on `cdn.meshy.ai`; public-page observation
+  plus a direct CDP endpoint survey (the scenario-attach path was refused by
+  the page's service worker), then the public chunk set collected
+  (343 JS / 123 MB, CDN throttling retried with curl: 112/112 ok). Static extraction: `/meshyd-api/web` + `agent-api`
+  + `/v4/agent/*` (threads/projects/canvas/skills/template-runs/artifacts),
+  `/v2/tasks/*` print ops (printability/split-plan/multi-color/part
+  segmentation), task-type/art-style/rig-type/animation enums, model ids
+  (Meshy-2…7.1, meshy-t2/t2.5, meshy-3d-agent), plan tiers and credit
+  tables. Official docs (API pricing, 3D Agent, MCP, CLI) cross-checked;
+  docs claims are marked vendor claims in the manual.
+- **Hi3D**: Nuxt app, `/_i18n/0_WQbECf/zh/messages.json` (5417/5436 en/zh
+  rows → `ui-strings-full.tsv`), chunk closure 719 JS / 17 MB (118 refs
+  still unresolved, stated as a limit), public config endpoints fetched
+  (`generate/config`, `template/config/list`, desktop version). Found:
+  Sparc3D-based Image→3D, 3D Relief (private vs CC BY 4.0), split-to-print
+  with mortise/pin/plug/ball connectors + watertight sealing, multi-color,
+  embroidery flag, Maker Workshop templates with costs, desktop Agent with
+  "Astra" + `$` Skills, MCP consent endpoints.
+- **Algorithm findings**: Sparc3D paper (arXiv 2505.14521) documents the
+  sparse deformable marching-cubes 1024³ + Sparconv-VAE approach but the
+  code is gated by Math Magic (not open). Hi3DGen (local
+  `Local/Opensource/Hi3DGen`, MIT, ICCV 2025) is the usable open
+  normal-bridging pipeline (BiRefNet → Stable-X normal synthesis → sparse
+  structure flow → structured latent flow → mesh; CUDA-only). Meshy
+  publishes no algorithm.
+- ROADMAP: new Rejected section for the two platforms + four proposed
+  borrows (print-check, dry-run plan preview, split/color preview, Hi3DGen
+  CUDA trial). No source or test changes in this batch; 603 tests still
+  pass.
+
+## 2026-10-16 — prune executed: remove the consumer-less pixel-style contract
+
+- Removed `set-style` / `project-style` end to end per
+  `docs/2026-10-16-verb-inventory-and-prune-proposal.md` §2A (the only
+  audited public interface with no consumer: `record_style` wrote a ledger
+  entry that no renderer or generator read; no pixel renderer exists).
+  Deleted `core/style.py` (StyleSpec), `Task.record_style`, both engine
+  functions, both CLI parsers, both MCP tools, `tests/test_project_style.py`
+  and the style cases in `tests/test_asset_contracts.py`.
+- `docs/asset-workflow-foundation.md` now records the removal; historical
+  PROGRESS entries stay untouched (append-only rule).
+- **603 tests pass** (`python -m pytest tests -q`); `openfigura --help` no
+  longer lists the verbs; `mcp_server.build()` still constructs.
+
+## 2026-10-16 — Tripo public feature review continued: full-chunk closure, i18n harvest, prune pass
+
+Evidence root: `.local/runs/2026-10-16-tripo-studio-review/11-full-bundle/`
+(README describes method; per-file sha256 in `fetch-log.tsv`).
+
+- Fetched the entry chunk's lazy-load closure from the public CDN
+  (`fetch_chunks.py`, 2 transitive rounds, 250 chunks/11 MB;
+  bare-urllib UA gets 403, browser UA + studio referer works). Re-ran the
+  offline static analysis on the overlaid tree: 281 files, 228 modules
+  (`12-full-app-analysis.json`).
+- Harvested the runtime zh message bundle
+  (`_i18n/390d3dfa/zh/messages.json`, 3964 flattened key→en/zh rows in
+  `ui-strings-full.tsv`). Agentic Canvas is now largely `[验]`: node-type
+  catalogue, Astra session/turn/run/canvas RPC + SSE event protocol
+  (`plan-steps` / `request_user_select` / `astra_card` cards), auto/control
+  modes, template system. `/v2/studio/*` paths 51 → 117; msapi RPC methods
+  9 → 80.
+- Measured vendor limits now on record: Smart UV hard cap tris ≤ 80,000 /
+  quads ≤ 40,000; rigging pre-check gates (T-pose hint, polygon limit);
+  segmentation Auto/Smart/Complete modes with granularity presets; plan
+  concurrency 1/10/100 and batch 30; 8K textures as Max-tier benefit.
+- Docs: manual §13 (deep dive + reject list with evidence);
+  `docs/2026-10-16-verb-inventory-and-prune-proposal.md` (33 CLI verbs
+  audited against tests/PROGRESS/.local evidence; single concrete prune
+  candidate: `set-style`/`project-style` has no consumer — proposal only,
+  no code touched); `ROADMAP.md` v0.2 statuses refreshed and a formal
+  Rejected section added.
+- 630 tests still pass; no source or test file changed by this entry.
+
 ## 2026-10-16 — MIA-rigged character delivers a four-motion set on Windows GPU
 
 - Reused the MIA neural rig of xiaoman `f322b90d` (52 mixamorig joints, single
@@ -29,7 +108,7 @@ proves it. Intentions live in `ROADMAP.md`, not here.
 
 ## 2026-10-16 — borrow batch: preflight symmetry, FBX presets, use-case budgets
 
-From the Tripo reverse manual §8.1 (all four items). Evidence root:
+From the Tripo public feature review §8.1 (all four items). Evidence root:
 `.local/runs/2026-10-16-borrow-batch/`. **630 tests pass** (`python -m
 pytest tests -q`).
 
@@ -65,15 +144,16 @@ pytest tests -q`).
   `backends/format_export.py`, `backends/format_export_worker.py`, `cli.py`,
   `mcp_server.py`.
 
-## 2026-10-16 — Tripo Studio browser-side reverse (REA), manual + borrow list
+## 2026-10-16 — Tripo Studio public feature review: documentation + borrow list
 
-- Ran REA (local HEAD `180ba03bf`, npm 6.5.0 lacks `capture.limits`) with a
-  dedicated Chrome 155 profile against `https://studio.tripo3d.ai/zh`.
-  Evidence in `.local/runs/2026-10-16-tripo-studio-reverse/`: passive inspect,
-  connect-mode scenario capture (295 requests with response bodies,
-  SHA-256 `79c57ed9…`), `export-web-scripts` (142 scripts, manifest
-  `ec5370f6…`), `analyze-javascript-application` (140 files, 228 modules,
-  `a571cc23…`), home screenshot `9e837a50…`.
+- Ran a local browser-observation build (HEAD `180ba03bf`; npm 6.5.0 lacks
+  `capture.limits`) with a dedicated Chrome 155 profile against
+  `https://studio.tripo3d.ai/zh`.
+  Evidence in `.local/runs/2026-10-16-tripo-studio-review/`: passive inspect,
+  recorded page requests/responses (295 requests with bodies, SHA-256
+  `79c57ed9…`), exported scripts (142 files, manifest `ec5370f6…`), offline
+  static analysis (140 files, 228 modules, `a571cc23…`), home screenshot
+  `9e837a50…`.
 - Extracted from the bundle (static): 51 `/v2/studio/*` paths, 43-item credits
   table (`Segmentation:40`, `Rigging:20`, `EditMesh:50`…), model versions
   v1.0–v3.1 + `Nexus-v2.0-20260801` (Smart Mesh = P2 preview campaign),
@@ -82,7 +162,7 @@ pytest tests -q`).
   `forge3d` Agentic Canvas chunks (`AccessService/GetAccess` allow-check).
 - Unverified and stated as such: anything behind login; terms text still
   unread; headless launch hits Cloudflare 403+Turnstile on a fresh profile.
-- Deliverables: `docs/2026-10-16-tripo-studio-reverse-manual.md` (evidence
+- Deliverables: `docs/2026-10-16-tripo-studio-feature-review.md` (evidence
   chain, full feature/API/credits maps, borrow list §8); parity doc §10 补记.
   No OpenFigura code changed by this entry.
 

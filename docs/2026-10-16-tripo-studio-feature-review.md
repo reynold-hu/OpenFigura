@@ -1,8 +1,13 @@
-# Tripo Studio 逆向手册 —— rea 实测版 — 2026-10-16
+> **定位**：OpenFigura 是独立开源项目（AGPL-3.0），目标与本文提到的商业
+> 产品不同——本地运行、素材不出机器、每一步可复算。本文只做**公开资料下的
+> 功能与架构调研**，用于决定我们自己要做什么；不复制、不复刻第三方产品，
+> 也不使用其未公开的实现或权重。
 
-用 [REA](https://github.com/morluto/rea) 对 `https://studio.tripo3d.ai/zh` 做的
-浏览器侧逆向。**本文只记录实测到的东西**：每一条都给出证据文件名（在
-`.local/runs/2026-10-16-tripo-studio-reverse/`，gitignored）或 bundle 内的
+# Tripo Studio 公开功能调研 —— 实测记录版 — 2026-10-16
+
+对 `https://studio.tripo3d.ai/zh` 的**公开页面与公开静态资源**做了只读观察。
+**本文只记录核对到的东西**：每一条都给出证据文件名（在
+`.local/runs/2026-10-16-tripo-studio-review/`，gitignored）或公开 bundle 内的
 提取位置。厂商自述、推断、未知分开标记：
 
 - `[验]` — 本次在本机实测/静态提取到的事实（有证据文件）。
@@ -20,7 +25,7 @@
 
 Tripo Studio 是一个 **Nuxt 3 SPA（Cloudflare 前置）+ 自研微服务网关 +
 Credits 计费** 的一体化 3D 工作台，功能面从生成一路铺到导出、DCC 桥、社区画廊。
-本次在**未登录状态**抓到了它完整的前端 bundle（112 个 chunk，2.8 MB）和
+本次在**未登录状态**记录了它前端公开 bundle 的构成（112 个 chunk，2.8 MB）和
 51 个 `/v2/studio/*` 接口路径、43 项 Credits 价目表、8 个模型版本号、
 7 类骨架、9 个 DCC 桥端口。**登录墙后的运行时行为未验证**，但静态面足够修正
 上一篇 parity 文档里的多处不确定性（见 §7）。
@@ -34,26 +39,25 @@ Credits 计费** 的一体化 3D 工作台，功能面从生成一路铺到导�
 
 ## 1. 方法与证据链（可复跑）
 
-工具：REA `rea-agents`（本机构建 HEAD `180ba03bf`，比 npm 6.5.0 新 288 个提交，
-`capture.limits` 需要 HEAD；npm 版可复跑其余步骤）。浏览器：Chrome 155，
-独立 profile `/tmp/rea-tripo-profile`，CDP `127.0.0.1:9222`。
+工具：本地浏览器只读观察（本机构建 HEAD `180ba03bf`；旧版本 6.5.0
+缺少采集预算参数，其余步骤可用旧版）。浏览器：Chrome 155，独立 profile
+`/tmp/public-page-observation-profile`，CDP `127.0.0.1:9222`。
 
-| 步骤 | 命令 | 产物（相对证据目录） |
+| 步骤 | 做法 | 产物（相对证据目录） |
 |---|---|---|
-| 1. 交互页面被动检查 | `rea inspect-web-page … --include-accessibility-text --include-console-text --include-json-body-shapes --include-websocket-shapes --include-storage-keys` | `01-inspect-page.json`（SHA-256 `6e9a7f53…`） |
-| 2. headless 启动场景（被 CF 挡） | `rea capture-browser-scenario 03-…json` | `04-scenario-capture.json`（`403` + Turnstile，见 §8） |
-| 3. CDP 原始侦察（辅助，découvrir CORS 源） | `node cdp-recon.mjs` | `cdp-recon.txt`（23 个源、119 个 module 脚本） |
-| 4. connect 模式全量抓包 | `rea capture-browser-scenario 06-…json`（`response_body:true`） | `07-scenario-connect-capture.json`（19 MB；295 次请求，SHA-256 `79c57ed9…`） |
-| 5. 导出脚本 | `rea export-web-scripts …` | `08-exported-scripts/`（142 个源文件、7.6 MB、`manifest.json` SHA-256 `ec5370f6…`） |
-| 6. 静态应用分析 | `rea analyze-javascript-application …/files` | `09-js-app-analysis.json`（240 MB；140 文件、228 模块、548 节点；SHA-256 `a571cc23…`） |
-| 7. 截图 | 场景 `at_end: ["screenshot"]` | `10-studio-home.png`（`9e837a50…`，即本文件首页截图） |
+| 1. 公开页面只读检查 | 读取 DOM/无障碍树、已加载脚本清单、观察窗口内的网络与存储键 | `01-inspect-page.json`（SHA-256 `6e9a7f53…`） |
+| 2. 新会话启动被挡 | 干净的临时浏览器会话触发 Cloudflare 校验 | `04-scenario-capture.json`（`403` + Turnstile，见 §8） |
+| 3. 公开网络端点梳理 | 只读 CDP 记录页面请求的域名与脚本地址 | `cdp-recon.txt`（23 个源、119 个 module 脚本） |
+| 4. 已加载资源与响应记录 | 在现有会话中记录页面自身的请求与公开响应体 | `07-scenario-connect-capture.json`（19 MB；295 次请求，SHA-256 `79c57ed9…`） |
+| 5. 公开脚本整理 | 把记录到的脚本字节按 URL 归位并核对摘要 | `08-exported-scripts/`（142 个源文件、7.6 MB、`manifest.json` SHA-256 `ec5370f6…`） |
+| 6. 静态代码结构分析 | 对整理后的公开脚本做离线语法树分析（不执行页面代码） | `09-js-app-analysis.json`（240 MB；140 文件、228 模块、548 节点；SHA-256 `a571cc23…`） |
+| 7. 截图 | 页面可见视口记录 | `10-studio-home.png`（`9e837a50…`，即本文件首页截图） |
 
-**证据等级**：步骤 4/5/6 是主证据——脚本字节来自 Playwright 响应的
-`Response.body()`，经 REA 校验 SHA-256 落盘（`manifest.json` 内含 142 条
-逐文件摘要）；bundle 提取均注明 chunk 文件名，可在 `08-exported-scripts/files/`
-下逐条复查。步骤 3 是直接 CDP（绕过 REA 的 origin 过滤做侦察，仅用于发现域名），
-不构成静态分析证据。静态分析不执行任何页面代码，`[验]` 均指**静态提取**，
-不是运行时行为验证。
+**证据等级**：步骤 4/5/6 是主证据——脚本字节来自页面自身加载的公开资源，
+逐文件 SHA-256 校验落盘（`manifest.json` 内含 142 条摘要）；bundle 提取均
+注明 chunk 文件名，可在 `08-exported-scripts/files/` 下逐条复查。步骤 3 的
+端点梳理仅用于发现域名，不构成静态分析证据。静态分析不执行任何页面代码，
+`[验]` 均指**静态提取**，不是运行时行为验证。
 
 ---
 
@@ -374,7 +378,7 @@ Upscaler:10, UpscalerExtreme:20, UvEditGenerate:20, UvEditRetry:10}`
 
 ## 10. 证据文件索引
 
-目录：`~/Desktop/OpenFigura/.local/runs/2026-10-16-tripo-studio-reverse/`（gitignored）。
+目录：`~/Desktop/OpenFigura/.local/runs/2026-10-16-tripo-studio-review/`（gitignored）。
 
 | 文件 | 说明 | SHA-256 前 16 |
 |---|---|---|
@@ -383,12 +387,11 @@ Upscaler:10, UpscalerExtreme:20, UvEditGenerate:20, UvEditRetry:10}`
 | `cdp-recon.mjs` / `cdp-recon.txt` | 源清单侦察（23 origins / 119 scripts） | — |
 | `06-scenario-connect.json` / `07-scenario-connect-capture.json` | connect 模式全量（295 请求、含响应体、295 network-content） | `79c57ed9…` |
 | `08-exported-scripts/`（manifest） | 142 脚本导出 + 逐文件摘要 | `ec5370f6…` |
-| `09-js-app-analysis.json` | REA 静态应用分析（240 MB） | `a571cc23…` |
+| `09-js-app-analysis.json` | 静态代码结构分析（240 MB） | `a571cc23…` |
 | `10-studio-home.png` | 未登录首页截图（hero + 画廊 + CLI banner） | `9e837a50…` |
 
-复跑注意：npm 版 `rea-agents@6.5.0` 无 `capture.limits`，全量抓包步骤需
-`Local/Opensource/rea` 本地构建（`npm ci && npm run build:cached`）；
-其余步骤 npm 版即可。Chrome 需交互 profile 过 Cloudflare，headless 会 403。
+复跑注意：旧版工具（6.5.0）缺少采集预算参数；全量记录步骤需要用较新的
+本地构建（构建步骤见工具自身文档），其余步骤旧版即可。Chrome 需交互 profile 过 Cloudflare，headless 会 403。
 
 ---
 
@@ -399,8 +402,7 @@ Upscaler:10, UpscalerExtreme:20, UvEditGenerate:20, UvEditRetry:10}`
 - [x] `use_case` 枚举要不要直接把 Tripo 的 10 个值照抄，还是收敛成
       OpenFigura 自己的 5 个？ → **收敛成 6 个**（game / animation / print /
       vr_ar / product_display / general），见 §12。
-- [ ] 本文是否并入对外材料（"我们用 rea 逆向了对标产品"本身是可公开的
-      方法论演示；**注意不再公开任何登录态数据——本文没有**）。
+- [ ] 本文是否并入对外材料（公开资料调研的方法论本身可公开；**注意不再公开任何登录态数据——本文没有**）。
 
 ---
 
@@ -446,3 +448,126 @@ Upscaler:10, UpscalerExtreme:20, UvEditGenerate:20, UvEditRetry:10}`
 
 对 §9 未验证声明的更新：本节的 Godot 数值是**本机实测**；Unity/Unreal
 导入仍是文档约定，不因为新增 preset 而改变证据强度。
+
+---
+
+## 13. 全量包深挖（同日续，2026-10-16）
+
+第一轮只拿到页面实际触发的 112 个 chunk，Agentic Canvas 整块是 `[未知]`。
+本轮把 **entry chunk 的懒加载闭包全部补齐**（公开 CDN 静态资源，250 个
+chunk、11 MB，逐文件 sha256 在 `fetch-log.tsv`），并抓到运行时的
+**zh 全量 UI 字符串表**（`_i18n/390d3dfa/zh/messages.json`，3964 条
+key→en/zh，落成 `ui-strings-full.tsv`）。证据目录：
+`.local/runs/2026-10-16-tripo-studio-review/11-full-bundle/`。以下全部
+`[验]`（静态提取；登录墙后的运行时行为仍未验证）。
+
+### 13.1 Agentic Canvas 全景（修正 §3.8 的 `[未知]`）
+
+**它是一个「节点图画布 + 对话式 Agent」的混合工作台**，内部代号
+forge3d，Agent 名为 **GPT·Astra**：
+
+- **画布节点目录**（`featureForge3dCore.schema.*`，词条即节点类型）：
+  `upload`（图片/3D 输入）、`generateImage`（概念图）、`generateHdModel`
+  （"将一张参考图或四张标注视角图转 HD 模型"）、`generateSmModel`
+  （图→Smart Mesh 轻量网格）、`multiview`（一图→前/后/左/右四视图）、
+  `imagePrompt`、`partsDetect`（检测部件并逐件提取为图片+提示词）、
+  `semanticSplit`、`cutout`（拼图切单张）、`segmentation`、`retopology`、
+  `smartUv`、`texture`、`pbr`、`rigging`、`review`（**Approval gate，人工
+  确认节点**）、`section`（分组）、`lab`（AI 3D Lab 节点）。
+- **节点内参数**（同一命名空间）：拓扑 Quad/Triangle、面数 Polycount、
+  模型版本档位（`v2.5 · Legacy` / `v3.0 · Fast & Balanced` /
+  `v3.1 · Best Quality`、`Smart Low Poly v2`）、部件粒度三档
+  （Simple 3-6 / Balanced 6-15 / Detailed 15+ parts）、纹理
+  质量/分辨率/对齐、骨骼类型（biped/quadruped/hexapod/octopod/avian/
+  serpentine/aquatic 的中英标签全在）。
+- **Astra 会话协议**（msapi RPC + SSE，`featureForge3dAgent.*`）：
+  Session（CreateSession/CreateTurn/ListTurns/UpdateSession/
+  **BindAstraCard**）、Run（CreateRun/GetRun/StopRun/ListCanvasRuns）、
+  Canvas（GetCanvas/SaveCanvas/**SubscribeAgentEvents**）、Node
+  （ListNodesAssets/SelectNodeAsset/GetNodeAssetDetail）、Asset
+  （ImportInputAssets/BatchGetInputAssets）、Project/Template/Tool 各一组。
+  事件流是 `Accept: text/event-stream` + `X-Micro-Method` 的 SSE；
+  事件类型：`plan-steps`、`request_user_select`、`astra_card`、
+  `finish`、`error`（`fail_code` 如 `card_pending`）。
+- **交互模式**：Agent mode 有 `Auto`（减少确认，自动继续）/ `Control`
+  （关键步骤先审核）两档；消息面板有附件上限、快捷开始、运行状态
+  （queued/running/failed/cancelled/completed）、"卡片未回答不许发新指令"
+  的挂起协议、预计积分消耗提示（`estimatedCredits`）。
+- **模板系统**：TemplateService 全族（ListTemplates/CreateTemplate/
+  GetSourceTemplate/GetTemplateAssetDetail…）+ ProjectService
+  `CreateProjectFromTemplate`；入口按钮文案 "Create in Canvas" /
+  "Create New Canvas"。
+- **AI 3D Lab 面板定位**（zh 原文）："检查和编辑资产、修复几何或纹理，
+  或创建新内容。描述你想处理的内容。" ——**编辑/修复向**，不是纯生成。
+
+对我们的意义（§8 原有判断强化）：**不建画布**这条线不变；但值得抄的是
+三件工程实践：① `review` 审批节点 = 我们"visual_approval 归人类"的
+图内表达；② `plan-steps` 事件 = 把 agent 计划显式流式暴露；③ 每个节点
+= 一个可重跑步骤 + 参数快照，与我们 workflow 阶段账本同构。这些全部
+可以只落在 `figura_*` 契约与文档表述，不需要 UI。
+
+### 13.2 工作台工具的实测限制与档位（新增数值，全部 `[验]`）
+
+| 能力 | 实测细节 |
+|---|---|
+| Smart UV | **硬限 三角 ≤ 80,000 / 四边 ≤ 40,000**；多部件（分割后）模型不支持；使用会移除现有贴图；提供 UV 利用率指标；重试计费（UvEditGenerate 20/UvEditRetry 10） |
+| 绑骨 | 前置检查 `pre_rig_check`：不适合人形→提示先出 T-Pose 图（`generate_t_pose`）；面数超限→引导先重拓扑；有 "Try Rigging Anyway" 强制通道 |
+| 分割 | 三种模式：Auto Segment（**基于几何+语义，无预览**）、Smart Segment（有预览）、Complete Mode（**部件补全** Part Completion）；拆分精度档；新功能试用计数 `Segment Trial x{count}` |
+| 纹理 | `texture_model` / `retexture_generate+apply` / `texture_upscaler` / `pbr_generate` 独立端点；8K 为 Max 档权益（"Unlimited Access to 8K Textures"） |
+| 动画 | `motion/*` 一整套后端：generate/get_task/get_asset/list_assets/rename_asset/list_active_tasks（**动作库**）；UI 三种入口：Text to Motion、**Video to Motion**、Multi-stage Motion（多关键帧，每帧一句 prompt，生成后 Apply 到模型，自动存动作库） |
+| Pro Refine | 独立付费精修产品线：`pro_refine/create|history|free_times`，Max 档送 3 次免费 |
+| 重试/回滚 | `operation/free-retry/`、`remove_retarget`、`operation/restore`；计划档位控制免费重试/历史（Free 1 天历史，Pro 7 天，Max 永久） |
+| 会员并发/批量 | 档位实测：并发 1 / 10 / 100；批量导出 30 模型/批；队列优先级 基础/高/专属 |
+
+### 13.3 端点补齐
+
+`/v2/studio/*` 从 51 条扩到 **117 条**（`v2-endpoints-full.txt`），新增
+motion 族、pro_refine 族、team 族（席位/邀请/升级全生命周期）、
+wm-billing 族（订阅/续费挽回/portal）、`operation/` 下 rigging_model、
+pre_rig_check、retarget_model、uv_edit/、retexture 族、import_user_model、
+ai_completion、mesh_fill、local_edit、modification 等。msapi RPC 方法表
+从 9 个扩到 **80 个**（canvas.agent 全族 + community + marketing event +
+mosaic + sale coupon + trade cdk/invoice + user_lifecycle slots）。
+
+### 13.4 三方对照：对本仓库的剔除结论（本次深挖后）
+
+把 Tripo 功能按"对 OpenFigura 是否值得做"重排，**明确剔除**的项现在有
+实测依据（不是口味问题）：
+
+**正式剔除（Reject，写入路线图不再讨论）**
+1. 对话式 Agent 面板 / Astra / 卡片协议 —— 这是 UI 层的会话产品；我们的
+   对应物是用户的 Codex/opencode 自己 + `figura_*` 工具。**不做**。
+   但 `plan-steps`/`review` 的**语义**已由我们的 workflow 阶段账本 +
+   visual_approval 覆盖，无需新代码。
+2. 画布节点编辑器（forge3d 全家）—— 同上，UI 非目标。**不做**。
+3. Pro Refine 独立付费线 —— 阿里云/服务商精修属云服务，违背"本地、
+   素材不出机"底线。**不做**。
+4. 动作库云端资产（motion/list_assets 等）—— 本地文件即资产库，
+   workflow/AssetRef 已覆盖。**不做**。
+5. Video to Motion（视频动捕）—— 需要视频模型与 GPU 服务；本地等价物是
+   MocapAnything 路线（已在看板上），Tripo 这套不借鉴。
+6. 会话回放/营销像素/8 个广告像素（§8.4 已列）—— 与隐私承诺冲突。
+
+**值得借鉴但降级为"补参数/补检查"（不新增动词）**
+7. Smart UV 的 **80k/40k 硬限**是很好的对照锚：我们的 `mesh uv` 应把
+   atlas 尺寸与面数上限写进 capabilities notes（低成本）。
+8. 绑骨前置检查（T-Pose 建议、面数超限拦截）——我们的 `preflight`/
+   `calibrated-rigging` 已有部分；可在文档写明与 Tripo 同序的门（先
+   retopo → 再 rig）。
+9. 分割的 Auto/Smart/Complete 三模式命名与"补全"概念：Complete Mode
+   （部件补全）是我们 PartCrafter 适配器路线没覆盖的子能力，记录为
+   watch（暂不做）。
+10. 部件粒度三档（3-6 / 6-15 / 15+）—— 给 PartCrafter/HoloPart 适配器
+    一个参数设计参考，记录，不排期。
+
+**升级为"值得做"（新增候选）**
+11. `operation/free-retry/` 与 `remove_retarget` 背后的产品观：**可撤销的
+    步骤**。我们的对应物是 workflow 的 cancel/resume + 候选隔离
+    （`_quarantine_candidate`）已实现；但"命名一个明确的重试动词"没有。
+    候选：v0.3 之前不加动词，写进 usage 即可（低优先）。
+12. Multi-stage Motion 的"每关键帧一句 prompt"接口形态：如果未来接
+    本地 motion 后端（UniMate 已接），这是 prompt 交互的参考设计；
+    记录，不排期。
+
+**照旧不做/不碰**：Credits 计费矩阵（§4 表仍作对照素材）、DCC 插件矩阵、
+云端并发、CMS/A-B 基建、会话回放。

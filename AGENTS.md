@@ -27,6 +27,16 @@ that its records can be trusted; the rules below exist to keep it that way.
    AGPL-3.0-only with DCO sign-off (`git commit -s`). No hosted-service
    telemetry, ever — privacy is the product promise.
 
+## Positioning
+
+OpenFigura is an independent open-source project with its own goals:
+local execution, privacy, reproducibility and auditable evidence. It is
+not a clone or port of any commercial product, and must never be described
+as one. Public documentation, public websites and publicly released models
+may be studied to decide what to build; do not vendor or use non-public
+implementations, and do not claim parity with another product without
+measured evidence. Write about our own design and evidence.
+
 ## Input quality is checked, not assumed
 
 Before any generation, run preflight (`figura_preflight` / `openfigura

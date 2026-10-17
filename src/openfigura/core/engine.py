@@ -24,25 +24,6 @@ from openfigura.core.task import Task, sha256_file
 from openfigura.core.workflow import Workflow
 
 
-def set_style(task: Task, spec: dict) -> dict:
-    """Validate project-wide pixel parameters; preserve every revision."""
-    from openfigura.core.style import StyleSpec
-    validated = StyleSpec.from_dict(spec)
-    task.record_style(validated)
-    return {'status': 'pass', 'style_spec': validated.to_dict(),
-            'visual_approval': 'pending'}
-
-
-def project_style(task: Task) -> dict:
-    from openfigura.core.style import StyleSpec
-    for entry in reversed(task.entries):
-        if entry['step'] == 'style':
-            return {'status': 'pass',
-                    'style_spec': StyleSpec.from_dict(entry['style_spec']).to_dict(),
-                    'visual_approval': 'pending'}
-    return {'status': 'unset', 'style_spec': None}
-
-
 def workflow_submit(task: Task, request: dict) -> dict:
     """Persist a request; an execution worker is a separate future component."""
     from openfigura.core.contracts import AssetRef

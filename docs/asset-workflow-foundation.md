@@ -1,38 +1,12 @@
 # Asset and workflow foundation
 
-These experimental interfaces validate project style and persist explicit stage
-requests. They do not execute a workflow automatically. Existing generate,
+These experimental interfaces persist explicit stage requests and hash-linked
+assets. They do not execute a workflow automatically. Existing generate,
 autorig and retarget commands continue to run through their existing engine paths.
 
-## Pixel style
-
-Save a JSON specification such as:
-
-```json
-{
-  "schema_version": 1,
-  "canvas_width": 64,
-  "canvas_height": 64,
-  "pixel_scale": 1,
-  "palette": ["#000000", "#FFFFFF", "#593C39", "#D99573"],
-  "outline_policy": "single_pixel",
-  "shading_policy": "flat",
-  "fps": 8,
-  "anchor": "feet",
-  "transparent_background": true
-}
-```
-
-```sh
-openfigura set-style TASK --spec style.json
-openfigura project-style TASK
-```
-
-MCP mirrors: `figura_set_style(task_root, spec)` and
-`figura_project_style(task_root)`. The same engine validates both. Each style
-revision is preserved in provenance, palette colours are canonical uppercase
-RGB hex, and visual approval stays pending. Setting these fields does not render,
-pixelize, apply outlines, animate, or guarantee a consistent art style.
+> 2026-10-16: the former `set-style` / `project-style` pixel-style contract
+> (`StyleSpec`) was removed — it had no consumer and no pixel renderer exists.
+> See `docs/2026-10-16-verb-inventory-and-prune-proposal.md` §2.
 
 ## Hash-linked assets
 
@@ -72,7 +46,7 @@ Submission records a request; no model starts. No timer marks a stage successful
 
 `workflow.sqlite3` stores stage snapshots and append-only transition events using
 SQLite transactions. The existing `provenance.json` still stores backend commands
-and style revisions. Keep both when moving or archiving tasks. This is a stage
+and asset revisions. Keep both when moving or archiving tasks. This is a stage
 state store, not a complete scheduler or dependency graph.
 
 Internal worker APIs atomically claim queued stages, verify all input references,
