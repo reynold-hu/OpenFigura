@@ -219,7 +219,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("task")
     p.add_argument("--artifact", default="model.glb")
     p.add_argument("--params", default="{}",
-                   help="JSON object: {\"build_volume_mm\": [x, y, z]} (optional)")
+                   help="JSON object: build_volume_mm [x,y,z], build_direction [x,y,z], "
+                        "overhang_angle_deg, bed_tolerance_mm, wall_thickness (bool), "
+                        "min_wall_mm; all optional")
     p.set_defaults(func=lambda a: _print(engine.print_check(
         Task.open(Path(a.task)), json.loads(_json_arg(a.params)), artifact=a.artifact)))
 

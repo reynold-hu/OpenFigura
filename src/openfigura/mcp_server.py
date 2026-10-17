@@ -195,9 +195,10 @@ def build():
         return engine.inspect(Task.open(Path(task_root)), artifact=artifact)
 
     @app.tool(description="Local printability report for a GLB: open boundary edges, "
-              "non-manifold edges, degenerate/duplicate faces, connected shells and an "
-              "optional build-volume fit. Read-only; wall thickness, overhang angle and "
-              "self-intersections are explicitly not measured, and nothing is repaired.")
+              "non-manifold edges, degenerate/duplicate faces, connected shells, overhang "
+              "and bed-contact areas, and an optional build-volume fit. Wall thickness is "
+              "an optional CPU proxy via OPENFIGURA_PYMESHLAB_PYTHON; without it the "
+              "section reports unavailable with the reason. Read-only; nothing is repaired.")
     def figura_print_check(task_root: str, artifact: str = "model.glb",
                            params: dict | None = None) -> dict:
         return engine.print_check(Task.open(Path(task_root)), params,

@@ -166,12 +166,33 @@ def _component_count(parent: list[int], index: int) -> int:
     return index
 
 
-def check_printability(path: Path, build_volume_mm=None) -> dict:
+def _number(value, label: str, low: float, high: float) -> float:
+    if type(value) not in (int, float) or not math.isfinite(value) or not low <= value <= high:
+        raise ValueError(f"{label} must be a finite number in [{low}, {high}]")
+    return float(value)
+
+
+def _direction(value) -> tuple[float, float, float]:
+    if (not isinstance(value, (list, tuple)) or len(value) != 3
+            or any(type(v) not in (int, float) or not math.isfinite(v) for v in value)):
+        raise ValueError("build_direction must be three finite numbers")
+    length = math.sqrt(sum(float(v) ** 2 for v in value))
+    if length == 0:
+        raise ValueError("build_direction cannot be the zero vector")
+    return tuple(float(v) / length for v in value)
+
+
+def check_printability(path: Path, build_volume_mm=None, build_direction=None,
+                       overhang_angle_deg=45, bed_tolerance_mm=0.2) -> dict:
     if build_volume_mm is not None:
         if (not isinstance(build_volume_mm, (list, tuple)) or len(build_volume_mm) != 3
                 or any(type(v) not in (int, float) or not math.isfinite(v) or v <= 0
                        for v in build_volume_mm)):
             raise ValueError("build_volume_mm must be three positive finite numbers")
+    overhang_angle_deg = _number(overhang_angle_deg, "overhang_angle_deg", 0, 90)
+    bed_tolerance_mm = _number(bed_tolerance_mm, "bed_tolerance_mm", 0, 100)
+    up = _direction(build_direction if build_direction is not None else [0, 1, 0])
+    bed_tolerance_m = bed_tolerance_mm / 1000.0
 
     doc, blob = _read_glb(Path(path))
     errors: list[str] = []
@@ -188,6 +209,12 @@ def check_printability(path: Path, build_volume_mm=None) -> dict:
     }
     minimum = [math.inf, math.inf, math.inf]
     maximum = [-math.inf, -math.inf, -math.inf]
+    min_height = math.inf
+    total_area = 0.0
+    overhang_area = 0.0
+    bed_contact_area = 0.0
+    overhang_faces = 0
+    bed_contact_faces = 0
     transforms_ignored = False
     skinned = bool(doc.get("skins"))
     morph = False
@@ -238,6 +265,8 @@ def check_printability(path: Path, build_volume_mm=None) -> dict:
                 for axis in range(3):
                     minimum[axis] = min(minimum[axis], position[axis])
                     maximum[axis] = max(maximum[axis], position[axis])
+                height = position[0] * up[0] + position[1] * up[1] + position[2] * up[2]
+                min_height = min(min_height, height)
 
             edges: dict[tuple[int, int], int] = {}
             faces_seen: set[tuple[int, int, int]] = set()
@@ -264,6 +293,23 @@ def check_printability(path: Path, build_volume_mm=None) -> dict:
                     duplicates += 1
                 else:
                     faces_seen.add(key)
+                magnitude = math.sqrt(cross[0] ** 2 + cross[1] ** 2 + cross[2] ** 2)
+                area = magnitude / 2.0
+                total_area += area
+                normal = (cross[0] / magnitude, cross[1] / magnitude, cross[2] / magnitude)
+                dot = normal[0] * up[0] + normal[1] * up[1] + normal[2] * up[2]
+                angle = math.degrees(math.acos(max(-1.0, min(1.0, dot))))
+                if angle >= 90.0 + overhang_angle_deg:
+                    overhang_area += area
+                    overhang_faces += 1
+                if dot <= -math.cos(math.radians(5.0)):
+                    heights = []
+                    for index in (a, b, c):
+                        point = positions[index]
+                        heights.append(point[0] * up[0] + point[1] * up[1] + point[2] * up[2])
+                    if all(h - min_height <= bed_tolerance_m for h in heights):
+                        bed_contact_area += area
+                        bed_contact_faces += 1
                 for u, v in ((a, b), (b, c), (c, a)):
                     edge = (u, v) if u < v else (v, u)
                     edges[edge] = edges.get(edge, 0) + 1
@@ -304,6 +350,13 @@ def check_printability(path: Path, build_volume_mm=None) -> dict:
         warnings.append("node transforms are not applied: bounds and orientation are local coordinates")
     if skinned or morph:
         warnings.append("skinned/morph asset: checked in rest geometry only; deformation is not evaluated")
+    overhang_ratio = (overhang_area / total_area) if total_area else 0.0
+    if overhang_ratio >= 0.10:
+        warnings.append(f"{overhang_ratio * 100:.1f}% of surface area overhangs beyond "
+                        f"{overhang_angle_deg:g}deg from vertical; supports may be required")
+    if total_area and bed_contact_area == 0:
+        warnings.append("no near-horizontal downward faces at the lowest plane: "
+                        "bed contact was not detected; verify orientation")
 
     bbox = None
     if minimum[0] is not math.inf:
@@ -325,17 +378,33 @@ def check_printability(path: Path, build_volume_mm=None) -> dict:
                         for axis in range(3) if size_mm[axis] > build_volume_mm[axis]]
             warnings.append("does not fit the build volume: " + "; ".join(overflow))
 
+    orientation = {
+        "build_direction": [round(v, 9) for v in up],
+        "overhang_angle_deg": overhang_angle_deg,
+        "overhang_faces": overhang_faces,
+        "overhang_area_mm2": round(overhang_area * 1_000_000.0, 3),
+        "overhang_area_ratio": round(overhang_ratio, 6),
+        "bed_tolerance_mm": bed_tolerance_mm,
+        "bed_contact_faces": bed_contact_faces,
+        "bed_contact_area_mm2": round(bed_contact_area * 1_000_000.0, 3),
+        "note": "areas are triangle-area sums in mesh units converted as meters to mm; "
+                "orientation is evaluated, not optimized",
+    }
     return {
         "ok": not errors,
         "status": "pass" if not errors else "fail",
         "stats": stats,
         "bbox": bbox,
+        "orientation": orientation,
         "errors": errors,
         "warnings": warnings,
         "unsupported": unsupported,
-        "unchecked": ["wall_thickness", "overhang_angle", "self_intersections", "orientation"],
+        "unchecked": ["self_intersections", "orientation_optimization"],
         "limitations": [
-            "Topology and size only; wall thickness, overhang and self-intersections are not measured.",
+            "Topology, size and orientation metrics only; wall thickness is optional and external, "
+            "self-intersections are not measured.",
+            "Overhang and bed-contact areas are unweighted triangle-area sums on readable primitives; "
+            "they are advisory, not slicer output.",
             "Degenerate means exactly zero area at float precision, not a tuned epsilon.",
             "All primitives are welded by exact float positions before topology counting; normal/UV seam splits are merged.",
             "Node transforms are not applied; a non-identity transform is reported as a warning.",

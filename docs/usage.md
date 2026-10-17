@@ -114,9 +114,10 @@ command = "/ABS/PATH/OpenFigura/.venv/bin/openfigura-mcp"
 ```
 
 Tools: `figura_backends`, `figura_preflight`, `figura_new_task`,
-`figura_generate`, `figura_render`, `figura_inspect`, `figura_export`.
-Same contracts as the CLI; `figura_generate` blocks for the full run —
-set your tool timeout accordingly.
+`figura_generate`, `figura_render`, `figura_inspect`, `figura_print_check`,
+`figura_export` and the rest of the `figura_*` mirrors. Same contracts as the
+CLI; `figura_generate` blocks for the full run — set your tool timeout
+accordingly. A bundled agent skill lives at `skills/openfigura/SKILL.md`.
 
 ## 5. Rules of engagement
 
@@ -176,14 +177,23 @@ openfigura print-check TASK --params '{"build_volume_mm": [256, 256, 256]}'
 #  -> pass/fail + counts in the report; also writes <task>/print-check.json
 ```
 
-Measures topology and size only: exact-position welding recovers seams split by
-normal/UV, then open boundary edges, non-manifold edges, zero-area faces,
-duplicate faces, connected shells and an optional build-volume fit are counted.
-**Not measured** (explicitly reported as unchecked): wall thickness, overhang
-angle, self-intersections, orientation. Node transforms are not applied and
-skinned/morph assets are checked in rest geometry; both are reported as
-warnings. Nothing is repaired — a fail means "look closer or repair elsewhere",
-never a silent fix. `figura_print_check` mirrors it.
+Measures topology, size and orientation: exact-position welding recovers seams
+split by normal/UV, then open boundary edges, non-manifold edges, zero-area
+faces, duplicate faces, connected shells, overhang area beyond a configurable
+angle, bed-contact area and an optional build-volume fit are counted. Params:
+`build_direction` (default `[0,1,0]`), `overhang_angle_deg` (45),
+`bed_tolerance_mm` (0.2).
+
+**Wall thickness is optional and external**: set
+`OPENFIGURA_PYMESHLAB_PYTHON=/path/to/python-with-pymeshlab` and pass
+`"wall_thickness": true` (plus optional `"min_wall_mm": 0.8`). It reports a
+shape-diameter proxy in mm — not a calibrated wall measurement — and says
+`unavailable` with the reason when the runtime is not configured.
+
+Node transforms are not applied and skinned/morph assets are checked in rest
+geometry; both are reported as warnings. Nothing is repaired — a fail means
+"look closer or repair elsewhere", never a silent fix. `figura_print_check`
+mirrors it.
 
 ## Texture refinement and experimental rigging
 

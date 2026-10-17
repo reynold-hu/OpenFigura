@@ -185,6 +185,93 @@ def test_invalid_build_volume_rejected(tmp_path):
         check_printability(path, build_volume_mm=[1, 0, 1])
 
 
+def test_downward_square_overhang_and_bed_contact(tmp_path):
+    square = {"positions": [(0.0, 0.0, 0.0), (1.0, 0.0, 0.0),
+                            (1.0, 0.0, 1.0), (0.0, 0.0, 1.0)],
+              "indices": [0, 1, 2, 0, 2, 3]}
+    result = check_printability(write_glb(tmp_path / "down.glb", [square]))
+    orientation = result["orientation"]
+    assert orientation["overhang_area_ratio"] == 1.0
+    assert orientation["overhang_area_mm2"] == 1_000_000.0
+    assert orientation["bed_contact_area_mm2"] == 1_000_000.0
+
+
+def test_upward_face_is_not_overhang_and_warns_no_bed_contact(tmp_path):
+    square = {"positions": [(0.0, 0.0, 0.0), (1.0, 0.0, 0.0),
+                            (1.0, 0.0, 1.0), (0.0, 0.0, 1.0)],
+              "indices": [0, 2, 1, 0, 3, 2]}
+    result = check_printability(write_glb(tmp_path / "up.glb", [square]))
+    assert result["orientation"]["overhang_area_ratio"] == 0.0
+    assert result["orientation"]["bed_contact_area_mm2"] == 0.0
+    assert any("bed contact was not detected" in warning for warning in result["warnings"])
+
+
+def test_overhang_threshold_is_configurable(tmp_path):
+    slope = {"positions": [(0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (0.0, 1.0, 1.0)],
+             "indices": [0, 1, 2]}
+    path = write_glb(tmp_path / "slope.glb", [slope])
+    at_45 = check_printability(path, overhang_angle_deg=45)
+    assert at_45["orientation"]["overhang_faces"] == 1
+    at_50 = check_printability(path, overhang_angle_deg=50)
+    assert at_50["orientation"]["overhang_faces"] == 0
+
+
+def test_build_direction_override(tmp_path):
+    wall = {"positions": [(0.0, 0.0, 0.0), (0.0, 0.0, 1.0), (0.0, 1.0, 0.0)],
+            "indices": [0, 1, 2]}
+    result = check_printability(write_glb(tmp_path / "wall.glb", [wall]),
+                                build_direction=[1, 0, 0])
+    assert result["orientation"]["overhang_faces"] == 1
+    assert result["orientation"]["bed_contact_faces"] == 1
+
+
+def test_wall_thickness_reports_unavailable_without_runtime(tmp_path, monkeypatch):
+    monkeypatch.delenv("OPENFIGURA_PYMESHLAB_PYTHON", raising=False)
+    task = Task.create(tmp_path / "tasks", name="thickness")
+    write_glb(task.artifact("model.glb"), [TETRA])
+    result = engine.print_check(task, {"wall_thickness": True})
+    assert result["wall_thickness"]["status"] == "unavailable"
+    assert "OPENFIGURA_PYMESHLAB_PYTHON" in result["wall_thickness"]["reason"]
+    report = json.loads((task.root / "print-check.json").read_text())
+    assert report["wall_thickness"]["status"] == "unavailable"
+    entry = Task.open(task.root).entries[-1]
+    assert entry["wall_thickness"]["status"] == "unavailable"
+
+
+def test_wall_thickness_parameter_validation(tmp_path):
+    task = Task.create(tmp_path / "tasks", name="thickness-params")
+    write_glb(task.artifact("model.glb"), [TETRA])
+    with pytest.raises(ValueError, match="wall_thickness must be a boolean"):
+        engine.print_check(task, {"wall_thickness": "yes"})
+    with pytest.raises(ValueError, match="min_wall_mm"):
+        engine.print_check(task, {"wall_thickness": True, "min_wall_mm": 0})
+    with pytest.raises(ValueError, match="unknown print-check parameter"):
+        engine.print_check(task, {"build_direction": [0, 1, 0], "surprise": 1})
+
+def test_wall_thickness_measured_with_fake_runtime(tmp_path, monkeypatch):
+    task = Task.create(tmp_path / "tasks", name="fake-wall")
+    write_glb(task.artifact("model.glb"), [TETRA])
+    fake = tmp_path / "fake-pymeshlab.py"
+    fake_source = "#!/usr/bin/env python3\n"
+    fake_source += "import json, sys\n"
+    fake_source += "from pathlib import Path\n"
+    fake_source += "cfg = json.loads(Path(sys.argv[-1]).read_text())\n"
+    fake_source += "Path(cfg[\"report\"]).write_text(json.dumps({\n"
+    fake_source += "    \"method\": \"fake\", \"proxy\": \"fake\", \"vertices\": 4,\n"
+    fake_source += "    \"finite_samples\": 4, \"nonfinite_samples\": 0,\n"
+    fake_source += "    \"min_m\": 0.0002, \"p5_m\": 0.0005,\n"
+    fake_source += "    \"p10_m\": 0.0006, \"median_m\": 0.001}))\n"
+    fake.write_text(fake_source)
+    fake.chmod(0o755)
+    monkeypatch.setenv("OPENFIGURA_PYMESHLAB_PYTHON", str(fake))
+    result = engine.print_check(task, {"wall_thickness": True, "min_wall_mm": 0.8})
+    wall = result["wall_thickness"]
+    assert wall["status"] == "measured"
+    assert wall["p5_mm"] == 0.5 and wall["below_min"] is True
+    assert any("below 0.8mm" in warning for warning in result["warnings"])
+    entry = Task.open(task.root).entries[-1]
+    assert entry["wall_thickness"]["status"] == "measured"
+
 def test_engine_verb_records_report_and_ledger(tmp_path):
     task = Task.create(tmp_path / "tasks", name="print")
     write_glb(task.artifact("model.glb"), [TETRA])

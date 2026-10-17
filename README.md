@@ -23,6 +23,10 @@ valuable parts: a stable tool surface, capability detection, reproducibility
 ledgers, and real render-based inspection instead of trusting one pretty
 preview.
 
+**CPU-first by design.** Every core verb — preflight, inspect, mesh, bake,
+export, print-check, workflow — runs without a GPU. GPU backends are optional
+accelerators, discovered at runtime and reported honestly when missing.
+
 ```
 reference image + brief
         │

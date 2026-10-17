@@ -149,29 +149,68 @@ SUPPORTED_FORMATS = ('glb', 'fbx', 'obj', 'stl', 'usd')
 
 
 def print_check(task: Task, params: dict | None = None, artifact: str = 'model.glb') -> dict:
-    """Local printability report: topology, shells and build-volume fit.
+    """Local printability report: topology, shells, orientation and build fit.
 
-    Read-only; does not repair anything and does not claim wall-thickness or
-    overhang coverage. Report path: print-check.json (or <stem>-print-check.json).
+    Read-only; does not repair anything. Wall thickness is an optional CPU
+    proxy via an external pymeshlab runtime; without it the section reports
+    ``unavailable`` with the reason. Report path: print-check.json (or
+    <stem>-print-check.json).
     """
+    import math
+    from openfigura.core import wall_thickness as _wall
     from openfigura.core.printability import check_printability
     params = dict(params or {})
-    unknown = set(params) - {'build_volume_mm'}
+    unknown = set(params) - {'build_volume_mm', 'build_direction', 'overhang_angle_deg',
+                             'bed_tolerance_mm', 'wall_thickness', 'min_wall_mm'}
     if unknown:
         raise ValueError(f'unknown print-check parameter(s): {sorted(unknown)}')
+    wall_requested = params.get('wall_thickness', False)
+    if type(wall_requested) is not bool:
+        raise ValueError('wall_thickness must be a boolean')
+    min_wall_mm = params.get('min_wall_mm', 0.8)
+    if (type(min_wall_mm) not in (int, float) or not math.isfinite(min_wall_mm)
+            or not 0 < min_wall_mm <= 10):
+        raise ValueError('min_wall_mm must be a finite number in (0, 10]')
     glb = _model(task, artifact)
     if not glb.is_file():
         raise FileNotFoundError('nothing to check; run generate first')
-    result = check_printability(glb, params.get('build_volume_mm'))
+    result = check_printability(glb, params.get('build_volume_mm'),
+                                params.get('build_direction'),
+                                params.get('overhang_angle_deg', 45),
+                                params.get('bed_tolerance_mm', 0.2))
+    wall = {'status': 'not_requested'}
+    if wall_requested:
+        expected = sha256_file(glb)
+        with tempfile.TemporaryDirectory(prefix='openfigura-print-input-') as folder:
+            snapshot = Path(folder) / glb.name
+            shutil.copy2(glb, snapshot)
+            wall = _wall.measure(snapshot)
+            if sha256_file(snapshot) != expected or sha256_file(glb) != expected:
+                raise RuntimeError('print-check input changed during wall-thickness measurement')
+        if wall['status'] == 'measured':
+            wall['min_wall_mm'] = float(min_wall_mm)
+            wall['below_min'] = wall['p5_mm'] < min_wall_mm
+            if wall['below_min']:
+                result['warnings'].append(
+                    f"5th-percentile thickness proxy {wall['p5_mm']:.2f}mm is below "
+                    f"{min_wall_mm:g}mm; thin walls may not print")
+            if wall.get('nonfinite_samples'):
+                result['warnings'].append(
+                    f"{wall['nonfinite_samples']} of {wall['vertices']} shape-diameter samples "
+                    "were non-finite and excluded from the proxy statistics")
+    result['wall_thickness'] = wall
     result['artifact'] = artifact
     result['input_sha256'] = sha256_file(glb)
     name = 'print-check.json' if artifact == 'model.glb' else glb.stem + '-print-check.json'
     report_path = task.root / name
-    report_path.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+    report_path.write_text(json.dumps(result, indent=2, ensure_ascii=False, allow_nan=False) + '\n', encoding='utf-8')
     task.record('print-check', {'ok': result['ok'],
                                 'errors': result['errors'],
                                 'warnings': result['warnings'],
                                 'stats': result['stats'],
+                                'wall_thickness': {'status': wall.get('status'),
+                                                   'p5_mm': wall.get('p5_mm'),
+                                                   'below_min': wall.get('below_min')},
                                 'report_path': report_path.relative_to(task.root).as_posix()})
     return result
 

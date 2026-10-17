@@ -3,6 +3,44 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-17 — print-check phase 2: orientation metrics + optional CPU wall proxy
+
+- `print-check` now reports overhang area (configurable `overhang_angle_deg`,
+  default 45 against `build_direction`, default glTF +Y), bed-contact area
+  (`bed_tolerance_mm`, default 0.2), and keeps build-volume fit; areas are
+  triangle-area sums converted to mm². Read-only as before.
+- Wall thickness is an optional CPU proxy: with `OPENFIGURA_PYMESHLAB_PYTHON`
+  pointing at an interpreter with pymeshlab, a worker runs
+  `compute_scalar_by_shape_diameter_function_per_vertex` in a subprocess and
+  the report carries min/p5/p10/median in mm plus non-finite sample counts;
+  the project venv stays stdlib-only and unset runtimes report `unavailable`.
+  The first scifi run exposed non-finite SDF samples and invalid JSON (`NaN`);
+  the worker now filters finite samples and the report writer refuses NaN.
+- Real evidence (`.local/runs/2026-10-16-print-check/`, `*-phase2.out`):
+  closed icosphere passes (overhang 14.5% of area, no bed contact, wall p5
+  44.04 mm, 0.52 s); bunny has 8 open + 4 non-manifold edges, overhang 10.2%,
+  wall p5 28.19 mm, 0.77 s; scifi has 35,462 non-manifold edges, overhang
+  6.1%, bed 123.5 mm², wall p5 1.66 mm with 3 of 909,052 samples excluded,
+  12.5 s end-to-end.
+- Wall proxy is a shape-diameter function, not a calibrated wall measurement;
+  self-intersections remain unchecked. **21 printability tests**; full suite
+  **624 passed**.
+
+## 2026-10-17 — agent tool-surface survey + bundled OpenFigura skill
+
+- Public-repo survey of Meshy MCP server/CLI/agent-skill and Hi3D MCP setup
+  (evidence `.local/runs/2026-10-17-skills-survey/`): tool granularity,
+  create/get/wait lifecycle with "never resend a create request" semantics,
+  balance/usage, output organization, slicer detection (7), two packaged
+  skills with references/ and device-code sign-in. Hi3D uses Streamable HTTP
+  + OAuth; Tripo's public docs sitemap has no MCP/agent page (negative
+  result only). Findings and our gaps: `docs/2026-10-17-agent-tool-surface-survey.md`.
+- Added our own `skills/openfigura/SKILL.md` (AGPL, original content):
+  CPU-first positioning, one workflow, safety rules (human visual approval,
+  no fake waits, long-run timeouts) and the CLI↔MCP tool map. README and
+  usage now state the CPU-first stance; ROADMAP gains a Runtime stance
+  section. No third-party code or text copied.
+
 ## 2026-10-16 — `print-check`: local printability report with welded topology
 
 - New verb `print-check` / `figura_print_check` (`core/printability.py`,

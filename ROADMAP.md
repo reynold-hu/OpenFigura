@@ -13,6 +13,14 @@ this file is intent, not evidence.
 - [x] licensing: AGPL-3.0 + output exemption + trademark + DCO
 - [ ] MCP server smoke test in CI (spawn, tools/list)
 
+## Runtime stance
+
+Core verbs are CPU-first: preflight, inspect, mesh (Blender CPU), bake,
+export, print-check and the workflow ledger all run without a GPU. GPU
+backends (MIA autorig, UniMate, future TripoSG/TripoSF/Hi3DGen trials) are
+optional accelerators, discovered at runtime and reported `unavailable` with
+a reason. No core verb may require a GPU to complete the local loop.
+
 ## v0.2 — make it move
 
 The animation toolchain, one verb at a time, each with a real render as
@@ -106,20 +114,22 @@ re-proposal without new evidence.
 
 ## Proposed after the Meshy/Hi3D review (needs human sign-off)
 
-- [x] `print-check` — local printability report (open/non-manifold edges,
-      zero-area/duplicate faces, connected shells, build-volume fit) with
-      exact-position welding; report only, no auto-repair claim. Implemented
-      2026-10-16 (`docs/PROGRESS.md`, evidence `.local/runs/2026-10-16-print-check/`).
-      Wall thickness/overhang stay open items.
+- [x] `print-check` — local printability report: open/non-manifold edges,
+      zero-area/duplicate faces, connected shells, overhang area beyond a
+      configurable angle, bed-contact area, build-volume fit, and an optional
+      pymeshlab shape-diameter wall proxy (CPU, external runtime). Report
+      only, no auto-repair claim. Self-intersections stay open.
+      Evidence: `.local/runs/2026-10-16-print-check/` and PROGRESS.
 - [ ] `--dry-run` / plan preview for long workflows: print the planned steps
       and rough budgets before executing (Meshy CLI's `make --dry-run`
       pattern, without credits).
 - [ ] Split/color preview: split a GLB into parts by material/vertex-color
       clustering and emit per-part files + assembly notes; connectors
       (mortise/ball joints) stay out of scope until split is proven.
-- [ ] Hi3DGen CUDA trial as a geometry backend (MIT code, normal-bridging,
-      TRELLIS-finetuned); needs an NVIDIA box, spconv/xformers and normal
-      evidence. Not a Mac capability.
+- [ ] CUDA trials on the Windows RTX box: TripoSG (generation), Hi3DGen
+      (normal-bridging geometry) and TripoSF (watertight reconstruction).
+      Runbook: `docs/2026-10-17-gpu-trial-runbook.md`; all three are optional
+      accelerators and never required for the CPU-first core loop.
 
 ## Independent integrations after 3DGenStudio review
 
