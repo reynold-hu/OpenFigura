@@ -264,7 +264,8 @@ bundle 与官方文档里只有**产品参数**（模型代号 meshy-6/7.1、T2/
 
 ### 5.1 立刻可做（低成本、纯本地）
 
-1. **本地可打印性检查 `print-check`（新候选动词，建议优先）**
+1. **本地可打印性检查 `print-check`（已于 2026-10-16 实现，见 PROGRESS /
+   `.local/runs/2026-10-16-print-check/`）**
    Meshy 把 printability 做成免费入口 + 修复收费；Hi3D 把"水密/可打印"
    当核心卖点。我们已有 inspect / mesh / pymeshlab 运行时：
    - 非流形边、开边、破面、零面积面、重复面（已有部分在 mesh report）

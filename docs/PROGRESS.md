@@ -3,6 +3,26 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-16 — `print-check`: local printability report with welded topology
+
+- New verb `print-check` / `figura_print_check` (`core/printability.py`,
+  engine + CLI + MCP mirrors): reads an embedded GLB with the standard
+  library, welds vertices by exact float position (glTF splits vertices for
+  normal/UV seams, so raw index topology reports false boundaries), then
+  counts open boundary edges, non-manifold edges, exactly-zero-area faces,
+  index-duplicate faces, connected shells, and an optional build-volume fit.
+  Report-only: wall thickness, overhang, self-intersections and orientation
+  are listed as unchecked; nothing is repaired.
+- Evidence (`.local/runs/2026-10-16-print-check/`): Blender icosphere
+  (320 tri) passes with `fits_build_volume: true`; bunny (30,000 tri) shows
+  8 open + 4 non-manifold edges; scifi (958,816 tri) is boundary-closed but
+  has 35,462 non-manifold edges and 14 zero-area faces, 1 shell, 4.76 s.
+  The first run of this batch exposed the seam-welding bug: the same
+  icosphere read 88 false boundary edges and 320 shells before the fix; the
+  corrected run is in `closed-ico-welded.out`.
+- **14 new tests**; full suite **617 passed**. 5.1.1 in the Meshy/Hi3D
+  feature review is marked implemented; ROADMAP proposal marked done.
+
 ## 2026-10-16 — Meshy AI and Hi3D (hi3d.ai) public feature and algorithm survey
 
 Evidence root: `.local/runs/2026-10-16-meshy-hi3d-review/`

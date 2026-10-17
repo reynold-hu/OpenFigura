@@ -148,6 +148,34 @@ def inspect(task: Task, artifact: str = "model.glb") -> dict:
 SUPPORTED_FORMATS = ('glb', 'fbx', 'obj', 'stl', 'usd')
 
 
+def print_check(task: Task, params: dict | None = None, artifact: str = 'model.glb') -> dict:
+    """Local printability report: topology, shells and build-volume fit.
+
+    Read-only; does not repair anything and does not claim wall-thickness or
+    overhang coverage. Report path: print-check.json (or <stem>-print-check.json).
+    """
+    from openfigura.core.printability import check_printability
+    params = dict(params or {})
+    unknown = set(params) - {'build_volume_mm'}
+    if unknown:
+        raise ValueError(f'unknown print-check parameter(s): {sorted(unknown)}')
+    glb = _model(task, artifact)
+    if not glb.is_file():
+        raise FileNotFoundError('nothing to check; run generate first')
+    result = check_printability(glb, params.get('build_volume_mm'))
+    result['artifact'] = artifact
+    result['input_sha256'] = sha256_file(glb)
+    name = 'print-check.json' if artifact == 'model.glb' else glb.stem + '-print-check.json'
+    report_path = task.root / name
+    report_path.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+    task.record('print-check', {'ok': result['ok'],
+                                'errors': result['errors'],
+                                'warnings': result['warnings'],
+                                'stats': result['stats'],
+                                'report_path': report_path.relative_to(task.root).as_posix()})
+    return result
+
+
 def skin_check(task: Task, config: dict, artifact: str = 'model.glb') -> dict:
     """Read-only weight diagnostics; completion is not skin-quality acceptance."""
     import copy

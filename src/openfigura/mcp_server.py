@@ -194,6 +194,15 @@ def build():
     def figura_inspect(task_root: str, artifact: str = "model.glb") -> dict:
         return engine.inspect(Task.open(Path(task_root)), artifact=artifact)
 
+    @app.tool(description="Local printability report for a GLB: open boundary edges, "
+              "non-manifold edges, degenerate/duplicate faces, connected shells and an "
+              "optional build-volume fit. Read-only; wall thickness, overhang angle and "
+              "self-intersections are explicitly not measured, and nothing is repaired.")
+    def figura_print_check(task_root: str, artifact: str = "model.glb",
+                           params: dict | None = None) -> dict:
+        return engine.print_check(Task.open(Path(task_root)), params,
+                                  artifact=artifact)
+
     @app.tool(description='Read-only skin weight diagnostics with explicit config families and pairs. Successful execution does not accept skin, deformation or collision quality.')
     def figura_skin_check(task_root: str, config: dict, artifact: str = 'model.glb') -> dict:
         return engine.skin_check(Task.open(Path(task_root)),config,artifact)

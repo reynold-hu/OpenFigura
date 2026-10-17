@@ -169,6 +169,22 @@ set no implicit budget; the ledger records the resolved values and which basis
 they came from. Use-case defaults apply to `retopo`/`optimize` only and fail
 closed elsewhere.
 
+## Printability check
+
+```sh
+openfigura print-check TASK --params '{"build_volume_mm": [256, 256, 256]}'
+#  -> pass/fail + counts in the report; also writes <task>/print-check.json
+```
+
+Measures topology and size only: exact-position welding recovers seams split by
+normal/UV, then open boundary edges, non-manifold edges, zero-area faces,
+duplicate faces, connected shells and an optional build-volume fit are counted.
+**Not measured** (explicitly reported as unchecked): wall thickness, overhang
+angle, self-intersections, orientation. Node transforms are not applied and
+skinned/morph assets are checked in rest geometry; both are reported as
+warnings. Nothing is repaired — a fail means "look closer or repair elsewhere",
+never a silent fix. `figura_print_check` mirrors it.
+
 ## Texture refinement and experimental rigging
 
 - `refine-texture` / `figura_refine_texture`: calibrated source RGB projection;

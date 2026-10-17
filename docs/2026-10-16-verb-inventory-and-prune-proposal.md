@@ -4,7 +4,7 @@
 `.local/runs/2026-10-16-tripo-studio-review/11-full-bundle/`）。本文是
 **清点 + 建议**；代码一行未删，等人类拍板。
 
-方法：从 `cli.py` 解析出 33 个 CLI 动词，逐一核对三处证据：`tests/` 的
+方法：从 `cli.py` 解析出 33 个 CLI 动词（本报告生成时点；`print-check` 为随后新增，见 §4），逐一核对三处证据：`tests/` 的
 覆盖、`PROGRESS.md` 的记载、`.local/runs/` 的真实运行目录。PROGRESS 命中
 数是方向性信号（`rig` 会误配 rigging/right），结论以人工核对为准。
 
@@ -19,6 +19,7 @@
 | `new` / `figura_new_task` | 建任务 + 暂存输入 | 全链路使用中 | keep |
 | `generate` / `figura_generate` | 图→GLB（pixal3d） | PROGRESS 多篇；golden-run 生成任务 | keep |
 | `preflight` / `figura_preflight` | 输入门禁（本轮加 symmetry） | `tests/test_preflight.py`、真实 matte 实测 | keep |
+| `print-check` / `figura_print_check` | 本地可打印性报告（新增） | `tests/test_printability.py`、`.local/runs/2026-10-16-print-check/` | keep（本批新增） |
 | `render` / `figura_render` | 中性多视图渲染 | 每轮验收的默认证据 | keep |
 | `inspect` / `figura_inspect` | 结构报告 + 导出闸 | 全链路使用中 | keep |
 | `export` / `figura_export` | 交付（本轮加 fbx 预设） | `2026-10-16-borrow-batch/` | keep |
@@ -79,8 +80,8 @@ mia / native-motion / photo-paint / rigify / unimate` 全部有测试与至少�
 
 ## 3. 数字口径
 
-- 33 个 CLI 动词 + 5 个 mesh 操作 + 6 个 export 格式分支。
-- 31 个 MCP 工具（`figura_*`）与 CLI 全部镜像（本报告生成时点）。
+- 33 个 CLI 动词（随后 +1：`print-check`）+ 5 个 mesh 操作 + 6 个 export 格式分支。
+- 31 个 MCP 工具（随后 +1：`figura_print_check`）与 CLI 全部镜像（本报告生成时点）。
 - 真实验证目录（`.local/runs/`）：2026-10-09 一批 20+ 个工具级目录 +
   foundation proof + 本轮 borrow-batch。
 - 630 测试（本报告生成时点，`python -m pytest tests -q` 全绿）。

@@ -106,10 +106,11 @@ re-proposal without new evidence.
 
 ## Proposed after the Meshy/Hi3D review (needs human sign-off)
 
-- [ ] `print-check` — local printability report (non-manifold/open edges,
-      zero-area/duplicate faces, min wall thickness, overhang angle, bed
-      contact, build-volume fit) reusing inspect + pymeshlab; report only,
-      no auto-repair claim. Highest value borrow from both platforms.
+- [x] `print-check` — local printability report (open/non-manifold edges,
+      zero-area/duplicate faces, connected shells, build-volume fit) with
+      exact-position welding; report only, no auto-repair claim. Implemented
+      2026-10-16 (`docs/PROGRESS.md`, evidence `.local/runs/2026-10-16-print-check/`).
+      Wall thickness/overhang stay open items.
 - [ ] `--dry-run` / plan preview for long workflows: print the planned steps
       and rough budgets before executing (Meshy CLI's `make --dry-run`
       pattern, without credits).

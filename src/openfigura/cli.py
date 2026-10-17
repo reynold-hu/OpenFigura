@@ -214,6 +214,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--artifact", default="model.glb")
     p.set_defaults(func=lambda a: _print(engine.inspect(Task.open(Path(a.task)), artifact=a.artifact)))
 
+    p = sub.add_parser("print-check", help="local printability report: topology, shells, build-volume fit "
+                       "(read-only; no wall-thickness or overhang claim)")
+    p.add_argument("task")
+    p.add_argument("--artifact", default="model.glb")
+    p.add_argument("--params", default="{}",
+                   help="JSON object: {\"build_volume_mm\": [x, y, z]} (optional)")
+    p.set_defaults(func=lambda a: _print(engine.print_check(
+        Task.open(Path(a.task)), json.loads(_json_arg(a.params)), artifact=a.artifact)))
+
     p = sub.add_parser("animate", help="text-to-motion via an external generator "
                        "(unimate); every clip must pass the regional contact gate before delivery")
     p.add_argument("task")
