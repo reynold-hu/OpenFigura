@@ -3,6 +3,39 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-18 — pulled the evaluation update; clean re-run reproduces identical rig/motion hashes
+
+- Adopted origin/main 2cc369e (print-check, score, evaluate, preflight symmetry,
+  80-point face rubric, export presets, external validators). The local pre-update
+  run artifacts were removed at the owner's request (8.8 GB task outputs and the
+  `.local/runs` records); git history and past PROGRESS entries were not rewritten.
+  External runtimes (MIA, UniMate, weights, Blender 4.0.2) were kept as installed
+  stack, not run outputs.
+- New-stack Windows portability: three new tests failed here for two reasons and
+  were fixed test-side, no product change: evaluation-report reads used the locale
+  codec (`read_text()` -> cp1252 mojibake on the em-dash heading; now
+  `encoding="utf-8"`), and the wall-thickness fake set the runtime to a shebang
+  script where the contract wants a Python interpreter that receives
+  (worker, config) — the test now points at `sys.executable` and monkeypatches
+  WORKER. Full suite on this box: **641 passed, 5 skipped, 0 failed** in 62.39 s
+  (`.local/runs/2026-10-18-newstack/pytest-newstack.txt`).
+- Clean re-run on the new stack, fresh root `C:\openfigura\work\win-run-2026-10-18`:
+  preflight ok (no-alpha warning; symmetry unavailable without alpha), MIA autorig
+  pass (41 s, sha `69ccf5e0…`), UniMate walk delivered (602 s, 3 reps, gate pass,
+  sha `20dbdfe7…`). Both hashes are byte-identical to the 2026-10-16 run on the
+  older tree, recorded here as reproducibility evidence, not a fresh quality claim.
+- New verbs exercised on the delivered clip, all real outputs:
+  - `score --profile print`: verdict needs_work, overall 42 (structure 70,
+    printability 30, input 90, evidence 15, delivery 20); human review pending.
+  - `print-check`: 204 duplicate faces by welded vertex indices; skinned asset
+    checked in rest geometry only; does **not** fit 220x220x250 mm because the GLB
+    is in metre units (reports 448 x 1596 x 331 mm) — a unit/scale observation,
+    not a crash, and not a print acceptance.
+  - `evaluate`: wrote model-motion-evaluation-report.md/.json; external validators
+    skipped; human_handoff pending.
+- Evidence: `.local/runs/2026-10-18-newstack/` (preflight, autorig, animate,
+  score, print-check, evaluate logs). `visual_approval` remains pending everywhere.
+
 ## 2026-10-17 — external validators wired into evaluate; human-handoff report
 
 - Added `evaluate` / `figura_evaluate` (`core/evaluation.py`): runs the
