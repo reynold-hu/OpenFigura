@@ -223,6 +223,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--artifact", default="model.glb")
     p.add_argument("--params", default="{}",
                    help="JSON object: face (bool), build_volume_mm [x,y,z], "
+                        "unit_scale_mm (mm per scene unit), "
                         "profile default|print, external (bool); all optional")
     p.set_defaults(func=lambda a: _print(engine.evaluate(
         Task.open(Path(a.task)), json.loads(_json_arg(a.params)), artifact=a.artifact)))
@@ -233,6 +234,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--artifact", default="model.glb")
     p.add_argument("--params", default="{}",
                    help="JSON object: face (bool), build_volume_mm [x,y,z], "
+                        "unit_scale_mm (mm per scene unit), "
                         "profile default|print; all optional")
     p.set_defaults(func=lambda a: _print(engine.score(
         Task.open(Path(a.task)), json.loads(_json_arg(a.params)), artifact=a.artifact)))
@@ -243,7 +245,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--artifact", default="model.glb")
     p.add_argument("--params", default="{}",
                    help="JSON object: build_volume_mm [x,y,z], build_direction [x,y,z], "
-                        "overhang_angle_deg, bed_tolerance_mm, wall_thickness (bool), "
+                        "overhang_angle_deg, bed_tolerance_mm, unit_scale_mm (mm per scene unit), "
+                        "wall_thickness (bool), "
                         "min_wall_mm; all optional")
     p.set_defaults(func=lambda a: _print(engine.print_check(
         Task.open(Path(a.task)), json.loads(_json_arg(a.params)), artifact=a.artifact)))

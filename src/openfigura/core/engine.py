@@ -211,7 +211,8 @@ def print_check(task: Task, params: dict | None = None, artifact: str = 'model.g
     from openfigura.core.printability import check_printability
     params = dict(params or {})
     unknown = set(params) - {'build_volume_mm', 'build_direction', 'overhang_angle_deg',
-                             'bed_tolerance_mm', 'wall_thickness', 'min_wall_mm'}
+                             'bed_tolerance_mm', 'wall_thickness', 'min_wall_mm',
+                             'unit_scale_mm'}
     if unknown:
         raise ValueError(f'unknown print-check parameter(s): {sorted(unknown)}')
     wall_requested = params.get('wall_thickness', False)
@@ -227,7 +228,8 @@ def print_check(task: Task, params: dict | None = None, artifact: str = 'model.g
     result = check_printability(glb, params.get('build_volume_mm'),
                                 params.get('build_direction'),
                                 params.get('overhang_angle_deg', 45),
-                                params.get('bed_tolerance_mm', 0.2))
+                                params.get('bed_tolerance_mm', 0.2),
+                                params.get('unit_scale_mm', 1000.0))
     wall = {'status': 'not_requested'}
     if wall_requested:
         expected = sha256_file(glb)

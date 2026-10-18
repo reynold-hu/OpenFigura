@@ -127,7 +127,7 @@ def _delivery(task: Task) -> tuple[int, dict]:
 
 def scorecard(task: Task, params: dict | None = None, artifact: str = "model.glb") -> dict:
     params = dict(params or {})
-    unknown = set(params) - {"face", "build_volume_mm", "profile"}
+    unknown = set(params) - {"face", "build_volume_mm", "profile", "unit_scale_mm"}
     if unknown:
         raise ValueError(f"unknown score parameter(s): {sorted(unknown)}")
     face = params.get("face", False)
@@ -142,7 +142,8 @@ def scorecard(task: Task, params: dict | None = None, artifact: str = "model.glb
         raise FileNotFoundError("nothing to score; run generate first")
 
     inspected = inspect_glb(model)
-    printable = check_printability(model, build_volume_mm=build_volume)
+    printable = check_printability(model, build_volume_mm=build_volume,
+                                   unit_scale_mm=params.get("unit_scale_mm", 1000.0))
     input_image = _input_image(task)
     report = _preflight.preflight(input_image, face=face) if input_image else None
 

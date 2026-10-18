@@ -3,6 +3,60 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-18 — print-check unit convention; presets/face rubric exercised; public 3D-mechanism survey
+
+- `print-check` / `score` / `evaluate` gained `unit_scale_mm` (mm per scene
+  unit, default 1000 = metres), so a metre-scale GLB can be checked at an
+  intended print scale instead of being reported as a 1.6 m object against a
+  220 mm bed. The report always records the assumed `unit_scale_mm`. Verified
+  on the delivered walk clip: default reports 448 x 1596 x 331 mm (does not
+  fit); `unit_scale_mm=100` reports **44.8 x 159.6 x 33.1 mm, fits=True**.
+  Test `test_unit_scale_mm_changes_size_and_fit`; suite **642 passed,
+  5 skipped, 0 failed** (`.local/runs/2026-10-18-newstack/pytest-unit-scale.txt`).
+- New-stack capabilities exercised on the re-run task:
+  - `presets`: game 20000, animation 50000 (cites the published Tripo
+    P1.0/P2.0 <=50k budget), print null (no implicit decimation), vr_ar
+    20000, product_display 80000, general null.
+  - face rubric `docs/2026-10-17-face-quality-rubric.md`: five dimensions
+    x 20 = 100; delivery line 80 with no dimension <10; print doubles E; the
+    agent may prepare material but cannot self-approve.
+  - `score --params {"face":true}` on the source model: needs_work / 49;
+    face metrics unavailable here because mediapipe is not installed for this
+    Python (reported, not guessed).
+- REA updated on this machine from 6.4.0 to **6.7.0** (`npm i -g
+  rea-agents@latest`). `rea doctor` reports the environment unhealthy:
+  Node 22.18.0 is below the required 22.19, Hopper is absent (macOS-only
+  engine), and the MCP JavaScript provider failed with an internal
+  `unknown_budget` schema error. The new CLI
+  `analyze-javascript-application` ran on the ComfyUI Electron shell but is
+  **partial**: the ASAR holds 11,702 JavaScript artifacts and the run was
+  still processing bundled node_modules at survey time (progress log kept).
+  The MCP-side failure and the partial run are recorded as the observed
+  state, not worked around.
+- Public mechanism survey written to
+  `docs/2026-10-18-3d-product-mechanism-survey.md`, sourced from public docs
+  and the API schemas shipped with local **ComfyUI 0.22.2** (Meshy, Tripo,
+  Hunyuan3D, Rodin nodes):
+  - Meshy: preview→refine, text/image/multi-image→model, rig, animate,
+    texture; topology quad|triangle, polycount 100–300000, symmetry
+    auto|on|off, pose mode, PBR map outputs.
+  - Tripo: model versions to **v3.1-20260211**; chain text/image/multiview →
+    texture → refine → **prerigcheck → rig → retarget** → stylize → convert;
+    topology bip|quad; skeleton mixamo|tripo; **FBX presets blender|mixamo|
+    3dsmax**; animation presets idle/walk/run/jump/turn/slash/... plus
+    quadruped/hexapod/octopod; convert to GLTF/USDZ/FBX/OBJ/STL/3MF.
+  - Hunyuan3D: models 3.0/3.1, face count 3000–1500000, PBR; separate
+    Model-to-UV, 3D Part, Texture Edit and Smart Topology tasks; multi-view
+    (back/left/right) input.
+  - Hi3D (public claims only): text/image/sketch/multi-view, automatic
+    printable part splitting, reliefs, "2048^3 voxel" vendor claim.
+  - ComfyUI local: Load3D supports gltf/glb/obj/fbx/stl/spz/splat/ply/ksplat;
+    Preview3D, SaveGLB, Stable3D novel-view conditioning.
+- Design implications recorded in the survey (our own implementation, no
+  vendor code, no parity claim): explicit topology choice, symmetry mode as
+  a control, a separate pre-rig check before rig/animate, engine FBX presets,
+  and part/UV/smart-topology as separate verbs.
+
 ## 2026-10-18 — pulled the evaluation update; clean re-run reproduces identical rig/motion hashes
 
 - Adopted origin/main 2cc369e (print-check, score, evaluate, preflight symmetry,

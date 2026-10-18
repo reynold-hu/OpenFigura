@@ -183,7 +183,8 @@ def _direction(value) -> tuple[float, float, float]:
 
 
 def check_printability(path: Path, build_volume_mm=None, build_direction=None,
-                       overhang_angle_deg=45, bed_tolerance_mm=0.2) -> dict:
+                       overhang_angle_deg=45, bed_tolerance_mm=0.2,
+                       unit_scale_mm=1000.0) -> dict:
     if build_volume_mm is not None:
         if (not isinstance(build_volume_mm, (list, tuple)) or len(build_volume_mm) != 3
                 or any(type(v) not in (int, float) or not math.isfinite(v) or v <= 0
@@ -191,6 +192,9 @@ def check_printability(path: Path, build_volume_mm=None, build_direction=None,
             raise ValueError("build_volume_mm must be three positive finite numbers")
     overhang_angle_deg = _number(overhang_angle_deg, "overhang_angle_deg", 0, 90)
     bed_tolerance_mm = _number(bed_tolerance_mm, "bed_tolerance_mm", 0, 100)
+    if (type(unit_scale_mm) not in (int, float) or not math.isfinite(unit_scale_mm)
+            or not 0 < unit_scale_mm <= 1_000_000):
+        raise ValueError("unit_scale_mm must be a finite number in (0, 1e6] (mm per scene unit)")
     up = _direction(build_direction if build_direction is not None else [0, 1, 0])
     bed_tolerance_m = bed_tolerance_mm / 1000.0
 
@@ -367,8 +371,9 @@ def check_printability(path: Path, build_volume_mm=None, build_direction=None,
             "size_m": [round(v, 9) for v in size],
         }
     fits = None
+    stats["unit_scale_mm"] = float(unit_scale_mm)
     if build_volume_mm is not None and bbox is not None:
-        size_mm = [v * 1000.0 for v in bbox["size_m"]]
+        size_mm = [v * float(unit_scale_mm) for v in bbox["size_m"]]
         fits = all(size_mm[i] <= float(build_volume_mm[i]) for i in range(3))
         stats["build_volume_mm"] = [float(v) for v in build_volume_mm]
         stats["size_mm"] = [round(v, 6) for v in size_mm]

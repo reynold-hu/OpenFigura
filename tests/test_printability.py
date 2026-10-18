@@ -160,6 +160,18 @@ def test_build_volume_fit_and_mismatch(tmp_path):
     assert any("does not fit" in warning for warning in too_small["warnings"])
 
 
+def test_unit_scale_mm_changes_size_and_fit(tmp_path):
+    path = write_glb(tmp_path / "tetra.glb", [TETRA])
+    metre = check_printability(path, build_volume_mm=[10, 10, 10])
+    assert metre["stats"]["unit_scale_mm"] == 1000.0          # default: scene = metres
+    assert metre["stats"]["fits_build_volume"] is False       # 1 unit -> 1000 mm
+    millimetre = check_printability(path, build_volume_mm=[10, 10, 10], unit_scale_mm=1.0)
+    assert millimetre["stats"]["unit_scale_mm"] == 1.0
+    assert millimetre["stats"]["fits_build_volume"] is True   # 1 unit -> 1 mm
+    with pytest.raises(ValueError, match="unit_scale_mm"):
+        check_printability(path, unit_scale_mm=0)
+
+
 def test_unsupported_primitive_fails_closed(tmp_path):
     result = check_printability(write_glb(tmp_path / "lines.glb",
                                           [{"positions": [(0.0, 0.0, 0.0)], "mode": 1}]))
