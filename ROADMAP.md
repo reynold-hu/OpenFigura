@@ -11,7 +11,10 @@ this file is intent, not evidence.
 - [x] stdlib GLB inspection; export refuses on structural problems
 - [x] CLI + MCP frontends over the same four verbs
 - [x] licensing: AGPL-3.0 + output exemption + trademark + DCO
-- [ ] MCP server smoke test in CI (spawn, tools/list)
+- [x] MCP server smoke test in CI: `tests/test_mcp_smoke.py` spawns the stdio
+      server, initializes, lists 34 tools and checks the `figura_generate`
+      dry_run schema; `.github/workflows/mcp-smoke.yml` installs `.[dev]` and
+      runs it. 2026-10-17.
 
 ## Runtime stance
 
@@ -154,9 +157,12 @@ re-proposal without new evidence.
       pymeshlab shape-diameter wall proxy (CPU, external runtime). Report
       only, no auto-repair claim. Self-intersections stay open.
       Evidence: `.local/runs/2026-10-16-print-check/` and PROGRESS.
-- [ ] `--dry-run` / plan preview for long workflows: print the planned steps
-      and rough budgets before executing (Meshy CLI's `make --dry-run`
-      pattern, without credits).
+- [x] `--dry-run` / plan preview for long workflows: `generate --dry-run`
+      (and `figura_generate(dry_run=true)`) prints preflight, conditional
+      matte, generation steps, params and a credits=0 budget without writing
+      or running the backend. Exposes would-refuse (preflight/force) and
+      unavailable backends honestly; wall time is reported as uncalibrated.
+      2026-10-17, tests in `tests/test_engine.py`.
 - [ ] Split/color preview: split a GLB into parts by material/vertex-color
       clustering and emit per-part files + assembly notes; connectors
       (mortise/ball joints) stay out of scope until split is proven.

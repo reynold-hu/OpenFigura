@@ -77,6 +77,13 @@ openfigura generate tasks/hero-idle --backend pixal3d --seed 42
 #    as its own `preprocess` ledger entry; the cutout is what generates.
 #    Pass `matte: off` via params only if the input is already matted.
 
+# 3a. Preview first when the run is expensive or the input is uncertain
+openfigura generate tasks/hero-idle --backend pixal3d --dry-run
+#    Read-only: preflight verdict, conditional matte step, generate step,
+#    effective params, credits=0, and honest "wall time uncalibrated".
+#    No ledger entry, no artifacts, no backend process. `force` and
+#    unavailable backends are shown as would-refuse/would-proceed, not run.
+
 # 4. Structural truth
 openfigura inspect tasks/hero-idle        # ok:false => do not export
 

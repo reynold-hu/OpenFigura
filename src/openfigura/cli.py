@@ -91,6 +91,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--res", type=int, default=None)
     p.add_argument("--force", action="store_true",
                    help="proceed even if preflight reports errors (records the override)")
+    p.add_argument("--dry-run", action="store_true",
+                   help="print planned steps and budget; run nothing and write nothing")
     p.set_defaults(func=_cmd_generate)
 
     p = sub.add_parser("retarget", help="native humanoid motion transfer and contact checks")
@@ -343,7 +345,8 @@ def _cmd_new(args) -> None:
 
 def _cmd_generate(args) -> None:
     params = {k: v for k, v in {"seed": args.seed, "res": args.res}.items() if v is not None}
-    _print(engine.generate(Task.open(Path(args.task)), args.backend, params, force=args.force))
+    _print(engine.generate(Task.open(Path(args.task)), args.backend, params,
+                           force=args.force, dry_run=args.dry_run))
 
 
 def _cmd_render(args) -> None:

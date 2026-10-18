@@ -53,14 +53,78 @@ def workflow_resume(task: Task, stage_id: str) -> dict:
     return Workflow(task.root).resume(stage_id)
 
 
+def _plan_generate(task: Task, backend_id: str, params: dict, force: bool,
+                   image: Path) -> dict:
+    """Read-only preview of the generation chain; never writes or runs a backend."""
+    check = preflight(task.root / "input" / image.name)
+    backend = registry.get(backend_id)
+    caps = backend.capabilities()
+    params = params or {}
+    steps = [{"step": "preflight",
+              "status": "pass" if check["ok"] else "error",
+              "writes": [],
+              "detail": {"errors": check["errors"], "warnings": check["warnings"],
+                         "image": check["info"]}}]
+    prepare = callable(getattr(backend, "prepare_input", None))
+    info = check["info"] or {}
+    preprocess_needed = prepare and not info.get("has_alpha") and params.get("matte", "auto") != "off"
+    if prepare:
+        steps.append({"step": "preprocess",
+                      "status": "planned" if preprocess_needed else "skipped",
+                      "writes": ["artifacts/matte_cutout.png"] if preprocess_needed else [],
+                      "detail": {"reason": ("input lacks alpha; backend prepares a matte"
+                                            if preprocess_needed else
+                                            "input already has alpha or matte is off")}})
+    steps.append({"step": "generate",
+                  "status": "planned",
+                  "writes": ["artifacts/model.glb"],
+                  "detail": {"backend": backend_id,
+                             "hardware": caps.hardware or None,
+                             "params": params}})
+    would_refuse = not check["ok"] and not force
+    would_proceed = check["ok"] or force
+    blockers = []
+    if not caps.available:
+        blockers.append(f"backend unavailable: {caps.reason}")
+    if not check["ok"]:
+        blockers.append("input preflight failed" + (" (force overrides)" if force else ""))
+    return {
+        "dry_run": True,
+        "executed": False,
+        "task": str(task.root),
+        "backend": backend_id,
+        "input": {"name": image.name, "sha256": sha256_file(image)},
+        "available": caps.available,
+        "hardware": caps.hardware or None,
+        "reason": caps.reason or None,
+        "notes": caps.notes or None,
+        "force": force,
+        "preflight": check,
+        "would_refuse": would_refuse,
+        "would_proceed": would_proceed and caps.available,
+        "blockers": blockers,
+        "steps": steps,
+        "budget": {
+            "credits": 0,
+            "wall_time": "uncalibrated; backend-dependent (no local timing yet)",
+            "disk": "artifacts/model.glb plus backend intermediates",
+            "outputs": ["artifacts/model.glb"],
+        },
+        "next_steps": ["inspect", "render", "evaluate"],
+        "writes": [],
+    }
+
+
 def generate(task: Task, backend_id: str, params: dict | None = None,
-             force: bool = False) -> dict:
+             force: bool = False, dry_run: bool = False) -> dict:
     inputs = list((task.root / "input").glob("*"))
     if not inputs:
         raise ValueError("no staged input; copy a reference image first")
     image = next((p for p in inputs if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}), None)
     if image is None:
         raise ValueError("input folder has no readable image")
+    if dry_run:
+        return _plan_generate(task, backend_id, params or {}, force, image)
     check = preflight(task.root / "input" / image.name)
     task.record("preflight", check)
     if not check["ok"] and not force:

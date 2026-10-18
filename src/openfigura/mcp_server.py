@@ -90,12 +90,14 @@ def build():
 
     @app.tool(description="Generate a textured GLB from the staged image. "
               "Runs preflight first and refuses on hard errors unless force=true. "
-              "May take tens of minutes on CPU; report wall time honestly.")
+              "May take tens of minutes on CPU; report wall time honestly. "
+              "dry_run=true returns the planned steps/budget and writes nothing.")
     def figura_generate(task_root: str, backend: str = "pixal3d",
                         seed: int | None = None, res: int | None = None,
-                        force: bool = False) -> dict:
+                        force: bool = False, dry_run: bool = False) -> dict:
         params = {k: v for k, v in {"seed": seed, "res": res}.items() if v is not None}
-        return engine.generate(Task.open(Path(task_root)), backend, params, force=force)
+        return engine.generate(Task.open(Path(task_root)), backend, params,
+                               force=force, dry_run=dry_run)
 
     @app.tool(description="Native Godot humanoid motion transfer plus Blender IK/contact gate. "
               "Requires skinned GLBs with matching bone names and Mixamo hand chains. "

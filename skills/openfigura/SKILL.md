@@ -25,7 +25,8 @@ accelerators and report `unavailable` with a reason when missing.
    and warns about cropping (stylized art may report `no_face`; not an error).
 2. `openfigura new ref.png -o tasks/ --name asset`
 3. `openfigura generate tasks/asset --backend pixal3d --seed 42` — long run;
-   use a generous timeout and never fake completion.
+   use a generous timeout and never fake completion. Unsure? Add `--dry-run`
+   first: it prints preflight, steps and params and writes nothing.
 4. `openfigura inspect tasks/asset` — `ok:false` means do not export.
 5. Optional: `openfigura print-check tasks/asset --params '{"build_volume_mm":[256,256,256]}'`
    Optional readiness check: `openfigura score tasks/asset` (never an

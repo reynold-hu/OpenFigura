@@ -85,16 +85,16 @@ _MATTE_BACKEND = FakeMatteBackend()
 registry.register("fake-matte", lambda: _MATTE_BACKEND, "test matte backend")
 
 
-def _png_bytes(w: int = 1024, h: int = 1200) -> bytes:
-    ihdr = struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0)
+def _png_bytes(w: int = 1024, h: int = 1200, ctype: int = 6) -> bytes:
+    ihdr = struct.pack(">IIBBBBB", w, h, 8, ctype, 0, 0, 0)
     return (b"\x89PNG\r\n\x1a\n" + struct.pack(">I", 13) + b"IHDR" + ihdr
             + struct.pack(">I", 0) + b"IEND" + struct.pack(">I", 0))
 
 
-def _task(tmp_path: Path) -> Task:
+def _task(tmp_path: Path, *, w: int = 1024, h: int = 1200, ctype: int = 6) -> Task:
     task = Task.create(tmp_path / "tasks", name="t1")
     img = tmp_path / "ref.png"
-    img.write_bytes(_png_bytes())
+    img.write_bytes(_png_bytes(w, h, ctype))
     task.stage_input(img)
     return task
 
@@ -186,3 +186,56 @@ def test_cli_backends_lists_registered(tmp_path, capsys):
     assert main(["backends"]) == 0
     out = json.loads(capsys.readouterr().out)
     assert "fake" in out and "pixal3d" in out and "blender" in out
+
+
+def test_generate_dry_run_plans_without_running_or_writing(tmp_path, capsys):
+    task = _task(tmp_path)
+    before = Task.open(task.root).entries
+    plan = generate(task, "fake", {"seed": 1}, dry_run=True)
+    assert plan["dry_run"] is True and plan["executed"] is False
+    assert plan["available"] is True and plan["would_proceed"] is True
+    assert [s["step"] for s in plan["steps"]] == ["preflight", "generate"]
+    assert plan["budget"]["credits"] == 0
+    assert plan["writes"] == [] and plan["next_steps"] == ["inspect", "render", "evaluate"]
+    assert not task.artifact("model.glb").exists()
+    assert Task.open(task.root).entries == before
+
+    from openfigura import cli
+    assert cli.main(["generate", str(task.root), "--backend", "fake", "--dry-run"]) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["dry_run"] is True and out["backend"] == "fake"
+    assert not task.artifact("model.glb").exists()
+    assert Task.open(task.root).entries == before
+
+
+def test_generate_dry_run_predicts_matte_without_running_it(tmp_path):
+    task = _task(tmp_path, ctype=2)
+    plan = generate(task, "fake-matte", dry_run=True)
+    steps = {s["step"]: s for s in plan["steps"]}
+    assert steps["preprocess"]["status"] == "planned"
+    assert steps["preprocess"]["writes"] == ["artifacts/matte_cutout.png"]
+    assert not task.artifact("matte_cutout.png").exists()
+    assert not task.artifact("model.glb").exists()
+
+    plan = generate(task, "fake-matte", {"matte": "off"}, dry_run=True)
+    steps = {s["step"]: s for s in plan["steps"]}
+    assert steps["preprocess"]["status"] == "skipped"
+
+
+def test_generate_dry_run_reports_unavailable_backend(tmp_path):
+    task = _task(tmp_path)
+    plan = generate(task, "fake-fail", dry_run=True)
+    assert plan["available"] is False
+    assert plan["reason"] == "fake"
+    assert plan["would_proceed"] is False
+    assert plan["steps"][-1]["status"] == "planned"
+
+
+def test_generate_dry_run_reports_preflight_refusal_without_raising(tmp_path):
+    task = _task(tmp_path, w=100, h=100)
+    plan = generate(task, "fake", dry_run=True)
+    assert plan["preflight"]["ok"] is False
+    assert plan["would_refuse"] is True
+    assert any("short edge" in error for error in plan["preflight"]["errors"])
+    plan = generate(task, "fake", dry_run=True, force=True)
+    assert plan["would_refuse"] is False and plan["would_proceed"] is True

@@ -111,6 +111,21 @@ proves it. Intentions live in `ROADMAP.md`, not here.
     skipped; human_handoff pending.
 - Evidence: `.local/runs/2026-10-18-newstack/` (preflight, autorig, animate,
   score, print-check, evaluate logs). `visual_approval` remains pending everywhere.
+## 2026-10-17 — generate --dry-run plan preview
+
+- `openfigura generate --dry-run` and `figura_generate(dry_run=true)` return
+  a read-only plan: preflight verdict/image info, the conditional matte step
+  (input alpha + `matte` param), generation step with backend availability,
+  hardware, notes and params, credits=0, and honest "wall time uncalibrated".
+  No backend process, no ledger entry, no artifacts are written.
+- Would-refuse (preflight errors without `force`) and unavailable backends
+  are reported in the plan instead of raised or silently treated as success.
+- 4 new tests cover no-write/no-run, conditional matte prediction, unavailable
+  backends, preflight refusal/force and CLI parity.
+- MCP smoke test: spawns `python -m openfigura.mcp_server` over stdio,
+  sends initialize/notifications/initialized/tools-list, and asserts 34 tools,
+  including the `figura_generate.dry_run` boolean schema. CI workflow
+  `.github/workflows/mcp-smoke.yml` installs `.[dev]` and runs just this test.
 
 ## 2026-10-17 — external validators wired into evaluate; human-handoff report
 
