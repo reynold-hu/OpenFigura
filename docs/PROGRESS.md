@@ -3,6 +3,28 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-18 (later) — REA ComfyUI shell analysis completed; correction to the survey note
+
+- The entry below recorded the REA ASAR run as partial while it was still
+  processing 11,702 files. It finished (exit 0, 850 MB JSON). Correction:
+  the graph is complete, not partial.
+- Evidence `ev_02cb7e8ae0bc3269b40d364ae37bffd57da7f35ea688796670bfbdf8df0f6f59`,
+  ASAR sha256 `cb2df44985f585f49fde37f678a13b9747073092cab405ff8516a8aea0609e11`:
+  **11,702 relevant files, 6,754 parsed JS, 3,775,903 AST nodes, 92 modules,
+  2 parse failures, 44,811 graph nodes / 48,415 edges, 0 unknowns**. Electron
+  shell: 1 browser window, 3 contextBridge APIs, 141 IPC operations (68 main
+  handlers, 67 renderer transmissions), 4 unpaired literal renderer
+  transmissions, 0 sender-validation observations. The desktop app is a thin
+  shell around the Python ComfyUI server, so mechanism evidence stays with the
+  bundled Python API-node schemas (already recorded in the survey doc, now
+  updated from "partial" to the completed figures).
+- Limitations: declared integrity contradicts observed bytes for three
+  packaged native binaries (`sentry-cli.exe`, `winpty-agent.exe`,
+  `OpenConsole.exe`); those bytes are untrusted. REA doctor is still unhealthy
+  here (Node 22.18.0 < 22.19; Hopper absent on Windows; the MCP JS provider
+  errored once with `unknown_budget`, while the 6.7.0 CLI completed).
+- Output: `.local/runs/2026-10-18-newstack/comfyui-asar.json` (850 MB, UTF-16).
+
 ## 2026-10-18 — print-check unit convention; presets/face rubric exercised; public 3D-mechanism survey
 
 - `print-check` / `score` / `evaluate` gained `unit_scale_mm` (mm per scene

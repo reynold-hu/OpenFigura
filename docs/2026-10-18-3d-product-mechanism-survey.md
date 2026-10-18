@@ -14,12 +14,21 @@ claim. Claims are split into **observed / inferred / unknown**.
 - Public product pages searched 2026-10-18: tripo3d.ai / developers.tripo3d.com,
   hi3d.ai, and the ComfyUI node inventory. Public marketing claims are marked
   as such.
-- REA static analysis of the ComfyUI Electron shell (`app.asar`, REA 6.7.0)
-  was started but is **partial**: the archive contains 11,702 JavaScript
-  artifacts and the run was still processing bundled `node_modules` at survey
-  time (progress log retained under `.local/runs/2026-10-18-newstack/`).
-  Mechanism findings below come from the public Python API-node schemas, not
-  from the partial shell graph; the shell graph is supplementary.
+- REA static analysis of the ComfyUI Electron shell (`app.asar`, REA 6.7.0,
+  integrity `record-and-continue`) **completed**:
+  Evidence `ev_02cb7e8ae0bc3269b40d364ae37bffd57da7f35ea688796670bfbdf8df0f6f59`,
+  ASAR sha256 `cb2df44985f585f49fde37f678a13b9747073092cab405ff8516a8aea0609e11`.
+  Observed: 11,702 relevant files, 6,754 parsed JavaScript files, 3,775,903 AST
+  nodes, 92 modules, 2 parse failures, 44,811 graph nodes / 48,415 edges,
+  0 unknowns. Electron shell shape: 1 browser window, 3 contextBridge APIs,
+  141 IPC operations (68 main handlers, 67 renderer transmissions), 4 unpaired
+  literal renderer transmissions, 0 sender-validation observations. This is a
+  thin desktop shell around the Python ComfyUI server; the 3D mechanism
+  evidence below comes from the bundled Python API-node schemas.
+  Limitations: declared integrity contradicts observed bytes for three
+  packaged native binaries (`sentry-cli.exe`, `winpty-agent.exe`,
+  `OpenConsole.exe`); those bytes are retained as untrusted. The shell graph
+  is architecture evidence, not a product-mechanism source.
 
 ## What the products expose (observed)
 
