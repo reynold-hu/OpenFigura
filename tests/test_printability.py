@@ -263,7 +263,12 @@ def test_wall_thickness_measured_with_fake_runtime(tmp_path, monkeypatch):
     fake_source += "    \"p10_m\": 0.0006, \"median_m\": 0.001}))\n"
     fake.write_text(fake_source)
     fake.chmod(0o755)
-    monkeypatch.setenv("OPENFIGURA_PYMESHLAB_PYTHON", str(fake))
+    # The runtime is a Python interpreter that receives (worker, config), not
+    # the worker itself; on Windows an extensionless shebang script is not
+    # executable (WinError 193). Point the runtime at this interpreter and
+    # swap the worker for the fake so the contract holds on every platform.
+    monkeypatch.setattr("openfigura.core.wall_thickness.WORKER", fake)
+    monkeypatch.setenv("OPENFIGURA_PYMESHLAB_PYTHON", sys.executable)
     result = engine.print_check(task, {"wall_thickness": True, "min_wall_mm": 0.8})
     wall = result["wall_thickness"]
     assert wall["status"] == "measured"

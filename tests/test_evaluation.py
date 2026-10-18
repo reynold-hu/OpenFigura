@@ -43,13 +43,13 @@ def test_evaluation_writes_json_and_markdown_with_external_results(tmp_path, mon
     assert result["external"]["gltf_validator"]["status"] == "validated"
     assert result["external"]["trimesh"]["is_watertight"] is True
     assert result["reports"]["markdown"] == "evaluation-report.md"
-    report = (task.root / "evaluation-report.md").read_text()
+    report = (task.root / "evaluation-report.md").read_text(encoding="utf-8")
     assert "# Evaluation report" in report
     assert "glTF-Validator — validated" in report
     assert "trimesh — validated" in report
     assert "Human handoff (pending)" in report
     assert "UNUSED_OBJECT" in report
-    saved = json.loads((task.root / "evaluation.json").read_text())
+    saved = json.loads((task.root / "evaluation.json").read_text(encoding="utf-8"))
     assert saved["external"]["trimesh"]["components"] == 1
     entry = Task.open(task.root).entries[-1]
     assert entry["step"] == "evaluate"
@@ -62,7 +62,7 @@ def test_external_can_be_skipped(tmp_path):
     result = engine.evaluate(task, {"external": False})
     assert result["external"]["gltf_validator"]["status"] == "skipped"
     assert result["external"]["trimesh"]["status"] == "skipped"
-    assert "glTF-Validator — skipped" in (task.root / "evaluation-report.md").read_text()
+    assert "glTF-Validator — skipped" in (task.root / "evaluation-report.md").read_text(encoding="utf-8")
 
 
 def test_missing_runtimes_are_unavailable_not_fatal(tmp_path, monkeypatch):
@@ -74,7 +74,7 @@ def test_missing_runtimes_are_unavailable_not_fatal(tmp_path, monkeypatch):
     assert "OPENFIGURA_GLTF_VALIDATOR_MODULE" in result["external"]["gltf_validator"]["reason"]
     assert result["external"]["trimesh"]["status"] == "unavailable"
     assert "OPENFIGURA_TRIMESH_PYTHON" in result["external"]["trimesh"]["reason"]
-    report = (task.root / "evaluation-report.md").read_text()
+    report = (task.root / "evaluation-report.md").read_text(encoding="utf-8")
     assert "not measured, not passed" in report
 
 
