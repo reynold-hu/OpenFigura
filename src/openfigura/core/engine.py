@@ -148,6 +148,56 @@ def inspect(task: Task, artifact: str = "model.glb") -> dict:
 SUPPORTED_FORMATS = ('glb', 'fbx', 'obj', 'stl', 'usd')
 
 
+def score(task: Task, params: dict | None = None, artifact: str = 'model.glb') -> dict:
+    """Preliminary readiness scorecard; never a visual quality verdict.
+
+    Aggregates recorded evidence, structural checks, input preflight, topology
+    and delivery state into 0-100 sub-scores. Report path: scorecard.json (or
+    <stem>-scorecard.json). Aesthetics stay with the human rubric.
+    """
+    from openfigura.core.scorecard import scorecard as _scorecard
+    model = _model(task, artifact)
+    if not model.is_file():
+        raise FileNotFoundError('nothing to score; run generate first')
+    result = _scorecard(task, params, artifact)
+    name = 'scorecard.json' if artifact == 'model.glb' else model.stem + '-scorecard.json'
+    report_path = task.root / name
+    report_path.write_text(json.dumps(result, indent=2, ensure_ascii=False, allow_nan=False) + '\n',
+                           encoding='utf-8')
+    task.record('score', {'overall': result['overall'], 'verdict': result['verdict'],
+                          'profile': result['profile'], 'subscores': result['subscores'],
+                          'report_path': report_path.relative_to(task.root).as_posix()})
+    return result
+
+
+def evaluate(task: Task, params: dict | None = None, artifact: str = 'model.glb') -> dict:
+    """Final evaluation report: readiness scorecard + optional external validators.
+
+    Writes evaluation.json and evaluation-report.md; the markdown is the human
+    handoff artifact. Aesthetics stay with the human rubric.
+    """
+    from openfigura.core.evaluation import build as _build
+    model = _model(task, artifact)
+    if not model.is_file():
+        raise FileNotFoundError('nothing to evaluate; run generate first')
+    result, markdown = _build(task, params, artifact)
+    stem = 'evaluation' if artifact == 'model.glb' else model.stem + '-evaluation'
+    json_path = task.root / (stem + '.json')
+    md_path = task.root / (stem + '-report.md')
+    json_path.write_text(json.dumps(result, indent=2, ensure_ascii=False, allow_nan=False) + '\n',
+                         encoding='utf-8')
+    md_path.write_text(markdown, encoding='utf-8')
+    external = {name: value.get('status') for name, value in result['external'].items()}
+    task.record('evaluate', {'overall': result['scorecard']['overall'],
+                             'verdict': result['scorecard']['verdict'],
+                             'external': external,
+                             'report': md_path.relative_to(task.root).as_posix(),
+                             'json': json_path.relative_to(task.root).as_posix()})
+    result['reports'] = {'markdown': md_path.relative_to(task.root).as_posix(),
+                         'json': json_path.relative_to(task.root).as_posix()}
+    return result
+
+
 def print_check(task: Task, params: dict | None = None, artifact: str = 'model.glb') -> dict:
     """Local printability report: topology, shells, orientation and build fit.
 

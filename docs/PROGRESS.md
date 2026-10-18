@@ -3,6 +3,73 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-17 — external validators wired into evaluate; human-handoff report
+
+- Added `evaluate` / `figura_evaluate` (`core/evaluation.py`): runs the
+  readiness scorecard, then two optional external checks — Khronos
+  glTF-Validator (Apache-2.0, external Node via
+  OPENFIGURA_GLTF_VALIDATOR_MODULE) and trimesh (MIT, external Python via
+  OPENFIGURA_TRIMESH_PYTHON) — and writes `evaluation.json` plus a
+  human-readable `evaluation-report.md` with sub-scores, topology/orientation,
+  input preflight, external findings, evidence coverage and a pending human
+  checklist. Missing runtimes stay `unavailable`; trimesh is skipped above
+  300k triangles (OPENFIGURA_TRIMESH_MAX_FACES) so the report cannot hang.
+- Real runs (`.local/runs/2026-10-17-evaluate/`, runtimes installed under
+  `.local/runtimes/`): glTF-Validator 2.0.0-dev.3.10 reported 0 errors on
+  closed-ico, bunny, scifi and silver-scarf (icosphere/bunny 1 info each).
+  trimesh 5.1.1 + networkx: icosphere watertight True (205→162 welded verts,
+  1 component, Euler 2), bunny False (5 components); scifi 958,816 and
+  silver-scarf 988,564 triangles were skipped by the face budget. Report wall
+  times: 0.23 s / 0.41 s for the two validated cases; ~2.7 s for skipped.
+- First trimesh run exposed two real issues: `split` needs a graph engine
+  (networkx added to the optional runtime, not the project) and raw glTF seam
+  splits made a closed icosphere look non-watertight (fixed by exact-position
+  welding before topology checks). The 1M-face timeout is now prevented by
+  the budget guard.
+- Docs: evaluation-systems survey now records adoption status and real
+  results; usage/skill/ROADMAP/inventory updated. 8 new tests (evaluation +
+  external plumbing); full suite **646 passed**.
+
+## 2026-10-17 — readiness scorecard and evaluation-system survey
+
+- Added `score` / `figura_score` (`core/scorecard.py`): deterministic 0-100
+  readiness score over structure, evidence, input, printability and delivery,
+  with weights for `default` and `print` profiles. It writes
+  `<task>/scorecard.json` and a ledger `score` entry; `human_review` is always
+  pending and aesthetics are explicitly out of scope. CPU-only, no new
+  dependencies.
+- Real-asset smoke run (`.local/runs/2026-10-17-scorecard/`): closed icosphere
+  59 (structure/printability 100, evidence 0), bunny 56 (printability 88),
+  scifi 34 (structure 70, printability 30), silver-scarf refined task 53
+  (input 90, evidence 30). Numbers are trends, not quality verdicts.
+- Survey of open-source evaluation/validation projects
+  (`docs/2026-10-17-evaluation-systems.md`): adopt concepts from glTF
+  Validator/Asset Guidelines, Blender 3D Print Toolbox and trimesh/Open3D;
+  all current checks stay stdlib. PyMeshLab is GPL-3.0 and stays an external
+  process; pyiqa is PolyForm Noncommercial and is rejected. glTF-Validator
+  (Apache-2.0), trimesh (MIT), scikit-image/imagehash (BSD) and LPIPS/CLIP
+  are documented as optional future lanes.
+- 8 new scorecard tests; full suite 638 passed.
+
+## 2026-10-17 — face ROI refinement A/B and the texel-density audit
+
+- Built a fresh silver-scarf task from the accepted generation inputs and ran
+  the existing chain: `face-landmarks` on the calibrated 1022x1022 view,
+  `face-mask`, then `refine-texture` with the face ROI (atlas trust >0.5 =
+  1.67%). Both artifacts were rendered with `--facing 180` at the same camera.
+  The first render used the wrong facing and was discarded as evidence.
+- A/B (`.local/runs/2026-10-17-face-ab/`): reference face is 99x117 px; the
+  refined head crop changed 4.78% (front) and 3.55% (3/4) of pixels above the
+  diff threshold, concentrated on the face. `face-ab-front.png` shows visibly
+  sharper eyes, nose and mouth with no obvious seam. Human scoring is pending.
+- Texel-density audit (`texel_audit.py`): silver-scarf head/body ratio 1.004
+  (11.15 vs 11.16 texels/cm), xiaoman-regen 1.012 (13.37 vs 13.24); head UV
+  area matches 3D area within 0.2 points. At 2048 the face is not UV-starved,
+  so the 99 px reference is the limiting factor. Decision: no 4K or second
+  material yet; trigger is a >=200 px face with texture score <=12.
+- Docs: `docs/2026-10-17-face-texel-audit.md`; rubric §4 and ROADMAP face
+  track updated. No source code changed by this entry.
+
 ## 2026-10-17 — face-aware preflight and the 80-point face rubric
 
 - Added optional `preflight --face` / `figura_preflight(face=True)` backed by

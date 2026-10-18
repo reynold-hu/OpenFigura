@@ -28,10 +28,14 @@ accelerators and report `unavailable` with a reason when missing.
    use a generous timeout and never fake completion.
 4. `openfigura inspect tasks/asset` — `ok:false` means do not export.
 5. Optional: `openfigura print-check tasks/asset --params '{"build_volume_mm":[256,256,256]}'`
+   Optional readiness check: `openfigura score tasks/asset` (never an
+   aesthetic verdict; human review stays pending).
 6. `openfigura render tasks/asset --samples 32` — Pixal3D output faces +Y,
    so add `--facing 180` for the front view.
 7. `openfigura export tasks/asset --dest dist/` — engine-bound FBX:
    `--format fbx --fbx-preset blender|godot|unity|unreal`.
+8. Final handoff: `openfigura evaluate tasks/asset` writes JSON + a markdown
+   report for the human (optional glTF-Validator/trimesh when configured).
 
 Every step appends to the ledger. To audit or reproduce an asset, read
 `provenance.json`, not chat history.
@@ -55,7 +59,7 @@ Every step appends to the ledger. To audit or reproduce an asset, read
 `new`/`figura_new_task` · `preflight`/`figura_preflight` ·
 `generate`/`figura_generate` · `inspect`/`figura_inspect` ·
 `render`/`figura_render` · `print-check`/`figura_print_check` ·
-`export`/`figura_export` · `mesh`/`figura_mesh` · `presets`/`figura_presets` ·
+`export`/`figura_export` · `score`/`figura_score` · `evaluate`/`figura_evaluate` · `mesh`/`figura_mesh` · `presets`/`figura_presets` ·
 `workflow-*`/`figura_workflow_*` · `execute`/`figura_execute` ·
 `autorig`/`figura_autorig` · `retarget`/`figura_retarget` ·
 `animate`/`figura_animate` · `skin-check`/`figura_skin_check` ·

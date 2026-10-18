@@ -67,10 +67,32 @@ evidence:
       `unavailable`, stylized art reports `no_face` without inventing a box.
 - [x] Human 80-point rubric and face baseline metrics:
       `docs/2026-10-17-face-quality-rubric.md` (no accepted baseline yet).
-- [ ] Face ROI texture refinement A/B: landmarks + face-mask/head-roi +
-      3/4-view projection, scored with the rubric.
-- [ ] Face texel-density audit; decide local 4K atlas or second material.
+- [x] Face ROI texture refinement A/B: landmarks + face-mask + calibrated
+      view projection; silver-scarf changed 4.78% / 3.55% of head-crop pixels
+      (front / 3-4) with visibly sharper eyes and mouth; human score pending.
+      Evidence `.local/runs/2026-10-17-face-ab/`.
+- [x] Face texel-density audit: head/body ratio 1.004 and 1.012 (~11-13.5
+      texels/cm, uniform UVs at 2048). Decision: no 4K/second material yet;
+      revisit when a reference face has >=200 px short side and texture score
+      is <=12. See `docs/2026-10-17-face-texel-audit.md`.
 - [ ] TripoSG/Hi3DGen face-geometry comparison on the Windows box.
+
+## Evaluation and scorecard (2026-10-17)
+
+- [x] `score` / `figura_score` — deterministic readiness scorecard (structure,
+      evidence, input, printability, delivery) with CPU-only formulas and no
+      aesthetic claim; 8 stdlib tests and real-asset smoke numbers.
+      See `docs/2026-10-17-evaluation-systems.md`.
+- [x] Optional external validators: glTF-Validator 2.0 (Apache-2.0, external
+      Node) and trimesh 5.1 (MIT, external Python, 300k-face budget) run from
+      `evaluate`, which writes evaluation.json + a human-handoff report.
+      Real runs: 0 glTF errors on four assets; icosphere watertight, bunny not;
+      >300k-face assets skipped explicitly.
+      2026-10-17, evidence `.local/runs/2026-10-17-evaluate/`.
+- [ ] Render regression (imagehash/SSIM) once humans accept golden baselines.
+- [ ] Perceptual/semantic metrics (LPIPS/CLIP/3D embeddings) only with a
+      license-verified, GPU-optional path. pyiqa (PolyForm Noncommercial) is
+      rejected.
 
 ## v0.4 — a face on the tool
 

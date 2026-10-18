@@ -80,9 +80,9 @@ mia / native-motion / photo-paint / rigify / unimate` 全部有测试与至少�
 
 ## 3. 数字口径
 
-- 当前 **32 个 CLI 动词 / 32 个 MCP 工具**，全部镜像（审计快照为 33，随后
-  删除 2 个 style 动词、+1 `print-check`）。另有 5 个 mesh 操作、6 个 export
-  格式分支。
+- 当前 **34 个 CLI 动词 / 34 个 MCP 工具**，全部镜像（审计快照为 33，随后
+  删除 2 个 style 动词、+1 `print-check`、+1 `score`、+1 `evaluate`）。另有
+  5 个 mesh 操作、6 个 export 格式分支。
 - 真实验证目录（`.local/runs/`）：2026-10-09 一批 20+ 个工具级目录 +
   foundation proof + 本轮 borrow-batch。
 - 630 测试（本报告生成时点，`python -m pytest tests -q` 全绿）。

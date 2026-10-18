@@ -198,6 +198,36 @@ geometry; both are reported as warnings. Nothing is repaired — a fail means
 "look closer or repair elsewhere", never a silent fix. `figura_print_check`
 mirrors it.
 
+## Scorecard
+
+```sh
+openfigura score TASK
+openfigura score TASK --params '{"profile": "print", "build_volume_mm": [256,256,256], "face": true}'
+```
+
+Deterministic 0-100 readiness score over five sub-scores (structure, evidence,
+input, printability, delivery) with transparent formulas; writes
+`<task>/scorecard.json` and ledger entry `score`. It answers "what is missing
+before human review", not "is it beautiful": `human_review` stays pending and
+aesthetics belong to the rubric. `figura_score` mirrors it.
+
+## Final evaluation report
+
+```sh
+export OPENFIGURA_GLTF_VALIDATOR_MODULE=/abs/path/node_modules/gltf-validator  # optional
+export OPENFIGURA_TRIMESH_PYTHON=/abs/path/venv/bin/python                    # optional
+openfigura evaluate TASK
+#  -> <task>/evaluation.json + <task>/evaluation-report.md
+```
+
+`evaluate` runs the same scorecard, then optional Khronos glTF-Validator
+(Apache-2.0) and trimesh (MIT) checks in subprocesses, and writes a
+human-handoff report: sub-scores, topology/orientation, input preflight,
+external findings, evidence coverage and a pending human checklist. Missing
+runtimes are reported `unavailable`; trimesh is skipped above 300k triangles
+(`OPENFIGURA_TRIMESH_MAX_FACES`) so the report never hangs. `figura_evaluate`
+mirrors it.
+
 ## Texture refinement and experimental rigging
 
 - `refine-texture` / `figura_refine_texture`: calibrated source RGB projection;

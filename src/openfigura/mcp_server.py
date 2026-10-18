@@ -194,6 +194,21 @@ def build():
     def figura_inspect(task_root: str, artifact: str = "model.glb") -> dict:
         return engine.inspect(Task.open(Path(task_root)), artifact=artifact)
 
+    @app.tool(description="Final evaluation report: readiness scorecard plus optional "
+              "Khronos glTF-Validator and trimesh external checks. Writes evaluation.json "
+              "and evaluation-report.md for a human; aesthetics stay pending with the rubric.")
+    def figura_evaluate(task_root: str, params: dict | None = None,
+                        artifact: str = "model.glb") -> dict:
+        return engine.evaluate(Task.open(Path(task_root)), params, artifact=artifact)
+
+    @app.tool(description="Preliminary asset readiness scorecard: evidence completeness, "
+              "structure, input preflight, topology and delivery are scored 0-100 with "
+              "transparent formulas. Never a visual quality verdict; aesthetics stay with "
+              "the human rubric (docs/2026-10-17-face-quality-rubric.md).")
+    def figura_score(task_root: str, params: dict | None = None,
+                     artifact: str = "model.glb") -> dict:
+        return engine.score(Task.open(Path(task_root)), params, artifact=artifact)
+
     @app.tool(description="Local printability report for a GLB: open boundary edges, "
               "non-manifold edges, degenerate/duplicate faces, connected shells, overhang "
               "and bed-contact areas, and an optional build-volume fit. Wall thickness is "

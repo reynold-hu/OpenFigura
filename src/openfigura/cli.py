@@ -217,6 +217,26 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--artifact", default="model.glb")
     p.set_defaults(func=lambda a: _print(engine.inspect(Task.open(Path(a.task)), artifact=a.artifact)))
 
+    p = sub.add_parser("evaluate", help="final evaluation report: scorecard + optional "
+                       "glTF-Validator/trimesh (JSON + human-readable markdown)")
+    p.add_argument("task")
+    p.add_argument("--artifact", default="model.glb")
+    p.add_argument("--params", default="{}",
+                   help="JSON object: face (bool), build_volume_mm [x,y,z], "
+                        "profile default|print, external (bool); all optional")
+    p.set_defaults(func=lambda a: _print(engine.evaluate(
+        Task.open(Path(a.task)), json.loads(_json_arg(a.params)), artifact=a.artifact)))
+
+    p = sub.add_parser("score", help="preliminary readiness scorecard (evidence/structure/"
+                       "topology/input/delivery); never a visual quality verdict")
+    p.add_argument("task")
+    p.add_argument("--artifact", default="model.glb")
+    p.add_argument("--params", default="{}",
+                   help="JSON object: face (bool), build_volume_mm [x,y,z], "
+                        "profile default|print; all optional")
+    p.set_defaults(func=lambda a: _print(engine.score(
+        Task.open(Path(a.task)), json.loads(_json_arg(a.params)), artifact=a.artifact)))
+
     p = sub.add_parser("print-check", help="local printability report: topology, shells, build-volume fit "
                        "(read-only; no wall-thickness or overhang claim)")
     p.add_argument("task")
