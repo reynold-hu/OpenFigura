@@ -3,6 +3,39 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-19 (later) — real generation on the updated stack; aigccat/IDE survey; REA on Tripo/Meshy
+
+- Real generation, task `C:\openfigura\work\win-run-2026-10-19\head-sculpt`
+  (golden head-sculpt input, pixal3d, seed 42, RTX 4060): **exit 0, 328 s**,
+  output sha `1321735b80928177bcdc2af5750d86a2ffc51f1f0b4614c4a02dec086da207ca`,
+  999,678 triangles, UV present, inspect ok. Render pass (22 s); the front view
+  shows a clean stylised male bust (eyes/brows/nose/lips readable, no structural
+  tear). `score --profile default`: needs_work / **72** (structure 78,
+  printability 38, input 90, evidence 90, delivery 20); `evaluate` wrote its
+  JSON/markdown report. Evidence: `.local/runs/2026-10-19-pull/`.
+- Public survey written to `docs/2026-10-19-3d-ide-and-aigccat-survey.md`:
+  - **aigccat** (Apache-2.0, self-hosted): Rust/axum + MinIO + Blender 5.2 in a
+    container + OpenCode bridge + MCP 17 tools; 11-tool workbench, asset graph,
+    latest/approved/published versions, append-only history, cost ledger,
+    Unity/Godot packs. Design ideas worth adopting: delivery manifest, explicit
+    approval/publish state, candidate batches, budget cap, side-by-side render
+    comparison. Explicitly **not** adopted: its Studio web-session runner
+    (paid-account browser login crosses a credential/ToS boundary) or its stack.
+  - Landscape: cloud workspaces (Tripo Studio, Meshy 7, Rodin/Hyper3D, Hitem3D,
+    3D AI Studio, CSM, Kaedim, Alpha3D, Sloyd), DCC plugins (Meshy for Blender
+    4.2.6+/Unity/Unreal, Tripo Blender), local node IDE (ComfyUI 0.22.2 with
+    Meshy/Tripo/Hunyuan3D/Rodin nodes), self-hosted pipeline (aigccat). None is
+    a local, agent-callable, provenance-ledgered tool layer — our lane.
+- REA deep-dive attempts, recorded honestly:
+  - **Tripo**: headless capture hit **Cloudflare Turnstile**; only challenge
+    endpoints retained, no app bundle (evidence `ev_5983bc69…`). No bypass.
+  - **Meshy**: public Next.js app captured (328 events, 231 script events; 143
+    bodies declared) but only **9 JS files (773,748 bytes)** had usable bytes;
+    static analysis found 0 routes/endpoints → **partial/inconclusive**
+    (`ev_d36fb95e…` capture, `ev_19d149e4…` export, `ev_c4d5b4c7…` analysis).
+  - Actionable mechanism evidence stays with the public API schemas in the
+    2026-10-18 survey.
+
 ## 2026-10-19 — pulled generate dry-run + MCP smoke; fixed the smoke test on Windows
 
 - `git pull --ff-only` adopted 874f74b with **no conflicts** (local was 0 ahead,
