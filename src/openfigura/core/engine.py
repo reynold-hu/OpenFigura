@@ -683,6 +683,7 @@ def compare(task: Task, artifacts: list[str], views: list[str] | None = None) ->
     if not all(isinstance(view, str) and view for view in views):
         raise ValueError('views must be non-empty strings')
     candidates = []
+    from openfigura.core.texture_stats import base_color_stats
     for name in artifacts:
         model = _model(task, name)
         if not model.is_file():
@@ -693,7 +694,8 @@ def compare(task: Task, artifacts: list[str], views: list[str] | None = None) ->
             'bytes': model.stat().st_size,
             'inspection': {key: report.get(key) for key in
                            ('ok', 'meshes', 'triangles', 'has_uv', 'has_skinning',
-                            'joint_count', 'animation_clips')}})
+                            'joint_count', 'animation_clips')},
+            'texture': base_color_stats(model)})
     images = {'status': 'unavailable', 'reason': 'Pillow is not installed', 'files': []}
     try:
         from PIL import Image

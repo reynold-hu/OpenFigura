@@ -252,7 +252,11 @@ existing review (use a fresh task for a new verdict). `publish` copies the
 approved artifact, `review.json`, renders, provenance and an `export-manifest.json`
 whose `approval`/`published` blocks record who approved which bytes.
 `compare` writes `compare.json` (SHA-256, bytes, inspection fields) and, when
-Pillow and matching renders exist, `compare/<view>.png` composites. MCP mirrors:
+Pillow and matching renders exist, `compare/<view>.png` composites. Each
+candidate also carries `texture` atlas statistics (`dark_fraction`,
+`near_white_fraction`, `mean_rgb`, size, sha) explicitly labelled a **proxy**:
+they surface "this seed painted no dark brow/iris pigment" without pretending
+to be a quality verdict. MCP mirrors:
 `figura_review`, `figura_publish`, `figura_compare`.
 
 ## Texture refinement and experimental rigging

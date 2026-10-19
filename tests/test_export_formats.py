@@ -251,6 +251,8 @@ def test_compare_reports_candidates_and_optional_images(tmp_path):
     result = engine.compare(task, ['model.glb', 'model-alt.glb'], views=['front'])
     assert {c['artifact'] for c in result['candidates']} == {'model.glb', 'model-alt.glb'}
     assert all(c['inspection']['ok'] for c in result['candidates'])
+    assert all(c['texture']['status'] in {'measured', 'unavailable'}
+               for c in result['candidates'])
     assert (task.root / 'compare.json').is_file()
     assert result['images']['status'] in {'composed', 'unavailable'}
     with pytest.raises(ValueError, match='at least two'):
