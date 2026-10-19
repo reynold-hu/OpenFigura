@@ -4,9 +4,10 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
-import selectors
+import queue
 import subprocess
 import sys
+import threading
 from pathlib import Path
 
 import pytest
@@ -21,18 +22,27 @@ def _send(proc: subprocess.Popen, payload: dict) -> None:
     proc.stdin.flush()
 
 
+def _pump(stream, sink: queue.Queue) -> None:
+    for line in stream:
+        sink.put(line)
+    sink.put(None)
+
+
 def _read(proc: subprocess.Popen, timeout: float = 30.0) -> dict:
-    assert proc.stdout is not None
-    selector = selectors.DefaultSelector()
-    selector.register(proc.stdout, selectors.EVENT_READ)
+    # A reader thread works on Windows too; selectors cannot select on pipes
+    # there (the POSIX-only version of this test timed out on the RTX 4060 box).
+    lines = proc._smoke_lines
     try:
-        if not selector.select(timeout):
-            stderr = proc.stderr.read() if proc.stderr else ""
-            raise AssertionError(f"MCP server did not reply in {timeout}s: {stderr[-1000:]}")
-        line = proc.stdout.readline()
-    finally:
-        selector.close()
-    assert line, "MCP server closed stdout"
+        line = lines.get(timeout=timeout)
+    except queue.Empty:
+        proc.terminate()
+        try:
+            proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+        stderr = proc.stderr.read() if proc.stderr else ""
+        raise AssertionError(f"MCP server did not reply in {timeout}s: {stderr[-1000:]}")
+    assert line is not None, "MCP server closed stdout"
     return json.loads(line)
 
 
@@ -44,7 +54,10 @@ def server():
         [sys.executable, "-m", "openfigura.mcp_server"],
         cwd=Path(__file__).resolve().parents[1], env=env,
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        text=True, bufsize=1)
+        text=True, encoding="utf-8", errors="replace", bufsize=1)
+    lines: queue.Queue = queue.Queue()
+    threading.Thread(target=_pump, args=(proc.stdout, lines), daemon=True).start()
+    proc._smoke_lines = lines
     try:
         yield proc
     finally:

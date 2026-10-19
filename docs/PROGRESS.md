@@ -3,6 +3,23 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-19 — pulled generate dry-run + MCP smoke; fixed the smoke test on Windows
+
+- `git pull --ff-only` adopted 874f74b with **no conflicts** (local was 0 ahead,
+  1 behind). The update adds `generate --dry-run` / `figura_generate(dry_run=true)`
+  and an MCP stdio smoke test plus CI workflow.
+- Dry-run verified on this box, task `win-run-2026-10-18/xiaoman`, backend
+  pixal3d: exit 0, 0.0 s, `writes: []`, **provenance.json mtime unchanged**,
+  plan status `planned`, budget credits 0 and the uncalibrated wall-time note.
+  No backend process, ledger entry or artifact was created.
+- The new `tests/test_mcp_smoke.py` failed on Windows: it used
+  `selectors.DefaultSelector` on a subprocess pipe, which `SelectSelector`
+  cannot wait on (the test timed out). Replaced with a reader thread + queue
+  and forced UTF-8 stdio for the JSON-RPC child; timeout now terminates the
+  child before reading stderr. Test passes here (0.93 s). Full suite on this
+  box: **647 passed, 5 skipped, 0 failed** in 111.39 s
+  (`.local/runs/2026-10-19-pull/pytest.txt`).
+
 ## 2026-10-18 (later) — REA ComfyUI shell analysis completed; correction to the survey note
 
 - The entry below recorded the REA ASAR run as partial while it was still
