@@ -315,6 +315,35 @@ def main(argv: list[str] | None = None) -> int:
                         "each preset records which claims are verified")
     p.set_defaults(func=_cmd_export)
 
+    p = sub.add_parser("review", help="record a human visual verdict, pinned to artifact bytes")
+    p.add_argument("task")
+    p.add_argument("--artifact", default="model.glb")
+    p.add_argument("--verdict", required=True, choices=["approved", "rejected"])
+    p.add_argument("--reviewer", required=True,
+                   help="human name/handle stored verbatim; the runner never infers approval")
+    p.add_argument("--note", default="")
+    p.set_defaults(func=lambda a: _print(engine.review(
+        Task.open(Path(a.task)), a.verdict, a.reviewer, note=a.note, artifact=a.artifact)))
+
+    p = sub.add_parser("publish", help="deliver an approved artifact "
+                       "(requires a recorded human review; published manifests are immutable)")
+    p.add_argument("task")
+    p.add_argument("--artifact", default="model.glb")
+    p.add_argument("--dest", required=True)
+    p.set_defaults(func=lambda a: _print(engine.publish(
+        Task.open(Path(a.task)), Path(a.dest), artifact=a.artifact)))
+
+    p = sub.add_parser("compare", help="compare candidate GLBs structurally and "
+                       "compose side-by-side renders when possible")
+    p.add_argument("task")
+    p.add_argument("--artifacts", required=True,
+                   help="comma-separated artifact names (at least two)")
+    p.add_argument("--views", default="front,side,three-quarter,back")
+    p.set_defaults(func=lambda a: _print(engine.compare(
+        Task.open(Path(a.task)),
+        [x.strip() for x in a.artifacts.split(',') if x.strip()],
+        views=[x.strip() for x in a.views.split(',') if x.strip()])))
+
     args = parser.parse_args(argv)
     try:
         args.func(args)

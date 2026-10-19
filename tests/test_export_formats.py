@@ -201,3 +201,57 @@ def test_cli_rejects_preset_with_non_fbx_format(tmp_path, monkeypatch):
 def test_cli_rejects_unknown_preset_name():
     with pytest.raises(SystemExit):
         main(['export', 'x', '--dest', 'y', '--format', 'fbx', '--fbx-preset', 'maya'])
+
+def test_export_manifest_records_schema_inspection_and_approval(tmp_path):
+    task = task_with_glb(tmp_path)
+    manifest = engine.export(task, tmp_path / 'out', fmt='glb')
+    assert manifest['schema_version'] == 1
+    assert manifest['tool']['name'] == 'openfigura'
+    assert manifest['source_sha256'] == sha256_file(task.artifact('model.glb'))
+    assert manifest['inspection']['ok'] is True and manifest['inspection']['triangles'] >= 1
+    assert manifest['approval']['status'] == 'pending'
+    assert manifest['ledger']['entries'] >= 1
+
+
+def test_review_requires_a_human_name_and_valid_verdict(tmp_path):
+    task = task_with_glb(tmp_path)
+    with pytest.raises(ValueError, match='verdict'):
+        engine.review(task, 'maybe', 'Reynold')
+    with pytest.raises(ValueError, match='reviewer'):
+        engine.review(task, 'approved', '   ')
+
+
+def test_publish_requires_approval_then_is_immutable(tmp_path):
+    task = task_with_glb(tmp_path)
+    with pytest.raises(RuntimeError, match='review'):
+        engine.publish(task, tmp_path / 'out')
+    engine.review(task, 'rejected', 'Reynold Hu', note='face is wrong')
+    with pytest.raises(RuntimeError, match='not approved'):
+        engine.publish(task, tmp_path / 'out')
+    # a rejected review is evidence; a fresh task is needed for a new verdict
+    with pytest.raises(FileExistsError):
+        engine.review(task, 'approved', 'Reynold Hu')
+    task2 = Task.create(tmp_path / 'tasks', name='fmt2')
+    make_minimal_glb(task2.artifact('model.glb'))
+    engine.inspect(task2)
+    record = engine.review(task2, 'approved', 'Reynold Hu', note='ok')
+    assert record['visual_approval'] == 'approved' and record['artifact_sha256']
+    manifest = engine.publish(task2, tmp_path / 'out')
+    assert manifest['approval']['status'] == 'approved'
+    assert manifest['published']['state'] == 'published'
+    assert manifest['published']['reviewer'] == 'Reynold Hu'
+    assert (tmp_path / 'out' / 'review.json').is_file()
+    with pytest.raises(FileExistsError):
+        engine.publish(task2, tmp_path / 'out')
+
+
+def test_compare_reports_candidates_and_optional_images(tmp_path):
+    task = task_with_glb(tmp_path)
+    make_minimal_glb(task.artifact('model-alt.glb'))
+    result = engine.compare(task, ['model.glb', 'model-alt.glb'], views=['front'])
+    assert {c['artifact'] for c in result['candidates']} == {'model.glb', 'model-alt.glb'}
+    assert all(c['inspection']['ok'] for c in result['candidates'])
+    assert (task.root / 'compare.json').is_file()
+    assert result['images']['status'] in {'composed', 'unavailable'}
+    with pytest.raises(ValueError, match='at least two'):
+        engine.compare(task, ['model.glb'])

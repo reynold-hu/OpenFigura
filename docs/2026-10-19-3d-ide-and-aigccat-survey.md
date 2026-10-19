@@ -82,6 +82,12 @@ ledger, not a GUI.
   (capture), `ev_19d149e47858a038ba6e022d4fd60efb6d8ba4f02868dc146f4b234a51167058`
   (script export), `ev_c4d5b4c777ce6687cf36bd665ff0dda92d250b8f84cfaaabb5dfb0cc7c2c897a`
   (analysis, partial).
+- **Meshy, second route: REA MCP server OOM.** `analyze_web_bundle` against a
+  live CDP page (headless Chrome, `meshy.ai/zh`) exhausted the server's ~4 GB
+  JS heap and the MCP process exited with code 134
+  (`FATAL ERROR: Ineffective mark-compacts near heap limit`). Recorded, not
+  retried; the server is offline for the rest of this session. The capture
+  route above remains the only Meshy data.
 - The actionable mechanism evidence remains the **public API contracts** already
   recorded in `docs/2026-10-18-3d-product-mechanism-survey.md` (Meshy/Tripo/
   Hunyuan3D schemas shipped with ComfyUI).

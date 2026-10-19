@@ -3,6 +3,37 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-19 (evening) — delivery manifest, human review/publish gate, candidate compare
+
+- `export` now writes an enriched `export-manifest.json` (backward compatible):
+  `schema_version`, tool/version, `created_utc`, `source_sha256`, an
+  `inspection` summary, `approval` read from the ledger (never inferred) and a
+  `ledger` summary. Real export of `win-run-2026-10-19/head-sculpt` shows
+  `approval.status = pending`, 999,678 triangles, sha `1321735b…`.
+- New engine verbs, mirrored in CLI and MCP:
+  - `review` / `figura_review`: records an explicit human verdict
+    (`approved|rejected`) with a required reviewer name, pinned to the artifact
+    SHA-256; refuses to overwrite an existing review.
+  - `publish` / `figura_publish`: requires a recorded **approved** review with a
+    matching SHA-256; refuses to overwrite an existing delivery; the manifest
+    gains `published` (state/utc/reviewer/review sha) and `review.json` ships
+    with the delivery. Verified: `publish` on an unreviewed task fails with
+    "publish requires a recorded human review" — the agent did not self-approve.
+  - `compare` / `figura_compare`: compares two or more candidate GLBs
+    structurally (SHA-256, bytes, inspection fields) into `compare.json`; when
+    Pillow and matching renders exist it also writes `compare/<view>.png`
+    side-by-side composites.
+- Tests: 4 new (manifest fields; review validation; publish approval/immutability;
+  compare candidates). Full suite on this box: **651 passed, 5 skipped, 0 failed**
+  (`.local/runs/2026-10-19-pull/pytest-manifest-review-compare.txt`).
+- Docs updated: `docs/usage.md` (Review, publish, compare), the agent skill, and
+  the 2026-10-19 survey.
+- REA continuation: `analyze_web_bundle` against a live Meshy CDP page exhausted
+  the REA MCP server's ~4 GB JS heap and the process exited 134; recorded, not
+  retried (server offline for the session). Tripo remains Cloudflare-blocked.
+  Meshy's earlier capture route stays the only Meshy data (9/143 scripts,
+  0 routes — inconclusive).
+
 ## 2026-10-19 (later) — real generation on the updated stack; aigccat/IDE survey; REA on Tripo/Meshy
 
 - Real generation, task `C:\openfigura\work\win-run-2026-10-19\head-sculpt`

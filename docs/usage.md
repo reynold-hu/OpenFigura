@@ -235,6 +235,26 @@ runtimes are reported `unavailable`; trimesh is skipped above 300k triangles
 (`OPENFIGURA_TRIMESH_MAX_FACES`) so the report never hangs. `figura_evaluate`
 mirrors it.
 
+## Review, publish, compare
+
+```sh
+# A human records the verdict; the runner never infers it.
+openfigura review TASK --verdict approved --reviewer "Your Name" --note "ok for v1"
+# Publish requires that recorded approval, pins it to the artifact SHA-256,
+# and refuses to overwrite an existing published delivery.
+openfigura publish TASK --dest dist/published
+# Compare candidates structurally; side-by-side renders when Pillow + renders exist.
+openfigura compare TASK --artifacts model.glb,model-seed43.glb --views front,side
+```
+
+`review` writes `review.json` and a ledger entry and refuses to overwrite an
+existing review (use a fresh task for a new verdict). `publish` copies the
+approved artifact, `review.json`, renders, provenance and an `export-manifest.json`
+whose `approval`/`published` blocks record who approved which bytes.
+`compare` writes `compare.json` (SHA-256, bytes, inspection fields) and, when
+Pillow and matching renders exist, `compare/<view>.png` composites. MCP mirrors:
+`figura_review`, `figura_publish`, `figura_compare`.
+
 ## Texture refinement and experimental rigging
 
 - `refine-texture` / `figura_refine_texture`: calibrated source RGB projection;

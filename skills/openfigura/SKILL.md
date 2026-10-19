@@ -37,6 +37,11 @@ accelerators and report `unavailable` with a reason when missing.
    `--format fbx --fbx-preset blender|godot|unity|unreal`.
 8. Final handoff: `openfigura evaluate tasks/asset` writes JSON + a markdown
    report for the human (optional glTF-Validator/trimesh when configured).
+9. Human review, then publish only with a recorded verdict:
+   `openfigura review tasks/asset --verdict approved|rejected --reviewer "Name"`;
+   `openfigura publish tasks/asset --dest dist/published` (immutable manifest).
+   `openfigura compare tasks/asset --artifacts a.glb,b.glb` writes side-by-side
+   evidence. The runner never approves on its own.
 
 Every step appends to the ledger. To audit or reproduce an asset, read
 `provenance.json`, not chat history.

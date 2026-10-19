@@ -241,6 +241,29 @@ def build():
         return engine.export(Task.open(Path(task_root)), Path(dest), fmt=format,
                              artifact=artifact, options=options)
 
+    @app.tool(description="Record a human visual verdict (approved/rejected) pinned to "
+              "the artifact's SHA-256. reviewer is a required human name/handle stored "
+              "verbatim; the runner never infers approval. Refuses to overwrite an "
+              "existing review.")
+    def figura_review(task_root: str, verdict: str, reviewer: str,
+                      note: str = "", artifact: str = "model.glb") -> dict:
+        return engine.review(Task.open(Path(task_root)), verdict, reviewer,
+                             note=note, artifact=artifact)
+
+    @app.tool(description="Deliver an approved artifact. Requires a recorded human "
+              "review with verdict 'approved' and a matching SHA-256; refuses to "
+              "overwrite an existing published delivery. The manifest records the "
+              "approval and the publish event.")
+    def figura_publish(task_root: str, dest: str, artifact: str = "model.glb") -> dict:
+        return engine.publish(Task.open(Path(task_root)), Path(dest), artifact=artifact)
+
+    @app.tool(description="Compare two or more candidate GLBs structurally (SHA-256, "
+              "bytes, inspection fields) and, when Pillow and matching renders exist, "
+              "compose side-by-side PNGs. Writes compare.json; read-only otherwise.")
+    def figura_compare(task_root: str, artifacts: list[str],
+                       views: list[str] | None = None) -> dict:
+        return engine.compare(Task.open(Path(task_root)), artifacts, views=views)
+
     @app.tool(description="Skeleton and skin-weight transfer from a rigged GLB onto a "
               "matching static GLB of the same character (isolated Blender; rest-pose "
               "nearest-surface barycentric blend, top-N influences). Refuses non-overlap "

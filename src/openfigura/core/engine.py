@@ -13,9 +13,11 @@ import json
 import os
 import shutil
 import tempfile
+import time
 import uuid
 from pathlib import Path
 
+from openfigura import __version__
 from openfigura.core import registry
 from openfigura.core.contracts import AssetRef
 from openfigura.core.inspect import inspect_glb, gltf_document
@@ -485,6 +487,18 @@ def _resolve_export_options(fmt: str, options: dict | None) -> dict | None:
             'preset_note': preset['note']}
 
 
+def _approval_state(task: Task) -> dict:
+    """Read the human review state from the ledger; the runner never infers it."""
+    reviews = [entry for entry in task.entries if entry.get('step') == 'review']
+    if not reviews:
+        return {'status': 'pending', 'reviewer': None, 'utc': None,
+                'artifact_sha256': None}
+    last = reviews[-1]
+    return {'status': last.get('verdict', 'pending'),
+            'reviewer': last.get('reviewer'), 'utc': last.get('utc'),
+            'artifact_sha256': last.get('artifact_sha256')}
+
+
 def export(task: Task, dest: Path, fmt: str = "glb", artifact: str = "model.glb",
            options: dict | None = None) -> dict:
     if fmt not in SUPPORTED_FORMATS:
@@ -568,9 +582,23 @@ def export(task: Task, dest: Path, fmt: str = "glb", artifact: str = "model.glb"
     render_dir = task.root / "render" if artifact == "model.glb" else task.root / "render" / glb.stem
     for frame in sorted(render_dir.glob("*.png")):
         shutil.copy2(frame, dest / frame.name)
-    manifest = {"task_id": task.id, "artifact": artifact, "format": fmt,
-                "files": sorted(p.relative_to(dest).as_posix() for p in dest.rglob('*') if p.is_file()),
-                "glb_sha256": sha256_file(dest / output_name)}
+    manifest = {
+        "schema_version": 1,
+        "tool": {"name": "openfigura", "version": __version__},
+        "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "task_id": task.id,
+        "artifact": artifact,
+        "format": fmt,
+        "source_sha256": current_hash,
+        "glb_sha256": sha256_file(dest / output_name),
+        "files": sorted(p.relative_to(dest).as_posix() for p in dest.rglob('*') if p.is_file()),
+        "inspection": {key: current_report.get(key) for key in
+                       ('ok', 'meshes', 'triangles', 'has_uv', 'has_skinning',
+                        'joint_count', 'animation_clips')},
+        "approval": _approval_state(task),
+        "ledger": {"entries": len(task.entries),
+                   "last_step": task.entries[-1].get('step') if task.entries else None},
+    }
     if manifest_extra:
         manifest.update(manifest_extra)
     (dest / "export-manifest.json").write_text(
@@ -581,6 +609,135 @@ def export(task: Task, dest: Path, fmt: str = "glb", artifact: str = "model.glb"
                                'wall_seconds': conversion['wall_seconds']}
     task.record("export", entry)
     return manifest
+
+
+def review(task: Task, verdict: str, reviewer: str, note: str = '',
+           artifact: str = 'model.glb') -> dict:
+    """Record a human visual verdict pinned to the artifact bytes.
+
+    The runner never infers approval: ``reviewer`` is caller-supplied and stored
+    verbatim. Only an explicit human call may create this entry; the field
+    ``visual_approval`` is written from that recorded verdict, not guessed.
+    """
+    if verdict not in {'approved', 'rejected'}:
+        raise ValueError("verdict must be 'approved' or 'rejected'")
+    if not isinstance(reviewer, str) or not reviewer.strip():
+        raise ValueError('reviewer must be a non-empty human name or handle')
+    if not isinstance(note, str) or len(note) > 2000:
+        raise ValueError('note must be a string up to 2000 characters')
+    model = _model(task, artifact)
+    if not model.is_file():
+        raise FileNotFoundError('nothing to review; run generate first')
+    review_path = task.root / ('review.json' if artifact == 'model.glb'
+                               else model.stem + '-review.json')
+    if review_path.exists():
+        raise FileExistsError('review already recorded; use a fresh task to preserve evidence')
+    record = {'schema_version': 1, 'artifact': artifact,
+              'artifact_sha256': sha256_file(model), 'verdict': verdict,
+              'reviewer': reviewer.strip(), 'note': note,
+              'utc': time.time(), 'visual_approval': verdict}
+    review_path.write_text(json.dumps(record, indent=2) + '\n', encoding='utf-8')
+    task.record('review', record)
+    return record
+
+
+def publish(task: Task, dest: Path, artifact: str = 'model.glb') -> dict:
+    """Deliver an approved artifact; a published manifest is never overwritten."""
+    model = _model(task, artifact)
+    if not model.is_file():
+        raise FileNotFoundError('nothing to publish; run generate first')
+    review_path = task.root / ('review.json' if artifact == 'model.glb'
+                               else model.stem + '-review.json')
+    if not review_path.is_file():
+        raise RuntimeError('publish requires a recorded human review; run review first')
+    record = json.loads(review_path.read_text(encoding='utf-8'))
+    if record.get('verdict') != 'approved':
+        raise RuntimeError('publish refused: the recorded review is not approved')
+    if record.get('artifact_sha256') != sha256_file(model):
+        raise RuntimeError('publish refused: artifact changed since review; review again')
+    dest = Path(dest)
+    if (dest / 'export-manifest.json').exists():
+        raise FileExistsError('refusing to overwrite a published delivery')
+    manifest = export(task, dest, fmt='glb', artifact=artifact)
+    shutil.copy2(review_path, dest / review_path.name)
+    manifest['published'] = {'state': 'published', 'utc': time.time(),
+                             'reviewer': record['reviewer'],
+                             'review_sha256': sha256_file(review_path)}
+    manifest['files'] = sorted(p.relative_to(dest).as_posix()
+                               for p in dest.rglob('*') if p.is_file())
+    (dest / 'export-manifest.json').write_text(
+        json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
+    task.record('publish', {'dest': str(dest), 'artifact': artifact,
+                            'reviewer': record['reviewer'],
+                            'review_sha256': sha256_file(review_path)})
+    return manifest
+
+
+def compare(task: Task, artifacts: list[str], views: list[str] | None = None) -> dict:
+    """Compare candidate GLBs structurally; compose side-by-side renders if possible."""
+    if not isinstance(artifacts, list) or len(artifacts) < 2:
+        raise ValueError('compare needs at least two artifact names')
+    if not all(isinstance(name, str) and name for name in artifacts):
+        raise ValueError('artifact names must be non-empty strings')
+    views = list(views or ['front', 'side', 'three-quarter', 'back'])
+    if not all(isinstance(view, str) and view for view in views):
+        raise ValueError('views must be non-empty strings')
+    candidates = []
+    for name in artifacts:
+        model = _model(task, name)
+        if not model.is_file():
+            raise FileNotFoundError(model)
+        report = inspect_glb(model)
+        candidates.append({
+            'artifact': name, 'sha256': sha256_file(model),
+            'bytes': model.stat().st_size,
+            'inspection': {key: report.get(key) for key in
+                           ('ok', 'meshes', 'triangles', 'has_uv', 'has_skinning',
+                            'joint_count', 'animation_clips')}})
+    images = {'status': 'unavailable', 'reason': 'Pillow is not installed', 'files': []}
+    try:
+        from PIL import Image
+    except ImportError:
+        pass
+    else:
+        made = []
+        out_dir = task.root / 'compare'
+        for view in views:
+            files = []
+            for name in artifacts:
+                stem = Path(name).stem
+                render_dir = task.root / 'render' if name == 'model.glb' \
+                    else task.root / 'render' / stem
+                frame = render_dir / f'{view}.png'
+                if not frame.is_file():
+                    files = []
+                    break
+                files.append(frame)
+            if not files:
+                continue
+            out_dir.mkdir(exist_ok=True)
+            loaded = [Image.open(frame).convert('RGB') for frame in files]
+            width = sum(image.width for image in loaded)
+            height = max(image.height for image in loaded)
+            canvas = Image.new('RGB', (width, height), (255, 255, 255))
+            x = 0
+            for image in loaded:
+                canvas.paste(image, (x, 0))
+                x += image.width
+            target = out_dir / f'{view}.png'
+            canvas.save(target)
+            made.append(target.relative_to(task.root).as_posix())
+        images = ({'status': 'composed', 'reason': None, 'files': made}
+                  if made else {'status': 'unavailable',
+                                'reason': 'renders are missing for one or more candidates',
+                                'files': []})
+    result = {'schema_version': 1, 'task_id': task.id,
+              'candidates': candidates, 'views': views, 'images': images}
+    (task.root / 'compare.json').write_text(
+        json.dumps(result, indent=2) + '\n', encoding='utf-8')
+    task.record('compare', {'artifacts': artifacts, 'report': 'compare.json',
+                            'images': images['status']})
+    return result
 
 
 def refine_texture(task: Task, views_dir: Path, roi_mask: Path | None = None,
