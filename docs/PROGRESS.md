@@ -3,6 +3,36 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-19 (late) — four-seed compare explains the pale-brow difference
+
+- Generated seeds 44 and 45 for the same head-sculpt input (pixal3d):
+  seed 44 **exit 0, 302.04 s**, sha
+  `bda09c0b5177daa0532fe64e70a4e1db155953691bb7b49c0aa02381f48c4e0a`,
+  990,366 triangles; seed 45 **exit 0, 281.16 s**, sha
+  `b4a812c70f4181ce3be48d59abaaf06617de1d847fdec5b7369e99859f8baa80`,
+  975,280 triangles. Both copied into the seed-42 task and rendered with the
+  same camera, then `compare --artifacts model.glb,model-seed43.glb,
+  model-seed44.glb,model-seed45.glb --views front`.
+- The observation (left dark, right white brows/eyes) is **seed-level
+  texture variance, not a colour/material/render bug**. Material factors are
+  identical (metallic 1.0, roughness 1.0), same camera/lights, and the new
+  atlas proxy shows:
+  | candidate | triangles | dark_fraction | near_white_fraction |
+  |---|---|---|---|
+  | seed 42 | 999,678 | 0.00637 | 0.152 |
+  | seed 43 | 952,172 | 0.00012 | 0.177 |
+  | seed 44 | 990,366 | 0.02004 | 0.082 |
+  | seed 45 | 975,280 | 0.00008 | 0.356 |
+  Seed 43/45 essentially contain no dark brow/iris pigment; seed 44 has the
+  most, seed 42 is in between and renders natural dark brows. The 4-way
+  `compare/front.png` shows the same ordering.
+- `compare` now carries the atlas statistics per candidate (`texture` block:
+  status/sha/size/mean_rgb/dark_fraction/near_white_fraction), labelled a
+  proxy — not a quality verdict. Tests: 653 passed, 5 skipped, 0 failed.
+- `visual_approval` remains **pending** for every candidate. No verdict was
+  recorded by the agent; review/publish require the human's explicit
+  `review --verdict approved|rejected --reviewer <name>`.
+
 ## 2026-10-19 (night) — candidate compare demonstrated on two real seeds
 
 - Generated a second candidate for the same head-sculpt input: seed 43,
