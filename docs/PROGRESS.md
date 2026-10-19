@@ -3,6 +3,25 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-19 (night) — candidate compare demonstrated on two real seeds
+
+- Generated a second candidate for the same head-sculpt input: seed 43,
+  pixal3d, **exit 0, 312 s**, output sha
+  `d7fa19bfaea8d8d051f2aae56d9869d2e92cf8f52f45f5457775f44bf696a534`,
+  952,172 triangles, UV present, inspect ok.
+- Copied it into the seed-42 task as `model-seed43.glb`, rendered it with the
+  same camera (`render --artifact model-seed43.glb --samples 32 --facing 180`,
+  15.95 s), then ran
+  `openfigura compare ... --artifacts model.glb,model-seed43.glb --views front,side`.
+  Result: `compare.json` with both SHA-256/byte/inspection rows and
+  **`compare/front.png` + `compare/side.png` composed** (Pillow available).
+  The front composite shows the two seeds side by side on the same grey
+  background; visible differences are brow colour/shape and face width.
+  `visual_approval` stays pending — the composite is material for the human,
+  not a verdict.
+- Evidence: `C:\openfigura\work\win-run-2026-10-19\head-sculpt\compare\`
+  and the task ledger (`compare` entry).
+
 ## 2026-10-19 (evening) — delivery manifest, human review/publish gate, candidate compare
 
 - `export` now writes an enriched `export-manifest.json` (backward compatible):
