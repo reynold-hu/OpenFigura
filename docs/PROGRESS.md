@@ -3,6 +3,25 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-21 — human approval recorded; seed 44 published
+
+- The human explicitly approved seed 44 with a named reviewer. Recorded:
+  `openfigura review ... --verdict approved --reviewer "Reynold Hu" --note
+  "seed 44 chosen after four-way compare (dark_fraction 2.004%)"`.
+  `review.json` pins the verdict to artifact sha
+  `bda09c0b5177daa0532fe64e70a4e1db155953691bb7b49c0aa02381f48c4e0a`.
+  This is the only approval recorded; the agent did not infer one.
+- `openfigura publish ... --dest delivery-seed44` succeeded. The delivery
+  contains the GLB, four renders, `inspect.json`, `provenance.json`,
+  `review.json` and `export-manifest.json`; the manifest carries
+  `approval.status = approved` (reviewer Reynold Hu) and
+  `published.state = published` with the review sha.
+- Ledger for `head-sculpt-seed44` now has 7 entries ending
+  `review(approved)` → `export` → `publish`. Published manifests are
+  immutable by contract (a second publish to the same dest refuses).
+- Evidence: `C:\openfigura\work\win-run-2026-10-19\head-sculpt-seed44\` and
+  `...\delivery-seed44\`.
+
 ## 2026-10-19 (late) — four-seed compare explains the pale-brow difference
 
 - Generated seeds 44 and 45 for the same head-sculpt input (pixal3d):
