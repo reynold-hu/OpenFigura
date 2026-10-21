@@ -3,6 +3,36 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-21 (later) — engine FBX presets, motion on the full-body rig, texture refinement
+
+- **(a) Engine FBX exports of the published seed 44** (same GLB sha
+  `bda09c0b…`, four destinations `delivery-seed44-fbx-<preset>`):
+  `blender` 12 s / `godot` 8 s / `unity` 7 s / `unreal` 7 s, all exit 0.
+  Manifests record the resolved axes and verification status: blender
+  (-Z/Y, no bake, round-trip verified), godot (-Z/Y, bake, import verified),
+  unity (-Z/Y, bake, convention-only), unreal (X/Z, bake, convention-only).
+  Converted FBX hashes differ per preset as expected.
+- **(b) MIA on seed 44 fails honestly — it is a bust with no limbs.** The
+  continuity gate reports wrist/knee gaps 4.2–8.4% (threshold 3%):
+  LeftForeArm→LeftHand 0.04241, LeftUpLeg→LeftLeg 0.04233,
+  RightArm→RightForeArm 0.0835, RightForeArm→RightHand 0.05459,
+  RightUpLeg→RightLeg 0.02402. No rig was produced. Fallback: re-rigged the
+  full-body xiaoman with MIA (pass, 52 joints, sha `69ccf5e0…`) and delivered
+  a turn motion: `An object turns around.`, 3 reps, explicit hands-vs-torso
+  regions, **602 s, 3/3 gate pass**, output sha `b21132d7…` (byte-identical to
+  the earlier turn on the same rig — deterministic).
+- **(c) Texture refinement on seed 44**: `refine-texture --views
+  head-sculpt-c/artifacts/model.svviews --strength 1.0` ran in 8.51 s,
+  produced `model-refined.glb` sha `2728afab…`, **geometry unchanged** and
+  non-baseColor buffers identical, 24.7% of the atlas with trust > 0.5.
+  Before/after compare: dark_fraction 0.02004 → 0.02064, near-white
+  0.0816 → 0.0959, mean RGB 158.7/138.4/131.0 → 163.9/145.7/138.2 — a subtle
+  brightening, not a new asset. Hands: seed 44 has none (bust); the full-body
+  xiaoman's hands remain limited by source geometry (no topology repair).
+  The refined candidate is unreviewed (`visual_approval` pending).
+- Evidence: `C:\openfigura\work\win-run-2026-10-19\` (fbx destinations,
+  `xiaoman-mia-motion`, `head-sculpt-seed44/compare/front.png`).
+
 ## 2026-10-21 — human approval recorded; seed 44 published
 
 - The human explicitly approved seed 44 with a named reviewer. Recorded:
