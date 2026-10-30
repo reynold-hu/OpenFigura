@@ -3,6 +3,20 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-30 Blender Skills research and OpenFigura alignment
+
+- Reviewed `arjun988/blender-skills` at commit
+  `8f778d2405a214b508d4c7d80742be8e43acdd52` (MIT). It is a 94-skill/175-reference
+  workflow pack that routes requests to BlenderMCP; it does not replace geometry,
+  skinning, motion or collision algorithms. Full clone remains in
+  `~/Desktop/Local/Opensource/blender-skills`; no upstream code or addon copied.
+- Compared its director, reference-match, optimization, rigging, collision,
+  export and QA patterns with OpenFigura's engine/CLI/MCP/ledger. Added a compact
+  director route and QA evidence rules to `skills/openfigura/SKILL.md`; OpenFigura
+  engine remains authoritative and `visual_approval` remains human-only.
+- Added `docs/2026-10-30-blender-skills-research.md`. No model, weight, addon or
+  external Blender session was run; this is a design alignment, not a quality pass.
+
 ## 2026-10-30 Disney Generative Motion Rig research
 
 - Fast-forwarded OpenFigura main from `874f74b` to `c3758bb`; protected user

@@ -20,6 +20,17 @@ accelerators and report `unavailable` with a reason when missing.
 
 ## One workflow
 
+### Director routing
+
+For multi-stage Blender work, route the request through this compact pipeline:
+
+`analyze → brief → generate/model → UV/material → rig/skin → motion gate → export → QA`
+
+Map each stage to an existing OpenFigura engine verb before invoking Blender. A
+stage is complete only when its declared output, hash, ledger entry, and required
+real render exist. Skill text or a successful Blender command is not visual or
+collision acceptance.
+
 1. `openfigura preflight ref.png` — errors stop; warnings are decisions.
    Add `--face` for realistic portraits: it estimates the face size at 1024
    and warns about cropping (stylized art may report `no_face`; not an error).
@@ -49,6 +60,15 @@ Every step appends to the ledger. To audit or reproduce an asset, read
 ## Rules
 
 - `visual_approval` is a human field. Show renders; never declare "good".
+- QA must include a three-quarter/side view, material view, and an animation or
+  deformation frame when the asset is rigged. A missing frame is `unavailable`,
+  not an implicit pass.
+- Keep candidate comparison separate from publication: compare same-camera
+  renders, record the candidate hashes, and leave `visual_approval` pending until
+  a human reviews them.
+- Blender MCP is an optional execution adapter. It must return through the
+  OpenFigura engine so input hashes, failure isolation, cached identity, and
+  `.local/runs/<batch>/` evidence remain authoritative.
 - One reference view per generate; never feed a multi-view sheet to a
   single-view backend.
 - Reuse the recorded seed for "the same" asset; a new seed is a new candidate.
