@@ -30,6 +30,19 @@ proves it. Intentions live in `ROADMAP.md`, not here.
   original records were copied into OpenFigura; only design research was added in
   `docs/2026-10-30-ruic-poseatlas-research.md`.
 
+## 2026-10-30 Customuse Smart Mesh research
+
+- Review of the attached screenshot and current Customuse pages identifies the
+  relevant feature as Smart Mesh AI / Adaptive Character Clothing: geometry-aware
+  garment fitting across body shapes with simulation controls. It is a hosted
+  beta workflow, not an open-weight model or public Blender implementation.
+- The transferable product idea is a separate garment-fitting stage between body
+  generation and skin/motion QA. Proposed contract:
+  `body + garment + rest rig → garment fit → skin/contact probe → motion gate → export`.
+- No Customuse login, upload, plugin installation, or closed-source copying was
+  performed. No garment-fit backend has been implemented; report and limits are
+  in `docs/2026-10-30-customuse-smart-mesh-research.md`.
+
 ## 2026-10-30 Disney Generative Motion Rig research
 
 - Fast-forwarded OpenFigura main from `874f74b` to `c3758bb`; protected user
