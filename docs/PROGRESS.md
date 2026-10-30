@@ -3,6 +3,25 @@
 Facts only, newest first. Each entry names the command or artifact that
 proves it. Intentions live in `ROADMAP.md`, not here.
 
+## 2026-10-30 Disney Generative Motion Rig research
+
+- Fast-forwarded OpenFigura main from `874f74b` to `c3758bb`; protected user
+  `golden/cases/*/candidates/` remained untracked and untouched.
+- Official Disney Research page confirms the 2026 Generative Motion Rig is a
+  proprietary Blender plugin with sparse handles/poses, local windows, noise
+  sampling and motion editing. The public page exposes paper/video only; no
+  plugin source, weights or installer was found. Its copyright notice restricts
+  redistribution without permission.
+- Cloned fixed commits into `~/Desktop/Local/Opensource`: Kimodo Motion,
+  UniMate-B3D, Rigger, Open Mocap and HY-Motion `motion_gen`. Compared README,
+  requirements and licenses. UniMate-B3D is the best UX reference; Kimodo is
+  the strongest Apple MPS candidate; Rigger is the strongest rig/skin/retarget
+  candidate. No external weights were installed and no code was copied into
+  OpenFigura in this research step.
+- Full local verification from the new upstream state remains available; this
+  research does not claim motion quality or collision safety. See
+  `docs/2026-10-30-generative-motion-rig-research.md`.
+
 ## 2026-10-21 (later) — engine FBX presets, motion on the full-body rig, texture refinement
 
 - **(a) Engine FBX exports of the published seed 44** (same GLB sha
