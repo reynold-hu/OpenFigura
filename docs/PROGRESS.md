@@ -17,6 +17,19 @@ proves it. Intentions live in `ROADMAP.md`, not here.
 - Added `docs/2026-10-30-blender-skills-research.md`. No model, weight, addon or
   external Blender session was run; this is a design alignment, not a quality pass.
 
+## 2026-10-30 RuiC-PoseAtlas research
+
+- Reviewed and sparsely cloned `HRuiCcc/RuiC-PoseAtlas` at
+  `cc1f0b72575a88272f31ac75edf49fbc94902dc9` into `~/Desktop/Local/Opensource`.
+  Current README describes pose, costume and face atlases: 288 pose sets/1,439
+  line-art views, 1,407 clothing sets and 1,499 AI portraits.
+- The useful OpenFigura idea is an input reference catalog: explicit pose/face/
+  costume slots, source/hash/license metadata, and candidate comparison before
+  generation. It is not a geometry, texture, rig or motion backend.
+- The repo MIT license explicitly excludes image/data/name assets. No images or
+  original records were copied into OpenFigura; only design research was added in
+  `docs/2026-10-30-ruic-poseatlas-research.md`.
+
 ## 2026-10-30 Disney Generative Motion Rig research
 
 - Fast-forwarded OpenFigura main from `874f74b` to `c3758bb`; protected user
