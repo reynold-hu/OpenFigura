@@ -68,6 +68,59 @@ def test_malformed_index_count_is_floored_and_flagged(tmp_path):
     assert not report["ok"]
 
 
+def _tamper_doc(path: Path, mutate) -> None:
+    """Rewrite the JSON chunk after applying mutate(doc) (BIN untouched)."""
+    raw = path.read_bytes()
+    (json_size,) = struct.unpack_from("<I", raw, 12)
+    doc = json.loads(raw[20:20 + json_size].decode())
+    mutate(doc)
+    encoded = json.dumps(doc).encode()
+    encoded += b" " * (-len(encoded) % 4)
+    binchunk = raw[20 + json_size:]
+    (bin_size,) = struct.unpack_from("<I", binchunk, 0)
+    blob = binchunk[8:8 + bin_size]
+    total = 12 + 8 + len(encoded) + 8 + len(blob)
+    path.write_bytes(struct.pack("<III", 0x46546C67, 2, total)
+                     + struct.pack("<II", len(encoded), 0x4E4F534A) + encoded
+                     + struct.pack("<II", len(blob), 0x004E4942) + blob)
+
+
+def _bad_texture_material(doc, **kw):
+    doc["materials"] = [{"pbrMetallicRoughness": {"baseColorTexture": {"index": 0}}}]
+    doc.update(kw)
+
+
+def test_dangling_texture_reference_is_flagged_not_crash(tmp_path):
+    # No "textures" array at all: previously raised KeyError out of inspect.
+    path = write_glb(tmp_path / "notex.glb", [QUAD_INDEXED])
+    _tamper_doc(path, lambda doc: _bad_texture_material(doc))
+    report = inspect_glb(path)
+    assert "unreadable baseColorTexture texture reference" in report["problems"]
+    assert not report["ok"]
+
+
+def test_out_of_range_texture_index_is_flagged(tmp_path):
+    path = write_glb(tmp_path / "badtex.glb", [QUAD_INDEXED])
+    _tamper_doc(path, lambda doc: _bad_texture_material(
+        doc, textures=[{"source": 0}], images=[{"name": "atlas.png"}]))
+    # Texture 0 exists but the material points at index 0 while only one
+    # texture is present -- rewrite the reference to an out-of-range index.
+    _tamper_doc(path, lambda doc: doc["materials"][0]["pbrMetallicRoughness"]
+                ["baseColorTexture"].update(index=7))
+    report = inspect_glb(path)
+    assert "unreadable baseColorTexture texture reference" in report["problems"]
+    assert not report["ok"]
+
+
+def test_out_of_range_image_source_is_flagged(tmp_path):
+    path = write_glb(tmp_path / "badimg.glb", [QUAD_INDEXED])
+    _tamper_doc(path, lambda doc: _bad_texture_material(
+        doc, textures=[{"source": 5}], images=[{"name": "atlas.png"}]))
+    report = inspect_glb(path)
+    assert "unreadable baseColorTexture texture reference" in report["problems"]
+    assert not report["ok"]
+
+
 def test_index_accessor_out_of_range_is_flagged(tmp_path):
     path = write_glb(tmp_path / "oor.glb", [QUAD_INDEXED])
     _tamper_indices(path, 99)

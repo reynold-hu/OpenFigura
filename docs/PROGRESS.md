@@ -2025,3 +2025,24 @@ Work continues on branch `codex/3d-loop` (worktree
 - **Not done**: no push (branch only, awaiting owner review); real-model
   validation still needs a generated GLB from the Windows machine (repo
   holds no GLBs by design).
+
+## 2026-10-31 — inspect texture references: dangling refs flagged, not a crash
+
+- **Fix (branch `fix-inspect-bad-texture-refs`, unpushed, not on main)**:
+  `inspect_glb`'s texture lookup raised `KeyError`/`IndexError` out of the
+  call when a material referenced a texture with no `textures` array, an
+  out-of-range texture index, or an out-of-range image source — crashing
+  the scorecard/export path instead of failing closed. Now the lookup is
+  guarded and the file reports
+  `unreadable baseColorTexture texture reference` in `problems`
+  (`ok: false`); well-formed texture references are unchanged, and a
+  material with no texture reference still reports `None`, not a problem.
+- **Tests**: 3 new tests in `tests/test_inspect.py` (missing `textures`
+  array, out-of-range texture index, out-of-range image source), each
+  asserting the problem string and `ok: false` instead of an exception.
+- **Proof**: `.venv/bin/python -m pytest tests/test_inspect.py -q` →
+  8 passed; full `.venv/bin/python -m pytest tests -q` → **660 passed,
+  6 skipped**, 9.64 s, pure CPU, no GPU/weights. Verified on VM.
+- **Not done**: no push (branch only, awaiting owner review); same
+  real-model caveat as above — no generated GLB in the repo to try this
+  against.

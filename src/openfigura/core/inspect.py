@@ -55,13 +55,25 @@ def inspect_glb(path: Path) -> dict:
     materials = gltf.get("materials", [])
     pbr = [m for m in materials if "pbrMetallicRoughness" in m]
 
+    texture_problems: list[str] = []
+
     def tex_ref(mat, key):
-        tex = mat.get("pbrMetallicRoughness", {}).get(key) or mat.get(key) or {}
-        idx = tex.get("index")
-        if idx is None:
+        # A dangling texture/image reference is a reportable problem, not a
+        # crash: inspect feeds the scorecard and the export gate, so a
+        # malformed material must fail closed with ok=false, as malformed
+        # index sources already do above.
+        try:
+            tex = mat.get("pbrMetallicRoughness", {}).get(key) or mat.get(key) or {}
+            idx = tex.get("index")
+            if idx is None:
+                return None
+            src = gltf["textures"][idx].get("source")
+            return gltf["images"][src].get("name", f"image{src}") if src is not None else None
+        except (AttributeError, KeyError, IndexError, TypeError):
+            problem = f"unreadable {key} texture reference"
+            if problem not in texture_problems:
+                texture_problems.append(problem)
             return None
-        src = gltf["textures"][idx].get("source")
-        return gltf["images"][src].get("name", f"image{src}") if src is not None else None
 
     accessors = gltf.get("accessors", [])
 
@@ -125,6 +137,7 @@ def inspect_glb(path: Path) -> dict:
     if report["primitives"] and not report["materials_with_pbr"]:
         problems.append("primitives present but no PBR material")
     problems.extend(triangle_problems)
+    problems.extend(texture_problems)
     report["problems"] = problems
     report["ok"] = not problems
     return report
