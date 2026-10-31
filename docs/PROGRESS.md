@@ -2001,3 +2001,27 @@ Work continues on branch `codex/3d-loop` (worktree
   with a `partcrafter-out/<character>/ + meta.json` ingest contract for the
   future adapter, bring-back list, NC licence red lines, and an explicit
   unverified checklist — first real Windows log beats ten pages of plan.
+
+## 2026-10-31 — inspect triangle counting: non-indexed primitives + malformed index sources
+
+- **Fix (branch `fix-inspect-nonindexed-triangles`, unpushed)**: `inspect_glb`
+  previously reported 0 triangles for non-indexed primitives (valid glTF;
+  printability already handled them) and silently 0 for malformed index
+  sources. Now: non-indexed primitives count POSITION vertices in triples;
+  an index count not divisible by 3 counts floored and is flagged in
+  `problems`; an out-of-range index accessor is flagged. Behavior note:
+  flagged files now fail inspection, so the export gate (which refuses
+  assets with inspection problems) refuses malformed-index files —
+  previously they exported with `ok: true` and 0 triangles. Indexed
+  well-formed behavior unchanged.
+- **Tests**: new `tests/test_inspect.py` (5 tests, reusing
+  `test_printability.write_glb`): indexed quad 2, non-indexed quad 2,
+  mixed 4, malformed 7-index → 2 + flagged + not ok, out-of-range
+  accessor → 0 + flagged + not ok.
+- **Proof**: `.venv/bin/python -m pytest tests -q` → **657 passed,
+  6 skipped** (baseline before this change was 652 passed; +5 are the new
+  tests), 9.10 s, pure CPU, no GPU/weights. Verified on VM (no Blender,
+  no backends).
+- **Not done**: no push (branch only, awaiting owner review); real-model
+  validation still needs a generated GLB from the Windows machine (repo
+  holds no GLBs by design).

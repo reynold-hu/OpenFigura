@@ -65,12 +65,36 @@ def inspect_glb(path: Path) -> dict:
 
     accessors = gltf.get("accessors", [])
 
-    def prim_triangles(p: dict) -> int:
+    def prim_triangles(p: dict) -> tuple[int, str | None]:
+        """Count triangles for one primitive.
+
+        Indexed primitives use the index count. Non-indexed primitives are
+        valid glTF and count POSITION vertices in triples; previously they
+        silently reported 0. A malformed index source is counted floored
+        and flagged instead of silently reporting 0, matching printability's
+        fail-closed stance (and therefore the export gate, which refuses
+        assets whose inspection reports problems).
+        """
         idx = p.get("indices")
-        if idx is None or idx >= len(accessors):
-            return 0
+        if idx is None:
+            pos = p.get("attributes", {}).get("POSITION")
+            if pos is None or pos >= len(accessors):
+                return 0, None
+            return accessors[pos].get("count", 0) // 3, None
+        if idx >= len(accessors):
+            return 0, "index accessor out of range"
         count = accessors[idx].get("count", 0)
-        return count // 3 if count % 3 == 0 else 0
+        if count % 3:
+            return count // 3, "index count not divisible by 3"
+        return count // 3, None
+
+    triangle_count = 0
+    triangle_problems: list[str] = []
+    for p in primitives:
+        count, problem = prim_triangles(p)
+        triangle_count += count
+        if problem is not None and problem not in triangle_problems:
+            triangle_problems.append(problem)
 
     report = {
         "glb_version": version,
@@ -78,7 +102,7 @@ def inspect_glb(path: Path) -> dict:
         "bin_bytes": bin_size,
         "meshes": len(meshes),
         "primitives": len(primitives),
-        "triangles": sum(prim_triangles(p) for p in primitives),
+        "triangles": triangle_count,
         "vertex_attributes": sorted(attrs),
         "materials": len(materials),
         "materials_with_pbr": len(pbr),
@@ -100,6 +124,7 @@ def inspect_glb(path: Path) -> dict:
         problems.append("missing TEXCOORD attribute")
     if report["primitives"] and not report["materials_with_pbr"]:
         problems.append("primitives present but no PBR material")
+    problems.extend(triangle_problems)
     report["problems"] = problems
     report["ok"] = not problems
     return report
